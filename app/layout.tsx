@@ -1,9 +1,15 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Plus_Jakarta_Sans } from 'next/font/google'
 import { Toaster } from 'sonner'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'] })
+// Ganti Inter → Plus Jakarta Sans, di-handle next/font (lebih cepat & optimal)
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700', '800'],
+  display: 'swap',
+  variable: '--font-plus-jakarta',
+})
 
 export const metadata: Metadata = {
   title: 'Portal Qurban',
@@ -16,8 +22,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="id">
-      <body className={inter.className}>
+    <html lang="id" className={plusJakartaSans.variable}>
+      <body className={plusJakartaSans.className}>
         {children}
         <Toaster position="top-right" richColors />
       </body>
