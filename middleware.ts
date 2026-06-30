@@ -1,8 +1,39 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-// Simple in-memory rate limiter untuk public tracking API
-// Di production, ganti dengan Redis
+// ─────────────────────────────────────────────
+// Route definitions
+// ─────────────────────────────────────────────
+
+// Rute halaman yang wajib login
+const PROTECTED_PAGE_PREFIXES = [
+  '/analitik',
+  '/hewan',
+  '/status',
+  '/log',
+  '/panitia',
+]
+
+// Rute API yang wajib login
+// (api/tracking sengaja dikecualikan — itu public)
+const PROTECTED_API_PREFIXES = [
+  '/api/hewan',
+  '/api/jamaah',
+  '/api/panitia',
+]
+
+// Rute yang boleh diakses tanpa login
+const PUBLIC_PREFIXES = [
+  '/tracking',
+  '/login',
+  '/api/tracking',
+  '/_next',
+  '/favicon',
+]
+
+// ─────────────────────────────────────────────
+// Rate limiter (in-memory, ganti Redis di prod)
+// ─────────────────────────────────────────────
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
 
 function checkRateLimit(ip: string, limit = 10, windowMs = 60_000): boolean {
@@ -15,15 +46,17 @@ function checkRateLimit(ip: string, limit = 10, windowMs = 60_000): boolean {
   }
 
   if (entry.count >= limit) return false
-
   entry.count++
   return true
 }
 
+// ─────────────────────────────────────────────
+// Middleware
+// ─────────────────────────────────────────────
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Rate limiting khusus endpoint tracking publik
+  // 1. Rate limiting untuk endpoint tracking publik
   if (pathname.startsWith('/api/tracking')) {
     const ip =
       request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
@@ -38,18 +71,20 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Halaman publik — tidak perlu auth
-  if (
-    pathname.startsWith('/tracking') ||
-    pathname.startsWith('/login') ||
-    pathname.startsWith('/api/tracking') ||
-    pathname.startsWith('/_next') ||
-    pathname === '/'
-  ) {
+  // 2. Rute yang selalu boleh diakses — langsung lanjut
+  const isPublic = PUBLIC_PREFIXES.some((p) => pathname.startsWith(p)) || pathname === '/'
+  if (isPublic) return NextResponse.next()
+
+  // 3. Cek apakah rute ini memerlukan autentikasi
+  const isProtectedPage = PROTECTED_PAGE_PREFIXES.some((p) => pathname.startsWith(p))
+  const isProtectedApi = PROTECTED_API_PREFIXES.some((p) => pathname.startsWith(p))
+
+  if (!isProtectedPage && !isProtectedApi) {
+    // Rute tidak dikenal — biarkan Next.js tangani (404, dll.)
     return NextResponse.next()
   }
 
-  // Semua route /dashboard/* perlu autentikasi
+  // 4. Buat Supabase client & ambil user dari session
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -73,12 +108,24 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  if (!user && pathname.startsWith('/dashboard')) {
-    return NextResponse.redirect(new URL('/login', request.url))
+  // 5. Tidak ada sesi → tolak akses
+  if (!user) {
+    if (isProtectedApi) {
+      // API route → kembalikan JSON 401
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Halaman → redirect ke login, simpan tujuan asli di query param
+    const loginUrl = new URL('/login', request.url)
+    loginUrl.searchParams.set('from', pathname)
+    return NextResponse.redirect(loginUrl)
   }
 
+  // 6. Ada sesi → izinkan akses, teruskan cookies yang diperbarui
   return response
 }
 

@@ -1,96 +1,227 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { toast } from 'sonner'
+import { Mail, Lock, Moon } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  // Ambil tujuan redirect setelah login (dari middleware)
+  const from = searchParams.get('from') ?? null
 
   async function handleLogin() {
     if (!email || !password) {
-      toast.error('Email dan password wajib diisi')
+      setError('Email dan password wajib diisi')
       return
     }
-
+    setError('')
     setLoading(true)
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
 
-    if (error) {
-      toast.error('Email atau password salah')
+    const { data, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (authError || !data.user) {
+      setError('Email atau password salah')
       setLoading(false)
       return
     }
 
-    router.push('/analitik')
+    // Ambil role untuk redirect yang tepat
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', data.user.id)
+      .single()
+
+    // Tentukan tujuan:
+    // - Jika ada `from` (user dipaksa keluar dari halaman tertentu), kembali ke sana
+    // - PETUGAS_LAPANGAN → /status (hanya halaman yang bisa mereka akses)
+    // - Lainnya → /analitik
+    let destination: string
+    if (from && from !== '/login') {
+      destination = from
+    } else if (profile?.role === 'PETUGAS_LAPANGAN') {
+      destination = '/status'
+    } else {
+      destination = '/analitik'
+    }
+
+    router.push(destination)
     router.refresh()
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-white flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div
+      className="min-h-screen flex items-center justify-center p-6"
+      style={{
+        background: 'linear-gradient(145deg, #030d07 0%, #091a0f 52%, #060e1a 100%)',
+      }}
+    >
+      {/* Background orbs */}
+      <div
+        className="pointer-events-none fixed"
+        style={{
+          top: '-20%', left: '-15%',
+          width: 700, height: 700,
+          background: 'radial-gradient(circle, rgba(16,185,129,0.13) 0%, transparent 65%)',
+        }}
+      />
+      <div
+        className="pointer-events-none fixed"
+        style={{
+          bottom: '-25%', right: '-10%',
+          width: 800, height: 800,
+          background: 'radial-gradient(circle, rgba(5,150,105,0.08) 0%, transparent 65%)',
+        }}
+      />
 
-        {/* Logo & Header */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <span className="text-white text-3xl">🌙</span>
+      <div className="w-full max-w-[400px] relative z-10">
+
+        {/* Logo */}
+        <div className="text-center mb-10">
+          <div className="inline-flex relative mb-5">
+            <div
+              className="w-[74px] h-[74px] rounded-3xl flex items-center justify-center"
+              style={{
+                background: 'linear-gradient(145deg, #12c98d 0%, #059669 100%)',
+                boxShadow: '0 0 0 1px rgba(16,185,129,0.28), 0 8px 40px rgba(16,185,129,0.42), 0 0 80px rgba(16,185,129,0.12)',
+              }}
+            >
+              <Moon size={30} color="white" strokeWidth={2.2} />
+            </div>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Portal Qurban</h1>
-          <p className="text-gray-500 mt-1 text-sm">Sistem Manajemen Kepanitiaan Qurban</p>
+          <h1 className="text-2xl font-extrabold tracking-tight" style={{ color: 'rgba(255,255,255,0.97)', letterSpacing: '-0.5px' }}>
+            Portal Qurban
+          </h1>
+          <p className="text-sm mt-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            Sistem Manajemen Kepanitiaan Qurban
+          </p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-          <h2 className="text-lg font-semibold text-gray-800 mb-6">Masuk ke Akun Anda</h2>
+        <div
+          className="rounded-3xl p-8"
+          style={{
+            background: 'rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(32px) saturate(150%)',
+            WebkitBackdropFilter: 'blur(32px) saturate(150%)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderTop: '1px solid rgba(255,255,255,0.2)',
+            boxShadow: '0 24px 64px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.09)',
+          }}
+        >
+          <p
+            className="text-xs font-bold uppercase tracking-widest mb-6"
+            style={{ color: 'rgba(255,255,255,0.38)', letterSpacing: '0.8px' }}
+          >
+            Masuk ke Akun Anda
+          </p>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Email
-              </label>
+          {/* Error */}
+          {error && (
+            <div
+              className="text-sm rounded-xl px-4 py-3 mb-5"
+              style={{
+                background: 'rgba(239,68,68,0.12)',
+                border: '1px solid rgba(239,68,68,0.25)',
+                color: '#fca5a5',
+              }}
+            >
+              {error}
+            </div>
+          )}
+
+          {/* Email */}
+          <div className="mb-4">
+            <label
+              className="block text-xs font-bold uppercase tracking-widest mb-2"
+              style={{ color: 'rgba(255,255,255,0.38)', letterSpacing: '0.8px' }}
+            >
+              Email
+            </label>
+            <div className="relative">
+              <Mail
+                size={15}
+                className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none"
+                style={{ color: 'rgba(255,255,255,0.24)' }}
+              />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                 placeholder="panitia@masjid.com"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                className="w-full rounded-xl pl-11 pr-4 py-3 text-sm outline-none transition-all"
+                style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.09)',
+                  color: 'rgba(255,255,255,0.9)',
+                }}
               />
             </div>
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Password
-              </label>
+          {/* Password */}
+          <div className="mb-7">
+            <label
+              className="block text-xs font-bold uppercase tracking-widest mb-2"
+              style={{ color: 'rgba(255,255,255,0.38)', letterSpacing: '0.8px' }}
+            >
+              Password
+            </label>
+            <div className="relative">
+              <Lock
+                size={15}
+                className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none"
+                style={{ color: 'rgba(255,255,255,0.24)' }}
+              />
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                 placeholder="••••••••"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                className="w-full rounded-xl pl-11 pr-4 py-3 text-sm outline-none transition-all"
+                style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.09)',
+                  color: 'rgba(255,255,255,0.9)',
+                }}
               />
             </div>
-
-            <button
-              onClick={handleLogin}
-              disabled={loading}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white font-medium py-2.5 rounded-xl transition text-sm mt-2"
-            >
-              {loading ? 'Memproses...' : 'Masuk'}
-            </button>
           </div>
+
+          {/* Submit */}
+          <button
+            onClick={handleLogin}
+            disabled={loading}
+            className="w-full rounded-2xl py-3.5 text-sm font-bold text-white transition-all disabled:opacity-60"
+            style={{
+              background: loading
+                ? 'rgba(16,185,129,0.5)'
+                : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              boxShadow: '0 4px 20px rgba(16,185,129,0.42), 0 0 0 1px rgba(16,185,129,0.18)',
+            }}
+          >
+            {loading ? 'Memproses...' : 'Masuk'}
+          </button>
         </div>
 
-        {/* Public Tracking Link */}
-        <p className="text-center text-sm text-gray-500 mt-6">
+        {/* Tracking link */}
+        <p className="text-center text-sm mt-6" style={{ color: 'rgba(255,255,255,0.28)' }}>
           Jamaah?{' '}
-          <a href="/tracking" className="text-emerald-600 hover:underline font-medium">
+          <a href="/tracking" className="font-semibold" style={{ color: '#34d399' }}>
             Cek status hewan qurban Anda →
           </a>
         </p>
