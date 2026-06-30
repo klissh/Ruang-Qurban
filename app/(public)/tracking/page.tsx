@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { STATUS_CONFIG, STATUS_ORDER } from '@/types'
 import type { StatusHewan, JenisHewan } from '@/types'
+import { Moon, Search, Beef, PawPrint, Check, Video, AlertCircle, Loader2 } from 'lucide-react'
 
 interface TrackingData {
   kode_resi: string
@@ -12,6 +13,25 @@ interface TrackingData {
   url_dokumentasi: string | null
   nama_workspace: string
   jamaah: Array<{ id: string; nama_lengkap: string; atas_nama: string | null }>
+}
+
+const G = {
+  card: {
+    background: 'rgba(255,255,255,0.06)',
+    backdropFilter: 'blur(24px) saturate(160%)',
+    WebkitBackdropFilter: 'blur(24px) saturate(160%)',
+    border: '1px solid rgba(255,255,255,0.09)',
+    borderTop: '1px solid rgba(255,255,255,0.16)',
+    borderRadius: '1.125rem',
+    boxShadow: '0 4px 24px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.07)',
+  } as React.CSSProperties,
+}
+
+const STATUS_GLASS: Record<StatusHewan, { color: string; bg: string; border: string; dot: string }> = {
+  BELUM_DISEMBELIH:  { color: '#94a3b8', bg: 'rgba(100,116,139,0.14)', border: 'rgba(148,163,184,0.22)', dot: '#64748b' },
+  SEDANG_DISEMBELIH: { color: '#fbbf24', bg: 'rgba(245,158,11,0.14)',  border: 'rgba(251,191,36,0.22)',  dot: '#f59e0b' },
+  PENCACAHAN:        { color: '#60a5fa', bg: 'rgba(59,130,246,0.14)',   border: 'rgba(96,165,250,0.22)',  dot: '#3b82f6' },
+  SELESAI:           { color: '#34d399', bg: 'rgba(16,185,129,0.14)',   border: 'rgba(52,211,153,0.22)',  dot: '#10b981' },
 }
 
 export default function TrackingPage() {
@@ -24,20 +44,14 @@ export default function TrackingPage() {
   const handleSearch = useCallback(async (searchKode?: string) => {
     const q = (searchKode ?? kode).trim().toUpperCase()
     if (!q) return
-
     setLoading(true)
     setError('')
     setResult(null)
-
     try {
       const res = await fetch(`/api/tracking?kode=${encodeURIComponent(q)}`)
       const json = await res.json()
-
-      if (!res.ok) {
-        setError(json.error ?? 'Terjadi kesalahan. Coba lagi.')
-      } else {
-        setResult(json.data)
-      }
+      if (!res.ok) setError(json.error ?? 'Terjadi kesalahan. Coba lagi.')
+      else setResult(json.data)
     } catch {
       setError('Koneksi gagal. Periksa internet Anda.')
     } finally {
@@ -45,172 +59,243 @@ export default function TrackingPage() {
     }
   }, [kode])
 
-  // Auto-search jika ada kode dari URL param (misal dari link WA)
   useEffect(() => {
     const paramKode = searchParams.get('kode')
-    if (paramKode) {
-      setKode(paramKode)
-      handleSearch(paramKode)
-    }
+    if (paramKode) { setKode(paramKode); handleSearch(paramKode) }
   }, []) // eslint-disable-line
 
   const currentStep = result ? STATUS_CONFIG[result.status].step : 0
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-white">
+    <div
+      style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(145deg, #030d07 0%, #091a0f 52%, #060e1a 100%)',
+        fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+        color: 'rgba(255,255,255,0.9)',
+      }}
+    >
+      {/* BG orbs */}
+      <div style={{ position: 'fixed', top: '-20%', left: '-15%', width: 700, height: 700, background: 'radial-gradient(circle, rgba(16,185,129,0.1) 0%, transparent 65%)', pointerEvents: 'none', zIndex: 0 }} />
+      <div style={{ position: 'fixed', bottom: '-25%', right: '-10%', width: 800, height: 800, background: 'radial-gradient(circle, rgba(5,150,105,0.07) 0%, transparent 65%)', pointerEvents: 'none', zIndex: 0 }} />
 
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 shadow-sm">
-        <div className="max-w-xl mx-auto px-4 py-4 flex items-center gap-3">
-          <span className="text-2xl">🌙</span>
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 10,
+        background: 'rgba(4,10,7,0.85)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
+      }}>
+        <div style={{ maxWidth: 560, margin: '0 auto', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 38, height: 38, borderRadius: 12,
+            background: 'linear-gradient(145deg,#12c98d,#059669)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            boxShadow: '0 4px 16px rgba(16,185,129,0.4)',
+          }}>
+            <Moon size={18} color="white" strokeWidth={2.4} />
+          </div>
           <div>
-            <h1 className="font-bold text-gray-900 leading-none">Portal Tracking Qurban</h1>
-            <p className="text-xs text-gray-400 mt-0.5">Cek status hewan qurban Anda</p>
+            <h1 style={{ fontWeight: 800, fontSize: 15, color: 'rgba(255,255,255,0.95)', margin: 0, letterSpacing: '-0.2px' }}>
+              Portal Tracking Qurban
+            </h1>
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.36)', margin: '2px 0 0' }}>Cek status hewan qurban Anda</p>
           </div>
         </div>
       </div>
 
-      <div className="max-w-xl mx-auto px-4 py-8 space-y-6">
+      <div style={{ maxWidth: 560, margin: '0 auto', padding: '24px 20px 48px', position: 'relative', zIndex: 1 }}>
 
-        {/* Search Box */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <label className="block text-sm font-medium text-gray-700 mb-3">
+        {/* Search card */}
+        <div style={{ ...G.card, padding: 24, marginBottom: 20 }}>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: 12 }}>
             Masukkan Kode Resi Qurban Anda
           </label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={kode}
-              onChange={(e) => setKode(e.target.value.toUpperCase())}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder="Contoh: X7KQ-2M9R"
-              className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-sm font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition uppercase"
-            />
+          <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ position: 'relative', flex: 1 }}>
+              <Search size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.28)', pointerEvents: 'none' }} />
+              <input
+                type="text"
+                value={kode}
+                onChange={(e) => setKode(e.target.value.toUpperCase())}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                placeholder="Contoh: X7KQ-2M9R"
+                style={{
+                  width: '100%', background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.09)', color: 'rgba(255,255,255,0.9)',
+                  borderRadius: 12, padding: '12px 14px 12px 44px',
+                  fontSize: 14, fontFamily: 'ui-monospace,monospace',
+                  letterSpacing: '0.05em', outline: 'none', textTransform: 'uppercase',
+                }}
+              />
+            </div>
             <button
               onClick={() => handleSearch()}
               disabled={loading || !kode.trim()}
-              className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white font-medium rounded-xl transition text-sm whitespace-nowrap"
+              style={{
+                padding: '12px 20px',
+                background: loading || !kode.trim()
+                  ? 'rgba(16,185,129,0.3)'
+                  : 'linear-gradient(135deg,#10b981,#059669)',
+                border: 'none', borderRadius: 12, color: 'white',
+                fontWeight: 700, fontSize: 14, cursor: loading || !kode.trim() ? 'not-allowed' : 'pointer',
+                boxShadow: '0 4px 16px rgba(16,185,129,0.35)',
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}
             >
-              {loading ? '...' : 'Cek'}
+              {loading ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Search size={15} />}
+              Cek
             </button>
           </div>
 
           {error && (
-            <div className="mt-3 p-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">
-              ⚠️ {error}
+            <div style={{
+              marginTop: 12, padding: '10px 14px',
+              background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)',
+              borderRadius: 10, fontSize: 13, color: '#fca5a5',
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}>
+              <AlertCircle size={14} /> {error}
             </div>
           )}
         </div>
 
-        {/* Hasil */}
+        {/* Result */}
         {result && (
-          <div className="space-y-4">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-            {/* Info Hewan */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <div className="flex items-start justify-between mb-4">
+            {/* Info hewan */}
+            <div style={{ ...G.card, padding: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
                 <div>
-                  <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Kode Hewan</p>
-                  <p className="text-2xl font-bold text-gray-900 font-mono mt-0.5">{result.kode_resi}</p>
-                  <p className="text-sm text-gray-500 mt-0.5">
-                    {result.jenis_hewan === 'SAPI' ? '🐄 Sapi' : '🐐 Kambing'} • {result.nama_workspace}
+                  <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase', letterSpacing: '0.8px', margin: 0 }}>Kode Hewan</p>
+                  <p style={{ fontFamily: 'ui-monospace,monospace', fontWeight: 800, fontSize: 26, color: 'rgba(255,255,255,0.97)', margin: '6px 0 8px', letterSpacing: '-0.5px' }}>
+                    {result.kode_resi}
                   </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {result.jenis_hewan === 'SAPI'
+                      ? <Beef size={14} color="rgba(255,255,255,0.45)" />
+                      : <PawPrint size={14} color="rgba(255,255,255,0.45)" />
+                    }
+                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>
+                      {result.jenis_hewan} · {result.nama_workspace}
+                    </span>
+                  </div>
                 </div>
-                <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${STATUS_CONFIG[result.status].bgColor} ${STATUS_CONFIG[result.status].color}`}>
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', padding: '5px 12px',
+                  borderRadius: 20, fontSize: 12, fontWeight: 700, flexShrink: 0,
+                  background: STATUS_GLASS[result.status].bg,
+                  color: STATUS_GLASS[result.status].color,
+                  border: `1px solid ${STATUS_GLASS[result.status].border}`,
+                }}>
                   {STATUS_CONFIG[result.status].labelShort}
-                </span>
+                </div>
               </div>
             </div>
 
-            {/* Stepper Timeline */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <h3 className="text-sm font-semibold text-gray-700 mb-5">Status Penyembelihan</h3>
-              <div className="space-y-0">
-                {STATUS_ORDER.map((status, idx) => {
-                  const config = STATUS_CONFIG[status]
-                  const isCompleted = currentStep > config.step
-                  const isActive = currentStep === config.step
-                  const isLast = idx === STATUS_ORDER.length - 1
+            {/* Stepper */}
+            <div style={{ ...G.card, padding: 24 }}>
+              <h3 style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', margin: '0 0 20px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                Status Penyembelihan
+              </h3>
+              {STATUS_ORDER.map((status, idx) => {
+                const cfg = STATUS_CONFIG[status]
+                const sg = STATUS_GLASS[status]
+                const isCompleted = currentStep > cfg.step
+                const isActive = currentStep === cfg.step
+                const isLast = idx === STATUS_ORDER.length - 1
 
-                  return (
-                    <div key={status} className="flex gap-4">
-                      {/* Line + Dot */}
-                      <div className="flex flex-col items-center">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 flex-shrink-0 transition-all
-                          ${isCompleted ? 'bg-emerald-500 border-emerald-500 text-white' : ''}
-                          ${isActive ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-200' : ''}
-                          ${!isCompleted && !isActive ? 'bg-white border-gray-200 text-gray-300' : ''}
-                        `}>
-                          {isCompleted ? '✓' : config.step}
-                        </div>
-                        {!isLast && (
-                          <div className={`w-0.5 flex-1 my-1 min-h-[24px] transition-all
-                            ${isCompleted ? 'bg-emerald-400' : 'bg-gray-100'}
-                          `} />
-                        )}
+                return (
+                  <div key={status} style={{ display: 'flex', gap: 16 }}>
+                    {/* Dot + Line */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <div style={{
+                        width: 32, height: 32, borderRadius: '50%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 13, fontWeight: 700, flexShrink: 0,
+                        background: isCompleted ? sg.bg : isActive ? sg.bg : 'rgba(255,255,255,0.05)',
+                        border: `2px solid ${isCompleted || isActive ? sg.dot : 'rgba(255,255,255,0.12)'}`,
+                        color: isCompleted || isActive ? sg.color : 'rgba(255,255,255,0.2)',
+                        boxShadow: isActive ? `0 0 12px ${sg.dot}55` : 'none',
+                      }}>
+                        {isCompleted ? <Check size={14} /> : cfg.step}
                       </div>
-
-                      {/* Label */}
-                      <div className={`pb-6 ${isLast ? 'pb-0' : ''}`}>
-                        <p className={`text-sm font-semibold leading-none mb-1
-                          ${isActive ? 'text-emerald-700' : ''}
-                          ${isCompleted ? 'text-gray-500' : ''}
-                          ${!isCompleted && !isActive ? 'text-gray-300' : ''}
-                        `}>
-                          {config.label}
-                        </p>
-                        {isActive && (
-                          <p className="text-xs text-emerald-500 font-medium">● Sedang berlangsung</p>
-                        )}
-                        {isCompleted && (
-                          <p className="text-xs text-gray-400">Selesai</p>
-                        )}
-                      </div>
+                      {!isLast && (
+                        <div style={{
+                          width: 2, flex: 1, margin: '4px 0', minHeight: 20,
+                          background: isCompleted ? sg.dot : 'rgba(255,255,255,0.07)',
+                        }} />
+                      )}
                     </div>
-                  )
-                })}
-              </div>
+
+                    {/* Label */}
+                    <div style={{ paddingBottom: isLast ? 0 : 20 }}>
+                      <p style={{
+                        fontSize: 14, fontWeight: isActive ? 700 : 500, lineHeight: '32px', margin: 0,
+                        color: isActive ? sg.color : isCompleted ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.22)',
+                      }}>
+                        {cfg.label}
+                      </p>
+                      {isActive && (
+                        <p style={{ fontSize: 11.5, color: sg.color, fontWeight: 600, margin: '2px 0 0', opacity: 0.8 }}>
+                          Sedang berlangsung
+                        </p>
+                      )}
+                      {isCompleted && (
+                        <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.3)', margin: '2px 0 0' }}>Selesai</p>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
 
-            {/* Daftar Jamaah */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <h3 className="text-sm font-semibold text-gray-700 mb-4">
+            {/* Jamaah */}
+            <div style={{ ...G.card, padding: 24 }}>
+              <h3 style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', margin: '0 0 16px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
                 Daftar Pengqurban ({result.jamaah.length} orang)
               </h3>
-              <div className="space-y-2">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {result.jamaah.map((j, idx) => (
-                  <div key={j.id} className="flex items-start gap-3 py-2 border-b border-gray-50 last:border-0">
-                    <span className="w-6 h-6 rounded-full bg-emerald-50 text-emerald-600 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <div key={j.id} style={{
+                    display: 'flex', alignItems: 'flex-start', gap: 10,
+                    padding: '10px 14px',
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.07)',
+                    borderRadius: 10,
+                  }}>
+                    <div style={{
+                      width: 24, height: 24, borderRadius: '50%',
+                      background: 'rgba(16,185,129,0.15)', color: '#34d399',
+                      fontSize: 10, fontWeight: 700,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1,
+                    }}>
                       {idx + 1}
-                    </span>
+                    </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-800">{j.nama_lengkap}</p>
-                      {j.atas_nama && (
-                        <p className="text-xs text-gray-400">({j.atas_nama})</p>
-                      )}
+                      <p style={{ fontSize: 13.5, fontWeight: 600, color: 'rgba(255,255,255,0.88)', margin: 0 }}>{j.nama_lengkap}</p>
+                      {j.atas_nama && <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.38)', margin: '3px 0 0' }}>({j.atas_nama})</p>}
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Video Dokumentasi */}
+            {/* Dokumentasi video */}
             {result.url_dokumentasi && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                <h3 className="text-sm font-semibold text-gray-700 mb-4">📹 Dokumentasi Penyembelihan</h3>
-                <div className="rounded-xl overflow-hidden bg-gray-100 aspect-video">
-                  <iframe
-                    src={result.url_dokumentasi}
-                    className="w-full h-full"
-                    allow="autoplay"
-                    title="Dokumentasi Penyembelihan"
-                  />
+              <div style={{ ...G.card, padding: 24 }}>
+                <h3 style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 7, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                  <Video size={14} color="#34d399" /> Dokumentasi Penyembelihan
+                </h3>
+                <div style={{ borderRadius: 12, overflow: 'hidden', background: 'rgba(0,0,0,0.3)', aspectRatio: '16/9' }}>
+                  <iframe src={result.url_dokumentasi} style={{ width: '100%', height: '100%', border: 'none' }} allow="autoplay" title="Dokumentasi" />
                 </div>
               </div>
             )}
 
-            {/* Auto refresh info */}
-            <p className="text-center text-xs text-gray-400">
+            <p style={{ textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.24)' }}>
               Halaman ini otomatis diperbarui setiap 30 detik
             </p>
           </div>

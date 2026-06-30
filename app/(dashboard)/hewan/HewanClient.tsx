@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { toast } from 'sonner'
-import { Plus, Upload, Printer, Search, ChevronDown, ChevronUp, Copy } from 'lucide-react'
+import { Plus, Upload, Printer, Search, ChevronDown, ChevronUp, Copy, Beef, PawPrint, Phone, MapPin, X } from 'lucide-react'
 import { STATUS_CONFIG } from '@/types'
 import type { StatusHewan, JenisHewan, Hewan, Jamaah, JamaahFormData } from '@/types'
 import { generateKodeResi } from '@/lib/utils'
@@ -13,8 +13,41 @@ import PenyembelihanModal from '@/components/cetak/PenyembelihanModal'
 import * as XLSX from 'xlsx'
 
 const EMPTY_JAMAAH: JamaahFormData = { nama_lengkap: '', atas_nama: '', no_hp: '', alamat_lengkap: '' }
-
 type ModalType = 'tambah' | 'cetakPicker' | 'label' | 'marbot' | 'penyembelihan' | null
+
+const STATUS_GLASS: Record<StatusHewan, { color: string; bg: string; border: string; dot: string; topBorder: string }> = {
+  BELUM_DISEMBELIH:  { color: '#94a3b8', bg: 'rgba(100,116,139,0.14)', border: 'rgba(148,163,184,0.22)', dot: '#64748b', topBorder: 'rgba(148,163,184,0.35)' },
+  SEDANG_DISEMBELIH: { color: '#fbbf24', bg: 'rgba(245,158,11,0.14)',  border: 'rgba(251,191,36,0.22)',  dot: '#f59e0b', topBorder: 'rgba(251,191,36,0.35)' },
+  PENCACAHAN:        { color: '#60a5fa', bg: 'rgba(59,130,246,0.14)',   border: 'rgba(96,165,250,0.22)',  dot: '#3b82f6', topBorder: 'rgba(96,165,250,0.35)' },
+  SELESAI:           { color: '#34d399', bg: 'rgba(16,185,129,0.14)',   border: 'rgba(52,211,153,0.22)',  dot: '#10b981', topBorder: 'rgba(52,211,153,0.35)' },
+}
+
+const G = {
+  input: {
+    width: '100%',
+    background: 'rgba(255,255,255,0.05)',
+    border: '1px solid rgba(255,255,255,0.09)',
+    color: 'rgba(255,255,255,0.9)',
+    borderRadius: 10,
+    padding: '10px 14px',
+    fontSize: 13.5,
+    outline: 'none',
+  } as React.CSSProperties,
+  modal: {
+    background: 'rgba(7,18,11,0.97)',
+    backdropFilter: 'blur(36px) saturate(150%)',
+    WebkitBackdropFilter: 'blur(36px) saturate(150%)',
+    border: '1px solid rgba(255,255,255,0.11)',
+    borderTop: '1px solid rgba(255,255,255,0.2)',
+    borderRadius: 24,
+    width: '100%',
+    maxWidth: 500,
+    maxHeight: '90vh',
+    display: 'flex' as const,
+    flexDirection: 'column' as const,
+    boxShadow: '0 32px 80px rgba(0,0,0,0.52)',
+  },
+}
 
 interface Props {
   hewanList: Hewan[]
@@ -32,21 +65,15 @@ export default function HewanClient({ hewanList, jamaahList, sapiCount, kambingC
   const [search, setSearch] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-
-  // Form state untuk Tambah Kelompok
   const [jenisHewan, setJenisHewan] = useState<JenisHewan>('SAPI')
   const [jamaahForms, setJamaahForms] = useState<JamaahFormData[]>([{ ...EMPTY_JAMAAH }])
   const maxJamaah = jenisHewan === 'SAPI' ? 7 : 1
   const importRef = useRef<HTMLInputElement>(null)
 
-  const filtered = hewan.filter((h) =>
-    h.kode_resi.toLowerCase().includes(search.toLowerCase())
-  )
-
+  const filtered = hewan.filter((h) => h.kode_resi.toLowerCase().includes(search.toLowerCase()))
   const getJamaahFor = (idHewan: string) => jamaah.filter((j) => j.id_hewan === idHewan)
   const cetakData = hewan.map((h) => ({ hewan: h, jamaah: getJamaahFor(h.id) }))
 
-  // ── Tambah Kelompok ──
   function updateForm(idx: number, field: keyof JamaahFormData, val: string) {
     setJamaahForms((p) => p.map((j, i) => i === idx ? { ...j, [field]: val } : j))
   }
@@ -80,7 +107,6 @@ export default function HewanClient({ hewanList, jamaahList, sapiCount, kambingC
     }
   }
 
-  // ── Import Excel ──
   function handleFileImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -92,7 +118,7 @@ export default function HewanClient({ hewanList, jamaahList, sapiCount, kambingC
         const rows = XLSX.utils.sheet_to_json<any>(ws)
         const valid = rows.filter((r: any) => r['nama_lengkap'] || r['Nama Lengkap'] || r['NAMA'])
         if (!valid.length) { toast.error('Kolom nama_lengkap tidak ditemukan di file'); return }
-        toast.info(`${valid.length} baris ditemukan di Excel. Fitur import batch segera hadir.`)
+        toast.info(`${valid.length} baris ditemukan. Fitur import batch segera hadir.`)
       } catch { toast.error('Gagal membaca file Excel') }
     }
     reader.readAsBinaryString(file)
@@ -104,113 +130,183 @@ export default function HewanClient({ hewanList, jamaahList, sapiCount, kambingC
     toast.success('Link tracking disalin!')
   }
 
-  const nextKodeSapi = generateKodeResi('SAPI', sapiCount + 1)
+  const nextKodeSapi    = generateKodeResi('SAPI', sapiCount + 1)
   const nextKodeKambing = generateKodeResi('KAMBING', kambingCount + 1)
 
+  const STAT_STATUSES: StatusHewan[] = ['BELUM_DISEMBELIH', 'SEDANG_DISEMBELIH', 'PENCACAHAN', 'SELESAI']
+
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-6 md:p-8 max-w-5xl mx-auto animate-slide-up">
 
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 28 }}>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Data Hewan Qurban</h1>
-          <p className="text-gray-400 text-sm mt-0.5">{hewan.length} hewan terdaftar</p>
+          <h1 style={{ fontSize: 26, fontWeight: 800, color: 'rgba(255,255,255,0.97)', letterSpacing: '-0.5px', margin: 0 }}>
+            Data Hewan Qurban
+          </h1>
+          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.36)', marginTop: 6 }}>{hewan.length} hewan terdaftar</p>
         </div>
-        <div className="flex gap-2 flex-wrap">
-          <button onClick={() => setModal('cetakPicker')}
-            className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
-            <Printer size={15} /> Cetak
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <button onClick={() => setModal('cetakPicker')} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 11, color: 'rgba(255,255,255,0.62)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            <Printer size={14} /> Cetak
           </button>
-          <button onClick={() => importRef.current?.click()}
-            className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
-            <Upload size={15} /> Import Excel
+          <button onClick={() => importRef.current?.click()} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 11, color: 'rgba(255,255,255,0.62)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            <Upload size={14} /> Import Excel
           </button>
-          <input ref={importRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFileImport} />
-          <button onClick={() => setModal('tambah')}
-            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium transition">
-            <Plus size={15} /> Tambah Kelompok
+          <input ref={importRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={handleFileImport} />
+          <button onClick={() => setModal('tambah')} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none', borderRadius: 11, color: 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px rgba(16,185,129,0.38)' }}>
+            <Plus size={14} /> Tambah Kelompok
           </button>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-        {(['BELUM_DISEMBELIH', 'SEDANG_DISEMBELIH', 'PENCACAHAN', 'SELESAI'] as StatusHewan[]).map((s) => {
-          const c = STATUS_CONFIG[s]
+      {/* Stats mini */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 20 }}>
+        {STAT_STATUSES.map((s) => {
+          const sg = STATUS_GLASS[s]
+          const cfg = STATUS_CONFIG[s]
           return (
-            <div key={s} className={`rounded-xl p-4 ${c.bgColor}`}>
-              <p className={`text-2xl font-bold ${c.color}`}>{hewan.filter((h) => h.status === s).length}</p>
-              <p className={`text-xs font-medium mt-0.5 ${c.color} opacity-75`}>{c.labelShort}</p>
+            <div key={s} style={{
+              background: 'rgba(255,255,255,0.06)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.09)',
+              borderTop: `1px solid ${sg.topBorder}`,
+              borderRadius: 14, padding: '14px 18px',
+            }}>
+              <p style={{ fontSize: 24, fontWeight: 800, color: sg.color, lineHeight: 1, margin: '0 0 5px', letterSpacing: '-0.5px' }}>
+                {hewan.filter((h) => h.status === s).length}
+              </p>
+              <p style={{ fontSize: 11.5, fontWeight: 600, color: 'rgba(255,255,255,0.38)', margin: 0 }}>{cfg.labelShort}</p>
             </div>
           )
         })}
       </div>
 
       {/* Search */}
-      <div className="relative mb-4">
-        <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari kode resi..."
-          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+      <div style={{ position: 'relative', marginBottom: 16 }}>
+        <Search size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.28)', pointerEvents: 'none' }} />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Cari kode resi..."
+          style={{ ...G.input, paddingLeft: 44, borderRadius: 13 }}
+        />
       </div>
 
-      {/* List Hewan */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      {/* List */}
+      <div style={{
+        background: 'rgba(255,255,255,0.05)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255,255,255,0.09)',
+        borderTop: '1px solid rgba(255,255,255,0.14)',
+        borderRadius: 18,
+        overflow: 'hidden',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.14)',
+      }}>
         {filtered.length === 0 && (
-          <div className="py-16 text-center text-gray-400 text-sm">
-            {search ? 'Tidak ditemukan' : 'Belum ada data. Klik "Tambah Kelompok" untuk mulai.'}
+          <div style={{ padding: '64px 0', textAlign: 'center' }}>
+            <Search size={32} color="rgba(255,255,255,0.12)" style={{ margin: '0 auto 14px', display: 'block' }} />
+            <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.3)', margin: 0 }}>
+              {search ? 'Tidak ditemukan' : 'Belum ada data. Klik "Tambah Kelompok" untuk mulai.'}
+            </p>
           </div>
         )}
         {filtered.map((h, idx) => {
-          const c = STATUS_CONFIG[h.status]
+          const sg = STATUS_GLASS[h.status]
+          const cfg = STATUS_CONFIG[h.status]
           const jList = getJamaahFor(h.id)
           const isExpanded = expandedId === h.id
+          const isSapi = h.jenis_hewan === 'SAPI'
           return (
-            <div key={h.id} className={idx > 0 ? 'border-t border-gray-50' : ''}>
+            <div key={h.id}>
               <div
                 onClick={() => setExpandedId(isExpanded ? null : h.id)}
-                className="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50 cursor-pointer transition"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 14,
+                  padding: '14px 20px', cursor: 'pointer',
+                  borderBottom: '1px solid rgba(255,255,255,0.045)',
+                  background: isExpanded ? 'rgba(16,185,129,0.04)' : 'transparent',
+                  transition: 'background 0.15s',
+                }}
               >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <span className="font-mono font-bold text-gray-900">{h.kode_resi}</span>
-                    <span className="text-xs text-gray-400">{h.jenis_hewan === 'SAPI' ? '🐄' : '🐐'} {jList.length} orang</span>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: sg.dot, boxShadow: `0 0 7px ${sg.dot}99`, flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ fontFamily: 'ui-monospace,monospace', fontWeight: 800, fontSize: 14, color: 'rgba(255,255,255,0.95)' }}>{h.kode_resi}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      {isSapi ? <Beef size={12} color="rgba(255,255,255,0.28)" /> : <PawPrint size={12} color="rgba(255,255,255,0.28)" />}
+                      <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.32)' }}>{jList.length} orang</span>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="hidden md:inline text-xs font-mono text-gray-400 bg-gray-100 px-2 py-0.5 rounded-lg">{h.kode_publik}</span>
-                  <button onClick={(e) => { e.stopPropagation(); copyLink(h.kode_publik) }}
-                    className="hidden md:flex items-center text-emerald-600 hover:text-emerald-700" title="Salin link tracking">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                  <span style={{
+                    fontFamily: 'ui-monospace,monospace', fontSize: 10.5,
+                    color: 'rgba(255,255,255,0.22)',
+                    background: 'rgba(255,255,255,0.05)', padding: '3px 8px',
+                    borderRadius: 6, border: '1px solid rgba(255,255,255,0.07)',
+                  }}>{h.kode_publik}</span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); copyLink(h.kode_publik) }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#34d399', display: 'flex', alignItems: 'center', padding: 0 }}
+                    title="Salin link tracking"
+                  >
                     <Copy size={13} />
                   </button>
-                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${c.bgColor} ${c.color}`}>{c.labelShort}</span>
-                  {isExpanded ? <ChevronUp size={15} className="text-gray-400" /> : <ChevronDown size={15} className="text-gray-400" />}
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center',
+                    padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                    background: sg.bg, color: sg.color, border: `1px solid ${sg.border}`,
+                  }}>{cfg.labelShort}</div>
+                  {isExpanded ? <ChevronUp size={14} color="rgba(255,255,255,0.28)" /> : <ChevronDown size={14} color="rgba(255,255,255,0.28)" />}
                 </div>
               </div>
 
               {isExpanded && (
-                <div className="bg-gray-50 border-t border-gray-100 px-5 py-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Daftar Jamaah</p>
-                    <button onClick={() => copyLink(h.kode_publik)}
-                      className="text-xs text-emerald-600 hover:underline flex items-center gap-1">
+                <div style={{ background: 'rgba(16,185,129,0.03)', borderTop: '1px solid rgba(255,255,255,0.05)', padding: '16px 20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.28)', textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>
+                      Daftar Jamaah
+                    </p>
+                    <button onClick={() => copyLink(h.kode_publik)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#34d399', fontSize: 11.5, display: 'flex', alignItems: 'center', gap: 4 }}>
                       <Copy size={11} /> Salin link tracking
                     </button>
                   </div>
-                  <div className="space-y-1.5">
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 8 }}>
                     {jList.map((j, i) => (
-                      <div key={j.id} className="flex items-start gap-2.5 bg-white rounded-lg px-3 py-2 border border-gray-100">
-                        <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{i + 1}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-800">{j.nama_lengkap}</p>
-                          {j.atas_nama && <p className="text-xs text-gray-400">({j.atas_nama})</p>}
-                          <div className="flex gap-3 flex-wrap">
-                            {j.no_hp && <p className="text-xs text-gray-400">📱 {j.no_hp}</p>}
-                            {j.alamat_lengkap && <p className="text-xs text-gray-400 truncate">📍 {j.alamat_lengkap}</p>}
+                      <div key={j.id} style={{
+                        display: 'flex', alignItems: 'flex-start', gap: 9,
+                        padding: '8px 12px',
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.07)',
+                        borderRadius: 10,
+                      }}>
+                        <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(16,185,129,0.15)', color: '#34d399', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                          {i + 1}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.82)', margin: 0 }}>{j.nama_lengkap}</p>
+                          {j.atas_nama && <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', margin: '2px 0 0' }}>({j.atas_nama})</p>}
+                          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 4 }}>
+                            {j.no_hp && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                                <Phone size={10} color="rgba(255,255,255,0.3)" />
+                                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)' }}>{j.no_hp}</span>
+                              </div>
+                            )}
+                            {j.alamat_lengkap && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                                <MapPin size={10} color="rgba(255,255,255,0.3)" />
+                                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>{j.alamat_lengkap}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
                     ))}
-                    {jList.length === 0 && <p className="text-xs text-gray-400">Belum ada jamaah</p>}
+                    {jList.length === 0 && <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', margin: 0 }}>Belum ada jamaah</p>}
                   </div>
                 </div>
               )}
@@ -219,60 +315,84 @@ export default function HewanClient({ hewanList, jamaahList, sapiCount, kambingC
         })}
       </div>
 
-      {/* ── Modal Tambah Kelompok ── */}
+      {/* Modal Tambah Kelompok */}
       {modal === 'tambah' && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl max-h-[90vh] flex flex-col">
-            <div className="p-5 border-b border-gray-100 flex-shrink-0">
-              <h2 className="font-bold text-gray-900 text-lg">Tambah Kelompok Hewan</h2>
-              <p className="text-sm text-gray-400 mt-0.5">
-                Kode otomatis: <span className="font-mono font-bold text-emerald-600">{jenisHewan === 'SAPI' ? nextKodeSapi : nextKodeKambing}</span>
-              </p>
-            </div>
-            <div className="p-5 space-y-5 overflow-y-auto flex-1">
-              <div className="grid grid-cols-2 gap-3">
-                {(['SAPI', 'KAMBING'] as JenisHewan[]).map((j) => (
-                  <button key={j} onClick={() => { setJenisHewan(j); setJamaahForms([{ ...EMPTY_JAMAAH }]) }}
-                    className={`py-3 rounded-xl border-2 text-sm font-medium transition
-                      ${jenisHewan === j ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-100 bg-gray-50 text-gray-600'}`}>
-                    {j === 'SAPI' ? '🐄 Sapi (maks. 7)' : '🐐 Kambing (1)'}
-                  </button>
-                ))}
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.62)', backdropFilter: 'blur(10px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={G.modal}>
+            <div style={{ padding: '22px 26px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <h2 style={{ fontSize: 16, fontWeight: 800, color: 'rgba(255,255,255,0.95)', margin: 0, letterSpacing: '-0.2px' }}>Tambah Kelompok Hewan</h2>
+                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.34)', margin: '4px 0 0' }}>
+                    Kode otomatis: <span style={{ fontFamily: 'ui-monospace,monospace', fontWeight: 700, color: '#34d399' }}>
+                      {jenisHewan === 'SAPI' ? nextKodeSapi : nextKodeKambing}
+                    </span>
+                  </p>
+                </div>
+                <button onClick={resetTambah} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, width: 34, height: 34, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.42)' }}>
+                  <X size={15} />
+                </button>
               </div>
-              <div className="space-y-4">
+            </div>
+
+            <div style={{ padding: '20px 26px', overflowY: 'auto', flex: 1 }}>
+              {/* Jenis hewan */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
+                {(['SAPI', 'KAMBING'] as JenisHewan[]).map((j) => {
+                  const active = jenisHewan === j
+                  return (
+                    <button key={j} onClick={() => { setJenisHewan(j); setJamaahForms([{ ...EMPTY_JAMAAH }]) }}
+                      style={{
+                        padding: '11px 8px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                        background: active ? 'rgba(16,185,129,0.16)' : 'rgba(255,255,255,0.04)',
+                        border: `1px solid ${active ? 'rgba(16,185,129,0.36)' : 'rgba(255,255,255,0.08)'}`,
+                        color: active ? '#34d399' : 'rgba(255,255,255,0.42)',
+                      }}>
+                      {j === 'SAPI' ? <Beef size={15} /> : <PawPrint size={15} />}
+                      {j === 'SAPI' ? 'Sapi (maks. 7)' : 'Kambing (1)'}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Jamaah forms */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {jamaahForms.map((j, idx) => (
-                  <div key={idx} className="bg-gray-50 rounded-xl p-4">
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="text-xs font-semibold text-gray-500">Jamaah #{idx + 1}</span>
+                  <div key={idx} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 18 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                        <div style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(16,185,129,0.16)', color: '#34d399', fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {idx + 1}
+                        </div>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                          Jamaah #{idx + 1}
+                        </span>
+                      </div>
                       {jamaahForms.length > 1 && (
-                        <button onClick={() => setJamaahForms((p) => p.filter((_, i) => i !== idx))} className="text-xs text-red-400 hover:text-red-600">Hapus</button>
+                        <button onClick={() => setJamaahForms((p) => p.filter((_, i) => i !== idx))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f87171', fontSize: 12 }}>Hapus</button>
                       )}
                     </div>
-                    <div className="space-y-2">
-                      <input type="text" value={j.nama_lengkap} onChange={(e) => updateForm(idx, 'nama_lengkap', e.target.value)}
-                        placeholder="Nama Lengkap *" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-                      <input type="text" value={j.atas_nama ?? ''} onChange={(e) => updateForm(idx, 'atas_nama', e.target.value)}
-                        placeholder="Atas Nama / Keluarga (opsional)" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-                      <input type="tel" value={j.no_hp ?? ''} onChange={(e) => updateForm(idx, 'no_hp', e.target.value)}
-                        placeholder="No. HP untuk notif WhatsApp" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-                      <textarea value={j.alamat_lengkap ?? ''} onChange={(e) => updateForm(idx, 'alamat_lengkap', e.target.value)}
-                        placeholder="Alamat lengkap (untuk label)" rows={2}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none" />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      <input type="text" value={j.nama_lengkap} onChange={(e) => updateForm(idx, 'nama_lengkap', e.target.value)} placeholder="Nama Lengkap *" style={G.input} />
+                      <input type="text" value={j.atas_nama ?? ''} onChange={(e) => updateForm(idx, 'atas_nama', e.target.value)} placeholder="Atas Nama / Keluarga (opsional)" style={G.input} />
+                      <input type="tel" value={j.no_hp ?? ''} onChange={(e) => updateForm(idx, 'no_hp', e.target.value)} placeholder="No. HP untuk notif WhatsApp" style={G.input} />
+                      <textarea value={j.alamat_lengkap ?? ''} onChange={(e) => updateForm(idx, 'alamat_lengkap', e.target.value)} placeholder="Alamat lengkap (untuk label)" rows={2} style={{ ...G.input, resize: 'none' }} />
                     </div>
                   </div>
                 ))}
                 {jamaahForms.length < maxJamaah && (
                   <button onClick={() => setJamaahForms((p) => [...p, { ...EMPTY_JAMAAH }])}
-                    className="w-full py-2.5 border-2 border-dashed border-gray-200 text-gray-400 hover:border-emerald-300 hover:text-emerald-600 rounded-xl text-sm transition">
-                    + Tambah Jamaah ({jamaahForms.length}/{maxJamaah})
+                    style={{ width: '100%', padding: 11, background: 'transparent', border: '1.5px dashed rgba(255,255,255,0.1)', borderRadius: 12, color: 'rgba(255,255,255,0.3)', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+                    <Plus size={13} /> Tambah Jamaah ({jamaahForms.length}/{maxJamaah})
                   </button>
                 )}
               </div>
             </div>
-            <div className="p-5 border-t border-gray-100 flex gap-3 flex-shrink-0">
-              <button onClick={resetTambah} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-gray-600 text-sm font-medium">Batal</button>
-              <button onClick={handleTambah} disabled={saving}
-                className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white rounded-xl text-sm font-medium transition">
+
+            <div style={{ padding: '18px 26px', borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', gap: 10, flexShrink: 0 }}>
+              <button onClick={resetTambah} style={{ flex: 1, padding: 11, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, color: 'rgba(255,255,255,0.58)', fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}>Batal</button>
+              <button onClick={handleTambah} disabled={saving} style={{ flex: 1, padding: 11, background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none', borderRadius: 12, color: 'white', fontSize: 13.5, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px rgba(16,185,129,0.38)', opacity: saving ? 0.6 : 1 }}>
                 {saving ? 'Menyimpan...' : 'Simpan Kelompok'}
               </button>
             </div>
@@ -280,7 +400,7 @@ export default function HewanClient({ hewanList, jamaahList, sapiCount, kambingC
         </div>
       )}
 
-      {/* ── Cetak Modals ── */}
+      {/* Cetak Modals */}
       {modal === 'cetakPicker' && <CetakPickerModal onPilih={(t) => setModal(t as ModalType)} onClose={() => setModal(null)} />}
       {modal === 'label' && <LabelPVCModal data={cetakData} onClose={() => setModal(null)} />}
       {modal === 'marbot' && <MarbotModal data={cetakData} namaWorkspace={namaWorkspace} onClose={() => setModal(null)} />}
