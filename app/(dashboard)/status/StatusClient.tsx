@@ -207,24 +207,19 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
 
       {/* Modal Update Status */}
       {modal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.62)', backdropFilter: 'blur(10px)', zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(10px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{
             background: 'rgba(7,18,11,0.97)',
             backdropFilter: 'blur(36px)',
             WebkitBackdropFilter: 'blur(36px)',
             border: '1px solid rgba(255,255,255,0.11)',
             borderTop: '1px solid rgba(255,255,255,0.2)',
-            borderRadius: '24px 24px 0 0',
-            width: '100%', maxWidth: 480,
-            boxShadow: '0 -8px 40px rgba(0,0,0,0.4)',
+            borderRadius: 24,
+            width: '100%', maxWidth: 520,
+            boxShadow: '0 32px 80px rgba(0,0,0,0.52)',
           }}>
-            {/* Handle */}
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 8px' }}>
-              <div style={{ width: 36, height: 4, background: 'rgba(255,255,255,0.15)', borderRadius: 99 }} />
-            </div>
-
             {/* Header */}
-            <div style={{ padding: '8px 24px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '22px 26px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
                 <p style={{ fontFamily: 'ui-monospace,monospace', fontWeight: 800, fontSize: 20, color: 'rgba(255,255,255,0.95)', margin: 0 }}>
                   {modal.hewan.kode_resi}
@@ -243,8 +238,8 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
             </div>
 
             {/* Status grid */}
-            <div style={{ padding: '0 24px 16px' }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase', letterSpacing: '0.7px', marginBottom: 12 }}>
+            <div style={{ padding: '0 26px 16px' }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 12 }}>
                 Ubah Status
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -279,8 +274,8 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
             </div>
 
             {/* Dokumentasi */}
-            <div style={{ padding: '0 24px 16px' }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase', letterSpacing: '0.7px', marginBottom: 8 }}>
+            <div style={{ padding: '0 26px 16px' }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>
                 Link Dokumentasi <span style={{ fontWeight: 400, textTransform: 'none' }}>(opsional)</span>
               </p>
               <input
@@ -300,7 +295,7 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
             </div>
 
             {/* Buttons */}
-            <div style={{ padding: '0 24px 32px', display: 'flex', gap: 10 }}>
+            <div style={{ padding: '0 26px 26px', display: 'flex', gap: 10 }}>
               <button onClick={() => setModal(null)} style={{ flex: 1, padding: '13px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, color: 'rgba(255,255,255,0.58)', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
                 Batal
               </button>

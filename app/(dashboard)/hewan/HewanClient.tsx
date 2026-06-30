@@ -66,6 +66,7 @@ export default function HewanClient({ hewanList, jamaahList, sapiCount, kambingC
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [jenisHewan, setJenisHewan] = useState<JenisHewan>('SAPI')
+  const [sapiTipe, setSapiTipe] = useState<'A' | 'B'>('A')
   const [jamaahForms, setJamaahForms] = useState<JamaahFormData[]>([{ ...EMPTY_JAMAAH }])
   const maxJamaah = jenisHewan === 'SAPI' ? 7 : 1
   const importRef = useRef<HTMLInputElement>(null)
@@ -80,6 +81,7 @@ export default function HewanClient({ hewanList, jamaahList, sapiCount, kambingC
 
   function resetTambah() {
     setJenisHewan('SAPI')
+    setSapiTipe('A')
     setJamaahForms([{ ...EMPTY_JAMAAH }])
     setModal(null)
   }
@@ -92,7 +94,7 @@ export default function HewanClient({ hewanList, jamaahList, sapiCount, kambingC
       const res = await fetch('/api/jamaah', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jenis_hewan: jenisHewan, jamaah: valid, workspace_id: workspaceId }),
+        body: JSON.stringify({ jenis_hewan: jenisHewan, tipe_sapi: jenisHewan === 'SAPI' ? sapiTipe : null, jamaah: valid, workspace_id: workspaceId }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
@@ -125,13 +127,18 @@ export default function HewanClient({ hewanList, jamaahList, sapiCount, kambingC
     e.target.value = ''
   }
 
-  function copyLink(kodePublik: string) {
-    navigator.clipboard.writeText(`${window.location.origin}/tracking?kode=${kodePublik}`)
-    toast.success('Link tracking disalin!')
+  function copyKode(kodePublik: string) {
+    navigator.clipboard.writeText(kodePublik)
+    toast.success('Kode tracking disalin!')
   }
 
-  const nextKodeSapi    = generateKodeResi('SAPI', sapiCount + 1)
-  const nextKodeKambing = generateKodeResi('KAMBING', kambingCount + 1)
+  // Preview kode untuk masing-masing tipe
+  // Sapi A: hitung yang ada di group A (index 1-9), Sapi B: group B (index 10-18), dst
+  const sapiACount = hewan.filter((h) => h.jenis_hewan === 'SAPI' && h.kode_resi.includes('-A')).length
+  const sapiBCount = hewan.filter((h) => h.jenis_hewan === 'SAPI' && h.kode_resi.includes('-B')).length
+  const nextKodeSapiA    = generateKodeResi('SAPI', sapiACount + 1)
+  const nextKodeSapiB    = generateKodeResi('SAPI', 9 + sapiBCount + 1)
+  const nextKodeKambing  = generateKodeResi('KAMBING', kambingCount + 1)
 
   const STAT_STATUSES: StatusHewan[] = ['BELUM_DISEMBELIH', 'SEDANG_DISEMBELIH', 'PENCACAHAN', 'SELESAI']
 
@@ -249,9 +256,9 @@ export default function HewanClient({ hewanList, jamaahList, sapiCount, kambingC
                     borderRadius: 6, border: '1px solid rgba(255,255,255,0.07)',
                   }}>{h.kode_publik}</span>
                   <button
-                    onClick={(e) => { e.stopPropagation(); copyLink(h.kode_publik) }}
+                    onClick={(e) => { e.stopPropagation(); copyKode(h.kode_publik) }}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#34d399', display: 'flex', alignItems: 'center', padding: 0 }}
-                    title="Salin link tracking"
+                    title="Salin kode tracking"
                   >
                     <Copy size={13} />
                   </button>
@@ -270,8 +277,8 @@ export default function HewanClient({ hewanList, jamaahList, sapiCount, kambingC
                     <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.28)', textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>
                       Daftar Jamaah
                     </p>
-                    <button onClick={() => copyLink(h.kode_publik)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#34d399', fontSize: 11.5, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Copy size={11} /> Salin link tracking
+                    <button onClick={() => copyKode(h.kode_publik)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#34d399', fontSize: 11.5, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Copy size={11} /> Salin kode tracking
                     </button>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 8 }}>
@@ -324,9 +331,7 @@ export default function HewanClient({ hewanList, jamaahList, sapiCount, kambingC
                 <div>
                   <h2 style={{ fontSize: 16, fontWeight: 800, color: 'rgba(255,255,255,0.95)', margin: 0, letterSpacing: '-0.2px' }}>Tambah Kelompok Hewan</h2>
                   <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.34)', margin: '4px 0 0' }}>
-                    Kode otomatis: <span style={{ fontFamily: 'ui-monospace,monospace', fontWeight: 700, color: '#34d399' }}>
-                      {jenisHewan === 'SAPI' ? nextKodeSapi : nextKodeKambing}
-                    </span>
+                    Pilih jenis dan tipe hewan di bawah
                   </p>
                 </div>
                 <button onClick={resetTambah} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, width: 34, height: 34, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.42)' }}>
@@ -336,24 +341,49 @@ export default function HewanClient({ hewanList, jamaahList, sapiCount, kambingC
             </div>
 
             <div style={{ padding: '20px 26px', overflowY: 'auto', flex: 1 }}>
-              {/* Jenis hewan */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
-                {(['SAPI', 'KAMBING'] as JenisHewan[]).map((j) => {
-                  const active = jenisHewan === j
+              {/* Jenis hewan — 3 pilihan */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 20 }}>
+                {([
+                  { j: 'SAPI' as JenisHewan, label: 'Sapi Tipe A', sub: 'SAPI-A01 – A09', Icon: Beef },
+                  { j: 'SAPI_B' as any, label: 'Sapi Tipe B', sub: 'SAPI-B01 – B09', Icon: Beef },
+                  { j: 'KAMBING' as JenisHewan, label: 'Kambing', sub: 'Tipe C · KMB-001', Icon: PawPrint },
+                ] as const).map(({ j, label, sub, Icon }) => {
+                  // SAPI_B juga pakai jenis SAPI di backend, tapi ditampilkan sebagai B
+                  const isKambing = j === 'KAMBING'
+                  const isSapiB = j === 'SAPI_B'
+                  const active = isSapiB
+                    ? (jenisHewan === 'SAPI' && sapiTipe === 'B')
+                    : (!isSapiB && jenisHewan === j && !(sapiTipe === 'B' && j === 'SAPI'))
                   return (
-                    <button key={j} onClick={() => { setJenisHewan(j); setJamaahForms([{ ...EMPTY_JAMAAH }]) }}
+                    <button key={String(j)}
+                      onClick={() => {
+                        if (isSapiB) { setJenisHewan('SAPI'); setSapiTipe('B') }
+                        else if (isKambing) { setJenisHewan('KAMBING'); setSapiTipe('A') }
+                        else { setJenisHewan('SAPI'); setSapiTipe('A') }
+                        setJamaahForms([{ ...EMPTY_JAMAAH }])
+                      }}
                       style={{
-                        padding: '11px 8px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                        padding: '12px 8px', borderRadius: 12, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
                         background: active ? 'rgba(16,185,129,0.16)' : 'rgba(255,255,255,0.04)',
                         border: `1px solid ${active ? 'rgba(16,185,129,0.36)' : 'rgba(255,255,255,0.08)'}`,
                         color: active ? '#34d399' : 'rgba(255,255,255,0.42)',
                       }}>
-                      {j === 'SAPI' ? <Beef size={15} /> : <PawPrint size={15} />}
-                      {j === 'SAPI' ? 'Sapi (maks. 7)' : 'Kambing (1)'}
+                      <Icon size={18} />
+                      <span style={{ fontWeight: 700 }}>{label}</span>
+                      <span style={{ fontSize: 10, opacity: 0.65, fontWeight: 400 }}>{sub}</span>
                     </button>
                   )
                 })}
+              </div>
+              {/* Info otomatis */}
+              <div style={{ padding: '10px 14px', background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.15)', borderRadius: 10, marginBottom: 16 }}>
+                <p style={{ fontSize: 11.5, color: 'rgba(52,211,153,0.8)', margin: 0 }}>
+                  Kode otomatis: <span style={{ fontFamily: 'ui-monospace,monospace', fontWeight: 700, color: '#34d399' }}>
+                    {jenisHewan === 'SAPI' ? (sapiTipe === 'B' ? nextKodeSapiB : nextKodeSapiA) : nextKodeKambing}
+                  </span>
+                  <span style={{ marginLeft: 8, opacity: 0.7 }}>· maks. {jenisHewan === 'SAPI' ? 7 : 1} jamaah</span>
+                </p>
               </div>
 
               {/* Jamaah forms */}
