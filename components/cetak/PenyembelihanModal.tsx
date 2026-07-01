@@ -69,7 +69,7 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col">
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
@@ -118,28 +118,34 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
             </div>
           </div>
 
-          {/* Preview */}
+          {/* Preview — 2 lembar berdampingan, ukuran lebih besar */}
           <div className="flex-1 overflow-auto bg-gray-200 p-6">
-            <p className="text-xs text-gray-500 mb-4 text-center">Preview (2 lembar pertama)</p>
-            <div className="space-y-6">
+            <p className="text-xs text-gray-500 mb-5 text-center">Preview (2 lembar pertama)</p>
+            <div className="flex gap-6 justify-center flex-wrap">
               {previewData.map(({ hewan, jamaah }) => (
-                <div key={hewan.id} className="bg-white shadow-md rounded-lg overflow-hidden max-w-sm mx-auto border-2 border-black">
-                  <div className="bg-black text-white text-center py-3 px-4">
-                    <p className="font-bold text-2xl tracking-widest font-mono">{hewan.kode_resi}</p>
-                    <p className="text-xs opacity-70 mt-0.5">{hewan.jenis_hewan}</p>
+                <div
+                  key={hewan.id}
+                  className="bg-white shadow-lg rounded-lg overflow-hidden border-2 border-black"
+                  style={{ width: '340px', flexShrink: 0 }}
+                >
+                  {/* Header hitam */}
+                  <div className="bg-black text-white text-center py-4 px-5">
+                    <p className="font-bold text-3xl tracking-widest font-mono">{hewan.kode_resi}</p>
+                    <p className="text-sm opacity-70 mt-1">{hewan.jenis_hewan}</p>
                   </div>
+                  {/* Tabel nama */}
                   <table className="w-full border-collapse">
                     <tbody>
                       {jamaah.slice(0, namaPerLembar).map((j, i) => (
                         <tr key={j.id}>
-                          <td className="border-2 border-black px-3 py-2 font-bold text-center w-10 text-gray-900">{i + 1}</td>
-                          <td className="border-2 border-black px-3 py-2 font-bold text-sm uppercase text-gray-900">{j.nama_lengkap}</td>
+                          <td className="border-2 border-black px-4 py-2.5 font-bold text-center w-12 text-gray-900 text-base">{i + 1}</td>
+                          <td className="border-2 border-black px-4 py-2.5 font-bold text-base uppercase text-gray-900">{j.nama_lengkap}</td>
                         </tr>
                       ))}
                       {Array.from({ length: Math.max(0, namaPerLembar - jamaah.length) }).map((_, i) => (
                         <tr key={`empty-${i}`}>
-                          <td className="border-2 border-black px-3 py-2 font-bold text-center w-10 text-gray-300">{jamaah.length + i + 1}</td>
-                          <td className="border-2 border-black px-3 py-2 text-gray-200">—</td>
+                          <td className="border-2 border-black px-4 py-2.5 font-bold text-center w-12 text-gray-200 text-base">{jamaah.length + i + 1}</td>
+                          <td className="border-2 border-black px-4 py-2.5 text-gray-200">—</td>
                         </tr>
                       ))}
                     </tbody>
