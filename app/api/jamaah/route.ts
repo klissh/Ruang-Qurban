@@ -19,17 +19,44 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { jenis_hewan, jamaah } = body as { jenis_hewan: JenisHewan; jamaah: JamaahFormData[] }
+  const { jenis_hewan, tipe_sapi, jamaah } = body as {
+    jenis_hewan: JenisHewan
+    tipe_sapi: 'A' | 'B' | null
+    jamaah: JamaahFormData[]
+  }
 
-  // Hitung jumlah hewan jenis ini untuk generate kode
-  const { count } = await supabase
-    .from('hewan')
-    .select('id', { count: 'exact', head: true })
-    .eq('id_workspace', profile.id_workspace)
-    .eq('jenis_hewan', jenis_hewan)
-    .is('deleted_at', null)
+  // Hitung jumlah hewan untuk generate kode yang tepat
+  let nextIndex: number
 
-  const nextIndex = (count ?? 0) + 1
+  if (jenis_hewan === 'SAPI' && tipe_sapi) {
+    // Hitung hanya sapi dengan tipe yang sama (berdasarkan prefix kode)
+    const tipePrefix = `SAPI-${tipe_sapi}`
+    const { data: sapiTipeData } = await supabase
+      .from('hewan')
+      .select('kode_resi')
+      .eq('id_workspace', profile.id_workspace)
+      .eq('jenis_hewan', 'SAPI')
+      .like('kode_resi', `${tipePrefix}%`)
+      .is('deleted_at', null)
+
+    const countTipe = sapiTipeData?.length ?? 0
+
+    if (tipe_sapi === 'A') {
+      nextIndex = countTipe + 1          // index 1–9 → SAPI-A01 – A09
+    } else {
+      nextIndex = 9 + countTipe + 1     // index 10–18 → SAPI-B01 – B09
+    }
+  } else {
+    // Kambing: hitung total kambing
+    const { count } = await supabase
+      .from('hewan')
+      .select('id', { count: 'exact', head: true })
+      .eq('id_workspace', profile.id_workspace)
+      .eq('jenis_hewan', jenis_hewan)
+      .is('deleted_at', null)
+    nextIndex = (count ?? 0) + 1
+  }
+
   const kode_resi = generateKodeResi(jenis_hewan, nextIndex)
 
   // Insert hewan (kode_publik akan di-generate otomatis oleh trigger DB)
