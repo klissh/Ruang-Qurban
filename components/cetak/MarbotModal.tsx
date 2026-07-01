@@ -94,22 +94,22 @@ export default function MarbotModal({ data, namaWorkspace, onClose, onBack }: Pr
   const right = data.slice(mid)
 
   const KelompokPreview = ({ k, idx }: { k: KelompokData; idx: number }) => (
-    <div className="mb-3 break-inside-avoid">
-      <p className="font-bold text-[10px] mb-1 text-gray-700">KELOMPOK {idx + 1}</p>
-      <table className="w-full border-collapse text-[9px]">
+    <div className="mb-4 break-inside-avoid">
+      <p className="font-bold text-xs mb-1.5 text-gray-700">KELOMPOK {idx + 1}</p>
+      <table className="w-full border-collapse text-xs">
         <thead>
           <tr>
-            <th className="border border-gray-400 px-1 py-0.5 bg-gray-100 text-center w-7 text-gray-700">NO.</th>
-            <th className="border border-gray-400 px-1 py-0.5 bg-gray-100 text-left text-gray-700">NAMA</th>
+            <th className="border border-gray-400 px-2 py-1 bg-gray-100 text-center w-8 text-gray-700 font-semibold">NO.</th>
+            <th className="border border-gray-400 px-2 py-1 bg-gray-100 text-left text-gray-700 font-semibold">NAMA</th>
           </tr>
         </thead>
         <tbody>
           {k.jamaah.map((j, i) => (
             <tr key={j.id}>
-              <td className="border border-gray-400 px-1 py-0.5 text-center text-gray-800">{i + 1}</td>
-              <td className="border border-gray-400 px-1 py-0.5 text-gray-800">
+              <td className="border border-gray-400 px-2 py-1 text-center text-gray-800">{i + 1}</td>
+              <td className="border border-gray-400 px-2 py-1 text-gray-800">
                 <span>{j.nama_lengkap}</span>
-                {j.atas_nama && <span className="block text-gray-500 text-[8px]">({j.atas_nama})</span>}
+                {j.atas_nama && <span className="block text-gray-500 text-[10px]">({j.atas_nama})</span>}
               </td>
             </tr>
           ))}
@@ -120,7 +120,7 @@ export default function MarbotModal({ data, namaWorkspace, onClose, onBack }: Pr
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col">
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
@@ -172,13 +172,13 @@ export default function MarbotModal({ data, namaWorkspace, onClose, onBack }: Pr
 
           {/* Preview */}
           <div className="flex-1 overflow-auto bg-gray-100 p-6">
-            <p className="text-xs text-gray-400 mb-3 text-center">Preview</p>
-            <div className="bg-white shadow rounded-lg p-6 max-w-2xl mx-auto">
-              <div className="text-center mb-4 pb-3 border-b-2 border-black">
-                <p className="font-bold text-sm text-gray-900">DAFTAR NAMA PENGURBAN</p>
-                <p className="text-xs mt-0.5 text-gray-700">{judulAtas} — {tahun} H</p>
+            <p className="text-xs text-gray-400 mb-4 text-center">Preview</p>
+            <div className="bg-white shadow-md rounded-xl p-8 mx-auto" style={{ maxWidth: '900px' }}>
+              <div className="text-center mb-6 pb-4 border-b-2 border-black">
+                <p className="font-bold text-base text-gray-900">DAFTAR NAMA PENGURBAN</p>
+                <p className="text-sm mt-1 text-gray-700">{judulAtas} — {tahun} H</p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-6">
                 <div>{left.map((k, i) => <KelompokPreview key={k.hewan.id} k={k} idx={i} />)}</div>
                 <div>{right.map((k, i) => <KelompokPreview key={k.hewan.id} k={k} idx={i + mid} />)}</div>
               </div>
