@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import * as XLSX from 'xlsx'
 import { toast } from 'sonner'
 import {
-  X, Upload, FileSpreadsheet, CheckCircle2,
+  X, Upload, Download, FileSpreadsheet, CheckCircle2,
   AlertTriangle, Beef, PawPrint, ChevronDown, ChevronUp, Info,
 } from 'lucide-react'
 import { detectAndParse } from '@/lib/importParser'
@@ -39,7 +39,73 @@ const MODAL: React.CSSProperties = {
   boxShadow: '0 32px 80px rgba(0,0,0,0.56)',
 }
 
-// ─── Komponen utama ──────────────────────────────────────────────────────
+// ─── Download template helper (format persis Google Forms export) ─────────
+function downloadTemplate() {
+  const SAPI_B_NAMES = [
+    'Widhayat Rudhi Windarta',
+    'Muthiah Raihanatul Jannah',
+    'Muhammad Muhibuddin Mufqi',
+    'Muhammad Muhibuddin Mukhlish',
+    'Sopyan Supardi',
+    'Nur Fazria Maulidia',
+    'Supriyati binti Tamsir',
+  ].join('\n')
+
+  const headers = [
+    'Timestamp',
+    'Nama pendaftar',
+    'Alamat lengkap',
+    'Nomor HP pendaftar',
+    'ABS',
+    'Nama Peng-Qurban TIPE A (Rp3,5 Juta per 1/7 sapi)',
+    'Nama Peng-Qurban TIPE B (Penitipan Sapi)',
+    'Nama Peng-Qurban TIPE C (Penitipan Kambing)',
+    'Notes',
+  ]
+
+  const rows = [
+    // SAPI-A individu (baris 1 dari 5 dalam kelompok)
+    ['2026-04-29 17:05:03', 'Nisatul Masturoh',   'Kavling Deplu Jl. Duta VII Rt.007/007 Cipadu Jaya Larangan Tangerang', '081219357727', '', 'Nisatul Masturoh Binti Hamdani', '', '', ''],
+    ['2026-04-30 18:58:35', 'Danang Yoga Wijaya', 'Cluster Garuda Asri Residence, Jl. Garuda Raya No.A-126/A, RT004 RW008.', '081220867689', '', 'Danang Yoga Wijaya bin Wahyu Subagja', '', '', ''],
+    ['2026-05-01 05:59:41', 'Ari Wijaya',         'Jl. Walet No. 5 Komplek Pajak RT 04/08, Jurangmangu Timur',           '08111661766', '', 'Muhammad Zahfan Hafizhuddin', '', '', ''],
+    // SAPI-A dengan beberapa nama dalam 1 sel
+    ['2026-05-08 10:00:00', 'Budi Santoso',        'Jl. Mawar No. 1 RT.01/08, Pondok Aren',                               '081234567890', '', '1) Budi bin Santoso 2) Siti Rahayu binti Santoso', '', '', ''],
+    // SAPI-B (penitipan — semua nama dalam 1 sel, pisah Enter)
+    ['2026-05-03 05:08:43', 'Mufqi',               'Komplek Pajak Jalan Cendrawasih no a84a RT 04 RW 08',                 '085878920436', '', '', SAPI_B_NAMES, '', ''],
+    // KAMBING
+    ['2026-05-04 08:00:00', 'Adi Rasidi',          'Cluster Griya Ilhami Blok B3',                                        '08156901512',  '', '', '', 'Adi Rasidi bin Sanusi', ''],
+    ['2026-05-04 09:00:00', 'Fatimah',             'Jl. Bambu No. 39A RT.009/005',                                        '082345678901', '', '', '', 'Fatimah binti Ahmad', ''],
+  ]
+
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
+
+  ws['!cols'] = [
+    { wch: 20 }, // Timestamp
+    { wch: 22 }, // Nama pendaftar
+    { wch: 36 }, // Alamat lengkap
+    { wch: 20 }, // Nomor HP
+    { wch: 8  }, // ABS
+    { wch: 36 }, // TIPE A
+    { wch: 36 }, // TIPE B
+    { wch: 36 }, // TIPE C
+    { wch: 14 }, // Notes
+  ]
+
+  // Wrap text pada sel TIPE B agar newline kelihatan
+  if (ws['G6']) ws['G6'].s = { alignment: { wrapText: true } }
+
+  // Style header row
+  headers.forEach((_, i) => {
+    const cell = ws[XLSX.utils.encode_cell({ r: 0, c: i })]
+    if (cell) cell.s = { font: { bold: true }, fill: { fgColor: { rgb: '1F2D25' } } }
+  })
+
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Form Responses 1')
+  XLSX.writeFile(wb, 'template_pendaftaran_qurban.xlsx')
+}
+
+
 export default function ImportModal({ onClose, onSuccess }: Props) {
   const [parseResult,     setParseResult]     = useState<ParseResult | null>(null)
   const [fileName,        setFileName]        = useState<string | null>(null)
@@ -155,51 +221,106 @@ export default function ImportModal({ onClose, onSuccess }: Props) {
           {/* ── Section 1: Panduan Format ── */}
           <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, overflow: 'hidden' }}>
 
-            {/* Header panduan */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-              <Info size={12} color="rgba(255,255,255,0.28)" />
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Panduan Format
-              </span>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Info size={12} color="rgba(255,255,255,0.28)" />
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Panduan Format
+                </span>
+              </div>
+              <button
+                onClick={downloadTemplate}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 13px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer', background: 'rgba(16,185,129,0.1)', color: '#34d399', border: '1px solid rgba(16,185,129,0.25)' }}
+              >
+                <Download size={12} /> Download Template
+              </button>
             </div>
 
             <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-              {/* Kolom yang dibaca sistem */}
-              <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.42)', margin: 0, lineHeight: 1.6 }}>
-                Upload file Excel dari export Google Forms Pendaftaran Qurban. Sistem membaca kolom berikut:
-              </p>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                {([
-                  { tipe: 'SAPI-A',  col: 'Nama Peng-Qurban TIPE A (Rp3,5 Juta per 1/7 sapi)' },
-                  { tipe: 'SAPI-B',  col: 'Nama Peng-Qurban TIPE B (Penitipan Sapi)' },
-                  { tipe: 'KAMBING', col: 'Nama Peng-Qurban TIPE C (Penitipan Kambing)' },
-                ] as const).map(({ tipe, col }) => {
-                  const tc = TC[tipe]
-                  return (
-                    <div key={tipe} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ background: tc.bg, color: tc.color, border: `1px solid ${tc.border}`, padding: '2px 8px', borderRadius: 5, fontSize: 10, fontWeight: 700, flexShrink: 0, minWidth: 60, textAlign: 'center' }}>
-                        {tipe}
-                      </span>
-                      <code style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.32)', fontFamily: 'ui-monospace,monospace', background: 'rgba(255,255,255,0.05)', padding: '3px 8px', borderRadius: 5 }}>
-                        {col}
-                      </code>
-                    </div>
-                  )
-                })}
+              {/* Tabel preview — horizontal scroll */}
+              <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)' }}>
+                <table style={{ borderCollapse: 'collapse', fontSize: 10.5, whiteSpace: 'nowrap', width: '100%' }}>
+                  <thead>
+                    <tr style={{ background: 'rgba(255,255,255,0.06)' }}>
+                      {[
+                        'Timestamp',
+                        'Nama pendaftar',
+                        'Alamat lengkap',
+                        'Nomor HP pendaftar',
+                        'ABS',
+                        <>Nama Peng-Qurban<br/><span style={{ color: TC['SAPI-A'].color }}>TIPE A</span><br/><span style={{ fontSize: 9, color: 'rgba(255,255,255,0.28)', fontWeight: 400 }}>(Rp3,5 Juta per 1/7 sapi)</span></>,
+                        <>Nama Peng-Qurban<br/><span style={{ color: TC['SAPI-B'].color }}>TIPE B</span><br/><span style={{ fontSize: 9, color: 'rgba(255,255,255,0.28)', fontWeight: 400 }}>(Penitipan Sapi)</span></>,
+                        <>Nama Peng-Qurban<br/><span style={{ color: TC['KAMBING'].color }}>TIPE C</span><br/><span style={{ fontSize: 9, color: 'rgba(255,255,255,0.28)', fontWeight: 400 }}>(Penitipan Kambing)</span></>,
+                        'Notes',
+                      ].map((h, i) => (
+                        <th key={i} style={{ padding: '7px 10px', color: 'rgba(255,255,255,0.55)', fontWeight: 700, textAlign: 'left', borderRight: '1px solid rgba(255,255,255,0.06)', lineHeight: 1.4, verticalAlign: 'bottom' }}>
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {([
+                      {
+                        ts: '2026-04-29 17:05:03', pend: 'Nisatul Masturoh',
+                        alamat: 'Kavling Deplu Jl. Duta VII…', hp: '081219357727', abs: 'wa.me/…',
+                        a: 'Nisatul Masturoh Binti Hamdani', b: '', c: '', notes: '',
+                      },
+                      {
+                        ts: '2026-05-03 05:08:43', pend: 'Mufqi',
+                        alamat: 'Komplek Pajak Jl. Cendrawasih…', hp: '085878920436', abs: 'wa.me/…',
+                        a: '', b: 'Widhayat Rudhi Windarta\nMuthiah Raihanatul Jannah\n… (7 nama)', c: '', notes: '',
+                      },
+                      {
+                        ts: '2026-05-08 10:00:00', pend: 'Budi Santoso',
+                        alamat: 'Jl. Mawar No. 1…', hp: '081234567890', abs: 'wa.me/…',
+                        a: '1) Budi bin Santoso 2) Siti Rahayu…', b: '', c: '', notes: '',
+                      },
+                      {
+                        ts: '2026-05-04 08:00:00', pend: 'Adi Rasidi',
+                        alamat: 'Cluster Griya Ilhami…', hp: '08156901512', abs: 'wa.me/…',
+                        a: '', b: '', c: 'Adi Rasidi bin Sanusi', notes: '',
+                      },
+                    ] as const).map((r, i) => {
+                      const isB = !!r.b
+                      const isC = !!r.c
+                      const isA2 = r.a.startsWith('1)')
+                      return (
+                        <tr key={i} style={{ background: i % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                          <td style={{ padding: '5px 10px', color: 'rgba(255,255,255,0.28)', borderRight: '1px solid rgba(255,255,255,0.05)' }}>{r.ts}</td>
+                          <td style={{ padding: '5px 10px', color: 'rgba(255,255,255,0.55)', borderRight: '1px solid rgba(255,255,255,0.05)', fontWeight: 600 }}>{r.pend}</td>
+                          <td style={{ padding: '5px 10px', color: 'rgba(255,255,255,0.32)', borderRight: '1px solid rgba(255,255,255,0.05)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.alamat}</td>
+                          <td style={{ padding: '5px 10px', color: 'rgba(255,255,255,0.38)', borderRight: '1px solid rgba(255,255,255,0.05)' }}>{r.hp}</td>
+                          <td style={{ padding: '5px 10px', color: 'rgba(255,255,255,0.22)', borderRight: '1px solid rgba(255,255,255,0.05)' }}>{r.abs}</td>
+                          <td style={{ padding: '5px 10px', borderRight: '1px solid rgba(255,255,255,0.05)', color: r.a ? (isA2 ? TC['SAPI-A'].color : 'rgba(255,255,255,0.55)') : 'transparent', fontStyle: isA2 ? 'italic' : 'normal', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {r.a || '—'}
+                          </td>
+                          <td style={{ padding: '5px 10px', borderRight: '1px solid rgba(255,255,255,0.05)', color: isB ? TC['SAPI-B'].color : 'rgba(255,255,255,0.18)', whiteSpace: 'pre-line', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {r.b || '—'}
+                          </td>
+                          <td style={{ padding: '5px 10px', borderRight: '1px solid rgba(255,255,255,0.05)', color: isC ? TC['KAMBING'].color : 'rgba(255,255,255,0.18)' }}>
+                            {r.c || '—'}
+                          </td>
+                          <td style={{ padding: '5px 10px', color: 'rgba(255,255,255,0.2)' }}>{r.notes || '—'}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
               </div>
 
-              {/* Catatan per tipe */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, paddingTop: 4, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+              {/* Keterangan per tipe */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                 {([
                   {
                     tipe: 'SAPI-A' as const,
-                    note: 'Tiap baris = 1 orang. Jika 1 sel berisi beberapa nama (format: "1) Nama 2) Nama"), sistem memisahkan otomatis. Semua individu dikumpul lalu diisi 7/sapi.',
+                    note: 'Tiap baris = 1 orang. Jika ada beberapa nama dalam 1 sel, tulis dengan angka: "1) Nama 2) Nama". Semua individu dikumpul lalu diisi 7 orang/sapi.',
                   },
                   {
                     tipe: 'SAPI-B' as const,
-                    note: 'Tulis semua nama dalam 1 sel, pisahkan dengan Enter (Alt+Enter di Excel). Maks. 7 orang per sel, langsung jadi 1 sapi.',
+                    note: 'Semua nama dalam 1 sel, pisahkan dengan Enter (Alt+Enter di Excel). Maks. 7 orang per sel — langsung jadi 1 sapi.',
                   },
                   {
                     tipe: 'KAMBING' as const,
