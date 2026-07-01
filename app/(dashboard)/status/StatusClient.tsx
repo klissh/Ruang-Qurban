@@ -77,19 +77,38 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
     if (modal.urlDok && !isValidGDriveUrl(modal.urlDok)) {
       toast.error('Link Google Drive tidak valid'); return
     }
-    const previewUrl = modal.urlDok ? convertGDriveToPreview(modal.urlDok) : undefined
+
+    // Tentukan apa yang dikirim untuk url_dokumentasi:
+    // - Ada URL baru → kirim preview URL
+    // - URL lama ada tapi dikosongkan → kirim null (hapus)
+    // - Tidak ada perubahan → skip (undefined)
+    let dokPayload: string | null | undefined
+    if (modal.urlDok) {
+      dokPayload = convertGDriveToPreview(modal.urlDok)
+    } else if (modal.hewan.url_dokumentasi) {
+      dokPayload = null  // hapus
+    } else {
+      dokPayload = undefined  // tidak berubah
+    }
+
     setLoading(true)
     try {
+      const body: Record<string, unknown> = {
+        id_hewan: modal.hewan.id,
+        status_baru: modal.statusBaru,
+      }
+      if (dokPayload !== undefined) body.url_dokumentasi = dokPayload
+
       const res = await fetch('/api/hewan', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id_hewan: modal.hewan.id, status_baru: modal.statusBaru, url_dokumentasi: previewUrl }),
+        body: JSON.stringify(body),
       })
       if (!res.ok) throw new Error()
       setList((prev) =>
         prev.map((h) =>
           h.id === modal.hewan.id
-            ? { ...h, status: modal.statusBaru, url_dokumentasi: previewUrl ?? h.url_dokumentasi }
+            ? { ...h, status: modal.statusBaru, url_dokumentasi: dokPayload !== undefined ? dokPayload : h.url_dokumentasi }
             : h
         )
       )
@@ -184,6 +203,11 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
               <CheckCircle2 size={11} color="#34d399" />
               <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 500 }}>Selesai</span>
               <span style={{ fontSize: 16, fontWeight: 800, color: '#34d399', lineHeight: 1 }}>{counts.SELESAI}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 10 }}>
+              <Video size={11} color="#818cf8" />
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 500 }}>Dok</span>
+              <span style={{ fontSize: 16, fontWeight: 800, color: '#818cf8', lineHeight: 1 }}>{list.filter(h => h.url_dokumentasi).length}</span>
             </div>
           </div>
         </div>
@@ -394,9 +418,19 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
 
             {/* Dokumentasi */}
             <div style={{ padding: '0 24px 16px' }}>
-              <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.6px', marginBottom: 8 }}>
-                DOKUMENTASI <span style={{ fontWeight: 400, letterSpacing: 0, textTransform: 'none', color: 'rgba(255,255,255,0.22)' }}>— opsional</span>
-              </p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.6px', margin: 0 }}>
+                  DOKUMENTASI <span style={{ fontWeight: 400, letterSpacing: 0, textTransform: 'none', color: 'rgba(255,255,255,0.22)' }}>— opsional</span>
+                </p>
+                {/* Tombol hapus — muncul jika ada dokumentasi sebelumnya */}
+                {modal.hewan.url_dokumentasi && (
+                  <button
+                    onClick={() => setModal((m) => m ? { ...m, urlDok: '' } : m)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 6, color: '#f87171', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                    <X size={10} /> Hapus Dokumentasi
+                  </button>
+                )}
+              </div>
               <input
                 type="url"
                 value={modal.urlDok}
@@ -409,6 +443,13 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
                   boxSizing: 'border-box',
                 }}
               />
+              {/* Indicator: dokumentasi akan dihapus */}
+              {modal.hewan.url_dokumentasi && !modal.urlDok && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6, padding: '5px 10px', background: 'rgba(248,113,113,0.07)', border: '1px solid rgba(248,113,113,0.18)', borderRadius: 7 }}>
+                  <Video size={11} color="#f87171" />
+                  <span style={{ fontSize: 11, color: '#f87171' }}>Dokumentasi akan dihapus saat disimpan</span>
+                </div>
+              )}
               {modal.urlDok && !isValidGDriveUrl(modal.urlDok) && (
                 <p style={{ fontSize: 11, color: '#f87171', marginTop: 5 }}>Format link tidak valid</p>
               )}

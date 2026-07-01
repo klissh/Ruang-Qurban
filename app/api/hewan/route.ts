@@ -31,7 +31,7 @@ export async function PATCH(request: NextRequest) {
   const { id_hewan, status_baru, url_dokumentasi } = body as {
     id_hewan: string
     status_baru: StatusHewan
-    url_dokumentasi?: string
+    url_dokumentasi?: string | null   // null = hapus, undefined = jangan sentuh
   }
 
   // Ambil data hewan sekarang (untuk status_lama dan validasi workspace)
@@ -48,8 +48,9 @@ export async function PATCH(request: NextRequest) {
   }
 
   // Update status hewan
-  const updateData: Record<string, string> = { status: status_baru }
-  if (url_dokumentasi) updateData.url_dokumentasi = url_dokumentasi
+  const updateData: Record<string, string | null> = { status: status_baru }
+  // undefined = skip, null = hapus, string = update
+  if (url_dokumentasi !== undefined) updateData.url_dokumentasi = url_dokumentasi || null
 
   const { error: updateError } = await supabase
     .from('hewan')
