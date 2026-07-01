@@ -88,30 +88,25 @@ const COL_TIPE_C    = 'Nama Peng-Qurban TIPE C (Penitipan Kambing)'
 // ─── Parser: Google Forms export ──────────────────────────────────────────
 /**
  * Logika grouping SAPI-A:
- * - Pendaftar individual (1 orang per baris) dikumpulkan secara berurutan
- * - Setiap 7 orang otomatis dijadikan 1 kelompok sapi
- * - Ketika ada SAPI-B, kelompok SAPI-A yang sedang terkumpul langsung di-flush
- *   (walaupun belum 7 orang), lalu SAPI-B dimasukkan sebagai kelompok tersendiri
- * - Setelah SAPI-B, pengumpulan SAPI-A individu dilanjutkan dari awal lagi
- * - KAMBING tidak mempengaruhi pengumpulan SAPI-A
+ * - Semua pendaftar individual SAPI-A dikumpulkan ke pool global (urutan baris)
+ * - Di akhir, pool dibagi-bagi: setiap 7 orang = 1 kelompok sapi
+ * - SAPI-B (penitipan) dikumpulkan terpisah — tidak mempengaruhi pool SAPI-A
+ * - KAMBING dikumpulkan terpisah
+ * - Urutan output: [semua SAPI-A grup, semua SAPI-B, semua KAMBING]
  */
 function parseGForms(rows: Record<string, unknown>[]): ParseResult {
   const errors: string[] = []
   let skippedRows = 0
-  const kelompokList: ImportedKelompok[] = []
 
-  // Kelompok SAPI-A yang sedang dikumpulkan
-  let currentSapiA: ImportedKelompok | null = null
-
-  const flushSapiA = () => {
-    if (currentSapiA && currentSapiA.jamaahList.length > 0) {
-      kelompokList.push(currentSapiA)
-      currentSapiA = null
-    }
-  }
+  // Pool individu SAPI-A (semua dari seluruh file)
+  const sapiAPool: ImportedJamaah[] = []
+  // Kelompok SAPI-B (tiap baris penitipan = 1 kelompok)
+  const sapiBGroups: ImportedKelompok[] = []
+  // Entri kambing individual
+  const kambingList: ImportedKelompok[] = []
 
   rows.forEach((row, i) => {
-    const rowNum = i + 2 // +2 karena header = baris 1
+    const rowNum = i + 2
 
     const pendaftarNama = String(row[COL_PENDAFTAR] ?? '').trim()
     const alamat        = String(row[COL_ALAMAT]    ?? '').trim()
@@ -128,46 +123,22 @@ function parseGForms(rows: Record<string, unknown>[]): ParseResult {
 
     if (!hasA && !hasB && !hasC) { skippedRows++; return }
 
-    // ── TIPE A: individual → dikumpulkan sekuensial ───────────────────────
+    // ── TIPE A: tambahkan ke pool global ─────────────────────────────────
     if (hasA) {
       const namaA = cleanNama(rawA)
-      if (!namaA) { skippedRows++; return }
-
-      // Mulai kelompok baru jika belum ada
-      if (!currentSapiA) {
-        currentSapiA = {
-          tipe: 'SAPI-A',
-          pendaftarNama,
-          pendaftarHp:    noHp,
-          pendaftarAlamat: alamat,
-          jamaahList: [],
-        }
+      if (namaA) {
+        sapiAPool.push({
+          nama_lengkap:   namaA,
+          no_hp:          noHp   || undefined,
+          alamat_lengkap: alamat || undefined,
+        })
+      } else {
+        skippedRows++
       }
-
-      // Kelompok sudah penuh (7 orang) → flush & mulai baru
-      if (currentSapiA.jamaahList.length >= 7) {
-        kelompokList.push(currentSapiA)
-        currentSapiA = {
-          tipe: 'SAPI-A',
-          pendaftarNama,
-          pendaftarHp:    noHp,
-          pendaftarAlamat: alamat,
-          jamaahList: [],
-        }
-      }
-
-      currentSapiA.jamaahList.push({
-        nama_lengkap:   namaA,
-        no_hp:          noHp   || undefined,
-        alamat_lengkap: alamat || undefined,
-      })
     }
 
-    // ── TIPE B: flush SAPI-A yang terkumpul, lalu buat kelompok SAPI-B ───
+    // ── TIPE B: kelompok penitipan tersendiri ─────────────────────────────
     if (hasB) {
-      // Flush kelompok SAPI-A yang sedang terkumpul (walaupun belum 7 orang)
-      flushSapiA()
-
       const names = splitMultilineNama(rawB)
       if (names.length === 0) { skippedRows++; return }
 
@@ -177,7 +148,7 @@ function parseGForms(rows: Record<string, unknown>[]): ParseResult {
         )
       }
 
-      kelompokList.push({
+      sapiBGroups.push({
         tipe: 'SAPI-B',
         pendaftarNama,
         pendaftarHp:    noHp,
@@ -190,12 +161,12 @@ function parseGForms(rows: Record<string, unknown>[]): ParseResult {
       })
     }
 
-    // ── TIPE C (Kambing): tidak mengganggu pengumpulan SAPI-A ────────────
+    // ── TIPE C (Kambing) ──────────────────────────────────────────────────
     if (hasC) {
       const namaC = cleanNama(rawC)
       if (!namaC) { skippedRows++; return }
 
-      kelompokList.push({
+      kambingList.push({
         tipe: 'KAMBING',
         pendaftarNama,
         pendaftarHp:    noHp,
@@ -209,8 +180,24 @@ function parseGForms(rows: Record<string, unknown>[]): ParseResult {
     }
   })
 
-  // Flush sisa kelompok SAPI-A yang belum penuh
-  flushSapiA()
+  // ── Pecah pool SAPI-A menjadi kelompok @ 7 orang ─────────────────────
+  const sapiAGroups: ImportedKelompok[] = []
+  for (let i = 0; i < sapiAPool.length; i += 7) {
+    sapiAGroups.push({
+      tipe: 'SAPI-A',
+      pendaftarNama:   '',
+      pendaftarHp:     '',
+      pendaftarAlamat: '',
+      jamaahList: sapiAPool.slice(i, i + 7),
+    })
+  }
+
+  // ── Gabungkan: SAPI-A dulu, lalu SAPI-B, lalu KAMBING ────────────────
+  const kelompokList: ImportedKelompok[] = [
+    ...sapiAGroups,
+    ...sapiBGroups,
+    ...kambingList,
+  ]
 
   return { kelompokList, errors, skippedRows, format: 'gforms' }
 }
