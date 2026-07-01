@@ -34,14 +34,12 @@ export default async function HewanPage() {
     .is('deleted_at', null)
     .order('created_at')
 
-  const sapiCount = (hewanRaw ?? []).filter((h) => h.jenis_hewan === 'SAPI').length
   const kambingCount = (hewanRaw ?? []).filter((h) => h.jenis_hewan === 'KAMBING').length
 
   return (
     <HewanClient
       hewanList={hewanRaw ?? []}
       jamaahList={jamaahRaw ?? []}
-      sapiCount={sapiCount}
       kambingCount={kambingCount}
       workspaceId={wid}
       namaWorkspace={(profile.workspaces as any)?.nama ?? ''}

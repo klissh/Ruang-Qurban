@@ -53,13 +53,12 @@ const G = {
 interface Props {
   hewanList: Hewan[]
   jamaahList: Jamaah[]
-  sapiCount: number
   kambingCount: number
   workspaceId: string
   namaWorkspace: string
 }
 
-export default function HewanClient({ hewanList, jamaahList, sapiCount, kambingCount, workspaceId, namaWorkspace }: Props) {
+export default function HewanClient({ hewanList, jamaahList, kambingCount, workspaceId, namaWorkspace }: Props) {
   const [hewan, setHewan] = useState<Hewan[]>(hewanList)
   const [jamaah, setJamaah] = useState<Jamaah[]>(jamaahList)
   const [modal, setModal] = useState<ModalType>(null)
@@ -135,11 +134,12 @@ export default function HewanClient({ hewanList, jamaahList, sapiCount, kambingC
 
   // Preview kode untuk masing-masing tipe
   // Sapi A: hitung yang ada di group A (index 1-9), Sapi B: group B (index 10-18), dst
-  const sapiACount = hewan.filter((h) => h.jenis_hewan === 'SAPI' && h.kode_resi.includes('-A')).length
-  const sapiBCount = hewan.filter((h) => h.jenis_hewan === 'SAPI' && h.kode_resi.includes('-B')).length
-  const nextKodeSapiA    = generateKodeResi('SAPI', sapiACount + 1)
-  const nextKodeSapiB    = generateKodeResi('SAPI', 9 + sapiBCount + 1)
-  const nextKodeKambing  = generateKodeResi('KAMBING', kambingCount + 1)
+  // Hitung per-tipe dari live state (startsWith agar presisi)
+  const sapiACount = hewan.filter((h) => h.kode_resi.startsWith('SAPI-A')).length
+  const sapiBCount = hewan.filter((h) => h.kode_resi.startsWith('SAPI-B')).length
+  const nextKodeSapiA   = generateKodeResi('SAPI', sapiACount + 1, 'A')
+  const nextKodeSapiB   = generateKodeResi('SAPI', sapiBCount + 1, 'B')
+  const nextKodeKambing = generateKodeResi('KAMBING', kambingCount + 1)
 
   const STAT_STATUSES: StatusHewan[] = ['BELUM_DISEMBELIH', 'SEDANG_DISEMBELIH', 'PENCACAHAN', 'SELESAI']
 
@@ -345,8 +345,8 @@ export default function HewanClient({ hewanList, jamaahList, sapiCount, kambingC
               {/* Jenis hewan — 3 pilihan */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 20 }}>
                 {([
-                  { j: 'SAPI' as JenisHewan, label: 'Sapi Tipe A', sub: 'SAPI-A01 – A09', Icon: Beef },
-                  { j: 'SAPI_B' as any, label: 'Sapi Tipe B', sub: 'SAPI-B01 – B09', Icon: Beef },
+                  { j: 'SAPI' as JenisHewan, label: 'Sapi Tipe A', sub: 'SAPI-A01, A02, ...', Icon: Beef },
+                  { j: 'SAPI_B' as any, label: 'Sapi Tipe B', sub: 'SAPI-B01, B02, ...', Icon: Beef },
                   { j: 'KAMBING' as JenisHewan, label: 'Kambing', sub: 'Tipe C · KMB-001', Icon: PawPrint },
                 ] as const).map(({ j, label, sub, Icon }) => {
                   // SAPI_B juga pakai jenis SAPI di backend, tapi ditampilkan sebagai B

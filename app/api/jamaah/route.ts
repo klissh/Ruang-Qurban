@@ -40,12 +40,8 @@ export async function POST(request: NextRequest) {
       .is('deleted_at', null)
 
     const countTipe = sapiTipeData?.length ?? 0
-
-    if (tipe_sapi === 'A') {
-      nextIndex = countTipe + 1          // index 1–9 → SAPI-A01 – A09
-    } else {
-      nextIndex = 9 + countTipe + 1     // index 10–18 → SAPI-B01 – B09
-    }
+    // Langsung pakai count tipe itu sendiri — tanpa batas atas
+    nextIndex = countTipe + 1
   } else {
     // Kambing: hitung total kambing
     const { count } = await supabase
@@ -57,7 +53,7 @@ export async function POST(request: NextRequest) {
     nextIndex = (count ?? 0) + 1
   }
 
-  const kode_resi = generateKodeResi(jenis_hewan, nextIndex)
+  const kode_resi = generateKodeResi(jenis_hewan, nextIndex, tipe_sapi ?? 'A')
 
   // Insert hewan (kode_publik akan di-generate otomatis oleh trigger DB)
   const { data: hewan, error: hewanError } = await supabase
