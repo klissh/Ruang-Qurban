@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import {
   Plus, Upload, Printer, Search, ChevronDown, ChevronUp,
   Copy, Beef, PawPrint, Phone, MapPin, X, Pencil, Trash2,
-  ArrowRightLeft, AlertTriangle,
+  ArrowRightLeft, AlertTriangle, Clock, Flame, Package, CheckCircle2,
 } from 'lucide-react'
 import { STATUS_CONFIG } from '@/types'
 import type { StatusHewan, JenisHewan, Hewan, Jamaah, JamaahFormData } from '@/types'
@@ -38,6 +38,13 @@ const STATUS_GLASS: Record<StatusHewan, { color: string; bg: string; border: str
   SEDANG_DISEMBELIH: { color: '#fbbf24', bg: 'rgba(245,158,11,0.14)',  border: 'rgba(251,191,36,0.22)',  dot: '#f59e0b', topBorder: 'rgba(251,191,36,0.35)' },
   PENCACAHAN:        { color: '#60a5fa', bg: 'rgba(59,130,246,0.14)',   border: 'rgba(96,165,250,0.22)',  dot: '#3b82f6', topBorder: 'rgba(96,165,250,0.35)' },
   SELESAI:           { color: '#34d399', bg: 'rgba(16,185,129,0.14)',   border: 'rgba(52,211,153,0.22)',  dot: '#10b981', topBorder: 'rgba(52,211,153,0.35)' },
+}
+
+const STAT_ICON: Record<StatusHewan, React.ReactNode> = {
+  BELUM_DISEMBELIH:  <Clock size={15} />,
+  SEDANG_DISEMBELIH: <Flame size={15} />,
+  PENCACAHAN:        <Package size={15} />,
+  SELESAI:           <CheckCircle2 size={15} />,
 }
 
 const G = {
@@ -376,46 +383,53 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
         </div>
       </div>
 
-      {/* Stats mini */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 20 }}>
+      {/* Stats */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 20 }}>
         {STAT_STATUSES.map((s) => {
           const sg = STATUS_GLASS[s]
           const cfg = STATUS_CONFIG[s]
+          const count = hewan.filter((h) => h.status === s).length
           return (
             <div key={s} style={{
-              background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.09)',
-              borderTop: `1px solid ${sg.topBorder}`, borderRadius: 14, padding: '14px 18px',
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.07)',
+              borderLeft: `3px solid ${sg.dot}`,
+              borderRadius: 12, padding: '14px 16px',
+              display: 'flex', flexDirection: 'column', gap: 8,
             }}>
-              <p style={{ fontSize: 24, fontWeight: 800, color: sg.color, lineHeight: 1, margin: '0 0 5px', letterSpacing: '-0.5px' }}>
-                {hewan.filter((h) => h.status === s).length}
-              </p>
-              <p style={{ fontSize: 11.5, fontWeight: 600, color: 'rgba(255,255,255,0.38)', margin: 0 }}>{cfg.labelShort}</p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ color: sg.color, opacity: 0.7 }}>{STAT_ICON[s]}</div>
+                <span style={{ fontSize: 22, fontWeight: 800, color: count > 0 ? sg.color : 'rgba(255,255,255,0.22)', letterSpacing: '-0.5px', lineHeight: 1 }}>
+                  {count}
+                </span>
+              </div>
+              <p style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.35)', margin: 0, letterSpacing: '0.2px' }}>{cfg.labelShort}</p>
             </div>
           )
         })}
       </div>
 
       {/* Search + Filter */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+      <div style={{ marginBottom: 14 }}>
         {/* Search bar */}
-        <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
-          <Search size={14} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.28)', pointerEvents: 'none' }} />
+        <div style={{ position: 'relative', marginBottom: 10 }}>
+          <Search size={14} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.25)', pointerEvents: 'none' }} />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari kode, nama jamaah..."
-            style={{ ...G.input, paddingLeft: 40, borderRadius: 12 }}
+            placeholder="Cari kode resi, nama jamaah, kode publik..."
+            style={{ ...G.input, paddingLeft: 40, paddingRight: 36, borderRadius: 12 }}
           />
           {search && (
-            <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', padding: 2 }}>
-              <X size={13} />
+            <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 5, cursor: 'pointer', color: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', padding: 3 }}>
+              <X size={11} />
             </button>
           )}
         </div>
 
-        {/* Filter pills */}
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        {/* Filter bar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', fontWeight: 500, marginRight: 2, flexShrink: 0 }}>Filter:</span>
           {([
             { key: 'SEMUA',   label: 'Semua',   count: hewan.length },
             { key: 'SAPI-A',  label: 'Sapi A',  count: hewan.filter(h => h.kode_resi.startsWith('SAPI-A')).length },
@@ -426,22 +440,28 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
             return (
               <button key={key} onClick={() => setFilterTipe(key)} style={{
                 display: 'flex', alignItems: 'center', gap: 5,
-                padding: '7px 13px', borderRadius: 10, fontSize: 12.5, fontWeight: 600,
-                cursor: 'pointer', border: 'none', transition: 'all 0.15s',
-                background: active ? 'rgba(16,185,129,0.18)' : 'rgba(255,255,255,0.05)',
-                color: active ? '#34d399' : 'rgba(255,255,255,0.45)',
-                outline: active ? '1px solid rgba(16,185,129,0.35)' : '1px solid rgba(255,255,255,0.07)',
+                padding: '5px 11px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                cursor: 'pointer', transition: 'all 0.15s',
+                background: active ? 'rgba(16,185,129,0.15)' : 'transparent',
+                color: active ? '#34d399' : 'rgba(255,255,255,0.38)',
+                border: active ? '1px solid rgba(16,185,129,0.3)' : '1px solid rgba(255,255,255,0.07)',
               }}>
                 {label}
                 <span style={{
-                  fontSize: 10.5, fontWeight: 700, minWidth: 18, textAlign: 'center',
-                  padding: '1px 5px', borderRadius: 6,
-                  background: active ? 'rgba(16,185,129,0.25)' : 'rgba(255,255,255,0.08)',
-                  color: active ? '#34d399' : 'rgba(255,255,255,0.35)',
+                  fontSize: 10, fontWeight: 700, minWidth: 16, textAlign: 'center',
+                  padding: '1px 4px', borderRadius: 5,
+                  background: active ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.07)',
+                  color: active ? '#34d399' : 'rgba(255,255,255,0.3)',
                 }}>{count}</span>
               </button>
             )
           })}
+          {(search || filterTipe !== 'SEMUA') && (
+            <button onClick={() => { setSearch(''); setFilterTipe('SEMUA') }}
+              style={{ marginLeft: 'auto', fontSize: 11, color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
+              <X size={10} /> Reset
+            </button>
+          )}
         </div>
       </div>
 
@@ -491,23 +511,23 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
                     </div>
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                  {/* Kode publik — subtle, hanya teks */}
                   <span style={{
                     fontFamily: 'ui-monospace,monospace', fontSize: 10.5,
-                    color: 'rgba(255,255,255,0.22)',
-                    background: 'rgba(255,255,255,0.05)', padding: '3px 8px',
-                    borderRadius: 6, border: '1px solid rgba(255,255,255,0.07)',
+                    color: 'rgba(255,255,255,0.18)', letterSpacing: '0.5px',
                   }}>{h.kode_publik}</span>
-                  <button onClick={(e) => { e.stopPropagation(); copyKode(h.kode_publik) }}
-                    style={{ ...G.iconBtn('#34d399') }} title="Salin kode tracking">
-                    <Copy size={13} />
-                  </button>
+                  {/* Divider */}
+                  <span style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.08)', flexShrink: 0 }} />
+                  {/* Status badge */}
                   <div style={{
                     display: 'inline-flex', alignItems: 'center',
                     padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
                     background: sg.bg, color: sg.color, border: `1px solid ${sg.border}`,
                   }}>{cfg.labelShort}</div>
-                  {isExpanded ? <ChevronUp size={14} color="rgba(255,255,255,0.28)" /> : <ChevronDown size={14} color="rgba(255,255,255,0.28)" />}
+                  {isExpanded
+                    ? <ChevronUp size={14} color="rgba(255,255,255,0.25)" />
+                    : <ChevronDown size={14} color="rgba(255,255,255,0.25)" />}
                 </div>
               </div>
 
@@ -515,35 +535,47 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
               {isExpanded && (
                 <div style={{ background: 'rgba(16,185,129,0.03)', borderTop: '1px solid rgba(255,255,255,0.05)', padding: '16px 20px' }}>
                   {/* Panel header */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.28)', textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>
-                      Daftar Jamaah · {jList.length}/{isSapi ? 7 : 1}
-                    </p>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      {/* Tombol Tambah Jamaah — muncul kalau ada slot kosong */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                    <div>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.3px' }}>
+                        Jamaah
+                      </span>
+                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', marginLeft: 6 }}>
+                        {jList.length} / {isSapi ? 7 : 1} slot terisi
+                      </span>
+                    </div>
+
+                    {/* Action icon buttons — uniform 30×30 */}
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      {/* Tambah jamaah (jika ada slot) */}
                       {jList.length < (isSapi ? 7 : 1) && (
-                        <button
+                        <button title="Tambah jamaah"
                           onClick={() => { setSelectedHewan(h); setTambahKeHewanForm(EMPTY_JAMAAH); setModal('tambahKeHewan') }}
-                          style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 10px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 8, color: '#34d399', fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}>
-                          <Plus size={11} /> Tambah Jamaah
+                          style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid rgba(16,185,129,0.3)', background: 'rgba(16,185,129,0.1)', color: '#34d399', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Plus size={13} />
                         </button>
                       )}
-                      {/* Tukar Nomor — khusus kambing */}
+                      {/* Tukar nomor — kambing saja */}
                       {!isSapi && (
-                        <button
+                        <button title="Tukar nomor kambing"
                           onClick={() => { setSelectedHewan(h); setPindahTargetId(''); setModal('tukarKambing') }}
-                          style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 10px', background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.22)', borderRadius: 8, color: '#60a5fa', fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}>
-                          <ArrowRightLeft size={11} /> Tukar Nomor
+                          style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid rgba(96,165,250,0.25)', background: 'rgba(96,165,250,0.08)', color: '#60a5fa', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <ArrowRightLeft size={13} />
                         </button>
                       )}
-                      <button onClick={() => copyKode(h.kode_publik)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#34d399', fontSize: 11.5, display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <Copy size={11} /> Salin kode
+                      {/* Salin kode publik */}
+                      <button title={`Salin kode tracking (${h.kode_publik})`}
+                        onClick={() => copyKode(h.kode_publik)}
+                        style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Copy size={13} />
                       </button>
-                      <button
+                      {/* Separator */}
+                      <span style={{ width: 1, height: 30, background: 'rgba(255,255,255,0.07)', margin: '0 2px' }} />
+                      {/* Hapus hewan */}
+                      <button title="Hapus hewan ini"
                         onClick={() => { setSelectedHewan(h); setModal('hapusHewan') }}
-                        style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 10px', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 8, color: '#f87171', fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}>
-                        <Trash2 size={11} /> Hapus Hewan
+                        style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid rgba(248,113,113,0.2)', background: 'rgba(248,113,113,0.07)', color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Trash2 size={13} />
                       </button>
                     </div>
                   </div>
@@ -552,17 +584,18 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 8 }}>
                     {jList.map((j, i) => (
                       <div key={j.id} style={{
-                        display: 'flex', alignItems: 'flex-start', gap: 9,
-                        padding: '10px 12px',
-                        background: 'rgba(255,255,255,0.04)',
+                        display: 'flex', alignItems: 'flex-start', gap: 10,
+                        padding: '11px 14px',
+                        background: 'rgba(255,255,255,0.03)',
                         border: '1px solid rgba(255,255,255,0.07)',
-                        borderRadius: 10,
+                        borderRadius: 11,
+                        transition: 'background 0.12s',
                       }}>
-                        <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(16,185,129,0.15)', color: '#34d399', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(16,185,129,0.12)', color: '#34d399', fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
                           {i + 1}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.82)', margin: 0 }}>{j.nama_lengkap}</p>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.88)', margin: 0 }}>{j.nama_lengkap}</p>
                           {j.atas_nama && <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', margin: '2px 0 0' }}>({j.atas_nama})</p>}
                           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 4 }}>
                             {j.no_hp && (
