@@ -92,6 +92,7 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
   const [jamaah, setJamaah] = useState<Jamaah[]>(jamaahList)
   const [modal, setModal] = useState<ModalType>(null)
   const [search, setSearch] = useState('')
+  const [filterTipe, setFilterTipe] = useState<'SEMUA' | 'SAPI-A' | 'SAPI-B' | 'KAMBING'>('SEMUA')
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -110,7 +111,27 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
 
   const importRef = useRef<HTMLInputElement>(null)
 
-  const filtered = hewan.filter((h) => h.kode_resi.toLowerCase().includes(search.toLowerCase()))
+  const filtered = hewan.filter((h) => {
+    // Filter tipe
+    if (filterTipe === 'SAPI-A' && !h.kode_resi.startsWith('SAPI-A')) return false
+    if (filterTipe === 'SAPI-B' && !h.kode_resi.startsWith('SAPI-B')) return false
+    if (filterTipe === 'KAMBING' && h.jenis_hewan !== 'KAMBING') return false
+
+    // Search: kosong = tampil semua
+    if (!search.trim()) return true
+    const q = search.toLowerCase().trim()
+
+    // Match kode resi atau kode publik
+    if (h.kode_resi.toLowerCase().includes(q)) return true
+    if (h.kode_publik.toLowerCase().includes(q)) return true
+
+    // Match nama jamaah di dalamnya
+    const jl = jamaah.filter((j) => j.id_hewan === h.id)
+    if (jl.some((j) => j.nama_lengkap.toLowerCase().includes(q))) return true
+    if (jl.some((j) => j.atas_nama?.toLowerCase().includes(q))) return true
+
+    return false
+  })
   const getJamaahFor = (idHewan: string) => jamaah.filter((j) => j.id_hewan === idHewan)
   const cetakData = hewan.map((h) => ({ hewan: h, jamaah: getJamaahFor(h.id) }))
 
@@ -375,11 +396,53 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
         })}
       </div>
 
-      {/* Search */}
-      <div style={{ position: 'relative', marginBottom: 16 }}>
-        <Search size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.28)', pointerEvents: 'none' }} />
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari kode resi..."
-          style={{ ...G.input, paddingLeft: 44, borderRadius: 13 }} />
+      {/* Search + Filter */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+        {/* Search bar */}
+        <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+          <Search size={14} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.28)', pointerEvents: 'none' }} />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Cari kode, nama jamaah..."
+            style={{ ...G.input, paddingLeft: 40, borderRadius: 12 }}
+          />
+          {search && (
+            <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', padding: 2 }}>
+              <X size={13} />
+            </button>
+          )}
+        </div>
+
+        {/* Filter pills */}
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {([
+            { key: 'SEMUA',   label: 'Semua',   count: hewan.length },
+            { key: 'SAPI-A',  label: 'Sapi A',  count: hewan.filter(h => h.kode_resi.startsWith('SAPI-A')).length },
+            { key: 'SAPI-B',  label: 'Sapi B',  count: hewan.filter(h => h.kode_resi.startsWith('SAPI-B')).length },
+            { key: 'KAMBING', label: 'Kambing', count: hewan.filter(h => h.jenis_hewan === 'KAMBING').length },
+          ] as const).map(({ key, label, count }) => {
+            const active = filterTipe === key
+            return (
+              <button key={key} onClick={() => setFilterTipe(key)} style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '7px 13px', borderRadius: 10, fontSize: 12.5, fontWeight: 600,
+                cursor: 'pointer', border: 'none', transition: 'all 0.15s',
+                background: active ? 'rgba(16,185,129,0.18)' : 'rgba(255,255,255,0.05)',
+                color: active ? '#34d399' : 'rgba(255,255,255,0.45)',
+                outline: active ? '1px solid rgba(16,185,129,0.35)' : '1px solid rgba(255,255,255,0.07)',
+              }}>
+                {label}
+                <span style={{
+                  fontSize: 10.5, fontWeight: 700, minWidth: 18, textAlign: 'center',
+                  padding: '1px 5px', borderRadius: 6,
+                  background: active ? 'rgba(16,185,129,0.25)' : 'rgba(255,255,255,0.08)',
+                  color: active ? '#34d399' : 'rgba(255,255,255,0.35)',
+                }}>{count}</span>
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {/* List hewan */}
@@ -393,7 +456,9 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
           <div style={{ padding: '64px 0', textAlign: 'center' }}>
             <Search size={32} color="rgba(255,255,255,0.12)" style={{ margin: '0 auto 14px', display: 'block' }} />
             <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.3)', margin: 0 }}>
-              {search ? 'Tidak ditemukan' : 'Belum ada data. Klik "Tambah Kelompok" untuk mulai.'}
+              {search || filterTipe !== 'SEMUA'
+                ? `Tidak ada hewan yang cocok${filterTipe !== 'SEMUA' ? ` di filter "${filterTipe === 'SAPI-A' ? 'Sapi A' : filterTipe === 'SAPI-B' ? 'Sapi B' : 'Kambing'}"` : ''}${search ? ` dengan kata kunci "${search}"` : ''}`
+                : 'Belum ada data. Klik "Tambah Kelompok" untuk mulai.'}
             </p>
           </div>
         )}
