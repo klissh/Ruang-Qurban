@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { X, Printer, Download } from 'lucide-react'
+import { X, Printer, Download, ArrowLeft } from 'lucide-react'
 import type { Hewan, Jamaah } from '@/types'
 
 interface KelompokData {
@@ -12,9 +12,10 @@ interface KelompokData {
 interface Props {
   data: KelompokData[]
   onClose: () => void
+  onBack?: () => void
 }
 
-export default function PenyembelihanModal({ data, onClose }: Props) {
+export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
   const [namaPerLembar, setNamaPerLembar] = useState(7)
 
   const buildPrintHTML = useCallback(() => {
@@ -64,16 +65,29 @@ export default function PenyembelihanModal({ data, onClose }: Props) {
     a.click()
   }
 
-  // Preview — tampilkan 1-2 kelompok saja
   const previewData = data.slice(0, 2)
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col">
 
+        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
-          <h2 className="font-bold text-gray-900 text-lg">Cetak Kertas Penyembelihan</h2>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500"><X size={16} /></button>
+          <div className="flex items-center gap-3">
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition"
+                title="Kembali ke pilihan cetak"
+              >
+                <ArrowLeft size={16} />
+              </button>
+            )}
+            <h2 className="font-bold text-gray-900 text-lg">Cetak Kertas Penyembelihan</h2>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition">
+            <X size={16} />
+          </button>
         </div>
 
         <div className="flex flex-1 overflow-hidden">
@@ -87,7 +101,7 @@ export default function PenyembelihanModal({ data, onClose }: Props) {
                 <select
                   value={namaPerLembar}
                   onChange={(e) => setNamaPerLembar(+e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 >
                   {[1, 2, 3, 4, 5, 6, 7].map((n) => (
                     <option key={n} value={n}>{n} nama {n === 7 ? '(Sapi)' : n === 1 ? '(Kambing)' : ''}</option>
@@ -110,21 +124,18 @@ export default function PenyembelihanModal({ data, onClose }: Props) {
             <div className="space-y-6">
               {previewData.map(({ hewan, jamaah }) => (
                 <div key={hewan.id} className="bg-white shadow-md rounded-lg overflow-hidden max-w-sm mx-auto border-2 border-black">
-                  {/* Header hitam */}
                   <div className="bg-black text-white text-center py-3 px-4">
                     <p className="font-bold text-2xl tracking-widest font-mono">{hewan.kode_resi}</p>
                     <p className="text-xs opacity-70 mt-0.5">{hewan.jenis_hewan}</p>
                   </div>
-                  {/* Tabel nama */}
                   <table className="w-full border-collapse">
                     <tbody>
                       {jamaah.slice(0, namaPerLembar).map((j, i) => (
                         <tr key={j.id}>
-                          <td className="border-2 border-black px-3 py-2 font-bold text-center w-10">{i + 1}</td>
-                          <td className="border-2 border-black px-3 py-2 font-bold text-sm uppercase">{j.nama_lengkap}</td>
+                          <td className="border-2 border-black px-3 py-2 font-bold text-center w-10 text-gray-900">{i + 1}</td>
+                          <td className="border-2 border-black px-3 py-2 font-bold text-sm uppercase text-gray-900">{j.nama_lengkap}</td>
                         </tr>
                       ))}
-                      {/* Baris kosong jika kurang dari namaPerLembar */}
                       {Array.from({ length: Math.max(0, namaPerLembar - jamaah.length) }).map((_, i) => (
                         <tr key={`empty-${i}`}>
                           <td className="border-2 border-black px-3 py-2 font-bold text-center w-10 text-gray-300">{jamaah.length + i + 1}</td>
@@ -139,6 +150,7 @@ export default function PenyembelihanModal({ data, onClose }: Props) {
           </div>
         </div>
 
+        {/* Footer */}
         <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 flex-shrink-0">
           <button onClick={handleDownload} className="flex items-center gap-2 px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">
             <Download size={15} /> Download
