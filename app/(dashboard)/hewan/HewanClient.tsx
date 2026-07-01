@@ -25,6 +25,8 @@ type ModalType =
   | 'hapusJamaah'
   | 'hapusHewan'
   | 'pindahJamaah'
+  | 'tambahKeHewan'
+  | 'tukarKambing'
   | 'cetakPicker'
   | 'label'
   | 'marbot'
@@ -104,6 +106,7 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
   const [selectedHewan, setSelectedHewan] = useState<Hewan | null>(null)
   const [editForm, setEditForm] = useState<JamaahFormData>(EMPTY_JAMAAH)
   const [pindahTargetId, setPindahTargetId] = useState<string>('')
+  const [tambahKeHewanForm, setTambahKeHewanForm] = useState<JamaahFormData>(EMPTY_JAMAAH)
 
   const importRef = useRef<HTMLInputElement>(null)
 
@@ -135,6 +138,11 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
       const jumlah = getJamaahFor(h.id).length
       return jumlah < (h.jenis_hewan === 'SAPI' ? 7 : 1)
     })
+  }
+
+  // ── Kambing lain untuk tukar nomor ──
+  function getTukarOptions(sumber: Hewan) {
+    return hewan.filter((h) => h.id !== sumber.id && h.jenis_hewan === 'KAMBING')
   }
 
   // ══════════════════════════════════════════════════════
@@ -240,6 +248,54 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
       setModal(null); setSelectedJamaah(null); setSelectedHewan(null); setPindahTargetId('')
     } catch (e: any) {
       toast.error(e.message ?? 'Gagal memindahkan jamaah')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleTambahKeHewan() {
+    if (!selectedHewan) return
+    if (!tambahKeHewanForm.nama_lengkap.trim()) { toast.error('Nama lengkap wajib diisi'); return }
+    setSaving(true)
+    try {
+      const res = await fetch('/api/jamaah', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_hewan: selectedHewan.id, jamaah: [tambahKeHewanForm] }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setJamaah((p) => [...p, ...data.jamaah])
+      toast.success(`${tambahKeHewanForm.nama_lengkap} ditambahkan ke ${selectedHewan.kode_resi}`)
+      setModal(null); setSelectedHewan(null); setTambahKeHewanForm(EMPTY_JAMAAH)
+    } catch (e: any) {
+      toast.error(e.message ?? 'Gagal menambah jamaah')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleTukarKambing() {
+    if (!selectedHewan || !pindahTargetId) { toast.error('Pilih kambing tujuan'); return }
+    setSaving(true)
+    try {
+      const res = await fetch('/api/hewan', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_hewan_a: selectedHewan.id, id_hewan_b: pindahTargetId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      // Swap id_hewan di state jamaah lokal
+      setJamaah((prev) => prev.map((j) => {
+        if (data.ids_moved_to_b.includes(j.id)) return { ...j, id_hewan: pindahTargetId }
+        if (data.ids_moved_to_a.includes(j.id)) return { ...j, id_hewan: selectedHewan.id }
+        return j
+      }))
+      toast.success(`Nomor ditukar: ${data.swap}`)
+      setModal(null); setSelectedHewan(null); setPindahTargetId('')
+    } catch (e: any) {
+      toast.error(e.message ?? 'Gagal menukar nomor')
     } finally {
       setSaving(false)
     }
@@ -398,7 +454,23 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
                     <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.28)', textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>
                       Daftar Jamaah · {jList.length}/{isSapi ? 7 : 1}
                     </p>
-                    <div style={{ display: 'flex', gap: 8 }}>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {/* Tombol Tambah Jamaah — muncul kalau ada slot kosong */}
+                      {jList.length < (isSapi ? 7 : 1) && (
+                        <button
+                          onClick={() => { setSelectedHewan(h); setTambahKeHewanForm(EMPTY_JAMAAH); setModal('tambahKeHewan') }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 10px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 8, color: '#34d399', fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}>
+                          <Plus size={11} /> Tambah Jamaah
+                        </button>
+                      )}
+                      {/* Tukar Nomor — khusus kambing */}
+                      {!isSapi && (
+                        <button
+                          onClick={() => { setSelectedHewan(h); setPindahTargetId(''); setModal('tukarKambing') }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 10px', background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.22)', borderRadius: 8, color: '#60a5fa', fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}>
+                          <ArrowRightLeft size={11} /> Tukar Nomor
+                        </button>
+                      )}
                       <button onClick={() => copyKode(h.kode_publik)}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#34d399', fontSize: 11.5, display: 'flex', alignItems: 'center', gap: 4 }}>
                         <Copy size={11} /> Salin kode
@@ -453,15 +525,18 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
                           }} style={G.iconBtn('rgba(255,255,255,0.35)')}>
                             <Pencil size={12} />
                           </button>
-                          <button title="Pindah ke hewan lain" onClick={(e) => {
-                            e.stopPropagation()
-                            setSelectedJamaah(j)
-                            setSelectedHewan(h)
-                            setPindahTargetId('')
-                            setModal('pindahJamaah')
-                          }} style={G.iconBtn('#60a5fa')}>
-                            <ArrowRightLeft size={12} />
-                          </button>
+                          {/* Pindah slot — hanya untuk sapi */}
+                          {isSapi && (
+                            <button title="Pindah ke sapi lain" onClick={(e) => {
+                              e.stopPropagation()
+                              setSelectedJamaah(j)
+                              setSelectedHewan(h)
+                              setPindahTargetId('')
+                              setModal('pindahJamaah')
+                            }} style={G.iconBtn('#60a5fa')}>
+                              <ArrowRightLeft size={12} />
+                            </button>
+                          )}
                           <button title="Hapus jamaah" onClick={(e) => {
                             e.stopPropagation()
                             setSelectedJamaah(j)
@@ -759,6 +834,134 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
               <button onClick={handleHapusHewan} disabled={saving}
                 style={{ flex: 1, padding: 11, background: 'linear-gradient(135deg,#ef4444,#dc2626)', border: 'none', borderRadius: 12, color: 'white', fontSize: 13.5, fontWeight: 700, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
                 {saving ? 'Menghapus...' : 'Ya, Hapus Semua'}
+              </button>
+            </div>
+          </div>
+        </div>
+      , document.body)}
+
+      {/* ══════════════════════════════════════════════════════
+          MODAL: Tambah Jamaah ke Hewan yang Sudah Ada
+      ══════════════════════════════════════════════════════ */}
+      {modal === 'tambahKeHewan' && selectedHewan && createPortal(
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.62)', backdropFilter: 'blur(10px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ ...G.modal, maxWidth: 460 }}>
+            <div style={{ padding: '22px 26px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <h2 style={{ fontSize: 16, fontWeight: 800, color: 'rgba(255,255,255,0.95)', margin: 0 }}>Tambah Jamaah</h2>
+                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.34)', margin: '4px 0 0' }}>
+                    <span style={{ fontFamily: 'ui-monospace,monospace', fontWeight: 700, color: '#34d399' }}>{selectedHewan.kode_resi}</span>
+                    {' · '}Slot tersisa: {(selectedHewan.jenis_hewan === 'SAPI' ? 7 : 1) - getJamaahFor(selectedHewan.id).length}
+                  </p>
+                </div>
+                <button onClick={() => { setModal(null); setSelectedHewan(null); setTambahKeHewanForm(EMPTY_JAMAAH) }}
+                  style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, width: 34, height: 34, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.42)' }}>
+                  <X size={15} />
+                </button>
+              </div>
+            </div>
+            <div style={{ padding: '20px 26px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <input type="text" value={tambahKeHewanForm.nama_lengkap}
+                onChange={(e) => setTambahKeHewanForm((p) => ({ ...p, nama_lengkap: e.target.value }))}
+                placeholder="Nama Lengkap *" style={G.input} />
+              <input type="text" value={tambahKeHewanForm.atas_nama ?? ''}
+                onChange={(e) => setTambahKeHewanForm((p) => ({ ...p, atas_nama: e.target.value }))}
+                placeholder="Atas Nama / Keluarga (opsional)" style={G.input} />
+              <input type="tel" value={tambahKeHewanForm.no_hp ?? ''}
+                onChange={(e) => setTambahKeHewanForm((p) => ({ ...p, no_hp: e.target.value }))}
+                placeholder="No. HP untuk notif WhatsApp" style={G.input} />
+              <textarea value={tambahKeHewanForm.alamat_lengkap ?? ''}
+                onChange={(e) => setTambahKeHewanForm((p) => ({ ...p, alamat_lengkap: e.target.value }))}
+                placeholder="Alamat lengkap (untuk label)" rows={2}
+                style={{ ...G.input, resize: 'none' }} />
+            </div>
+            <div style={{ padding: '18px 26px', borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', gap: 10, flexShrink: 0 }}>
+              <button onClick={() => { setModal(null); setSelectedHewan(null); setTambahKeHewanForm(EMPTY_JAMAAH) }}
+                style={{ flex: 1, padding: 11, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, color: 'rgba(255,255,255,0.58)', fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}>Batal</button>
+              <button onClick={handleTambahKeHewan} disabled={saving}
+                style={{ flex: 1, padding: 11, background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none', borderRadius: 12, color: 'white', fontSize: 13.5, fontWeight: 700, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
+                {saving ? 'Menyimpan...' : 'Tambahkan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      , document.body)}
+
+      {/* ══════════════════════════════════════════════════════
+          MODAL: Tukar Nomor Kambing
+      ══════════════════════════════════════════════════════ */}
+      {modal === 'tukarKambing' && selectedHewan && createPortal(
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.62)', backdropFilter: 'blur(10px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ ...G.modal, maxWidth: 460 }}>
+            <div style={{ padding: '22px 26px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <h2 style={{ fontSize: 16, fontWeight: 800, color: 'rgba(255,255,255,0.95)', margin: 0 }}>Tukar Nomor Kambing</h2>
+                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.34)', margin: '4px 0 0' }}>
+                    Tukar jamaah di <span style={{ fontFamily: 'ui-monospace,monospace', fontWeight: 700, color: '#34d399' }}>{selectedHewan.kode_resi}</span> dengan kambing lain
+                  </p>
+                </div>
+                <button onClick={() => { setModal(null); setSelectedHewan(null); setPindahTargetId('') }}
+                  style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, width: 34, height: 34, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.42)' }}>
+                  <X size={15} />
+                </button>
+              </div>
+            </div>
+            <div style={{ padding: '20px 26px', overflowY: 'auto', flex: 1 }}>
+              {/* Preview sumber */}
+              <div style={{ padding: '10px 14px', background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.15)', borderRadius: 10, marginBottom: 14 }}>
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Dari</p>
+                <p style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.85)', margin: 0, fontFamily: 'ui-monospace,monospace' }}>
+                  {selectedHewan.kode_resi}
+                  {' · '}
+                  <span style={{ fontFamily: 'inherit', fontWeight: 400, color: 'rgba(255,255,255,0.5)' }}>
+                    {getJamaahFor(selectedHewan.id).map(j => j.nama_lengkap).join(', ') || '(kosong)'}
+                  </span>
+                </p>
+              </div>
+              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', margin: '0 0 10px' }}>Pilih kambing tujuan tukar:</p>
+              {(() => {
+                const opts = getTukarOptions(selectedHewan)
+                if (opts.length === 0) return (
+                  <div style={{ padding: '24px 0', textAlign: 'center' }}>
+                    <PawPrint size={28} color="rgba(255,255,255,0.12)" style={{ margin: '0 auto 10px', display: 'block' }} />
+                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', margin: 0 }}>Tidak ada kambing lain</p>
+                  </div>
+                )
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {opts.map((h) => {
+                      const jl = getJamaahFor(h.id)
+                      const active = pindahTargetId === h.id
+                      return (
+                        <button key={h.id} onClick={() => setPindahTargetId(h.id)}
+                          style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '12px 16px', borderRadius: 12, cursor: 'pointer', textAlign: 'left',
+                            background: active ? 'rgba(96,165,250,0.12)' : 'rgba(255,255,255,0.04)',
+                            border: `1px solid ${active ? 'rgba(96,165,250,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                          }}>
+                          <div>
+                            <span style={{ fontFamily: 'ui-monospace,monospace', fontSize: 13, fontWeight: 700, color: active ? '#60a5fa' : 'rgba(255,255,255,0.82)' }}>{h.kode_resi}</span>
+                            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginLeft: 8 }}>
+                              {jl.map(j => j.nama_lengkap).join(', ') || '(kosong)'}
+                            </span>
+                          </div>
+                          {active && <ArrowRightLeft size={14} color="#60a5fa" />}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )
+              })()}
+            </div>
+            <div style={{ padding: '18px 26px', borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', gap: 10, flexShrink: 0 }}>
+              <button onClick={() => { setModal(null); setSelectedHewan(null); setPindahTargetId('') }}
+                style={{ flex: 1, padding: 11, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, color: 'rgba(255,255,255,0.58)', fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}>Batal</button>
+              <button onClick={handleTukarKambing} disabled={saving || !pindahTargetId}
+                style={{ flex: 1, padding: 11, background: pindahTargetId ? 'linear-gradient(135deg,#3b82f6,#2563eb)' : 'rgba(59,130,246,0.2)', border: 'none', borderRadius: 12, color: 'white', fontSize: 13.5, fontWeight: 700, cursor: pindahTargetId ? 'pointer' : 'not-allowed', opacity: saving ? 0.6 : 1 }}>
+                {saving ? 'Menukar...' : 'Tukar Nomor'}
               </button>
             </div>
           </div>

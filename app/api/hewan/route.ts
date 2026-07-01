@@ -99,6 +99,69 @@ export async function PATCH(request: NextRequest) {
   return NextResponse.json({ success: true, status_baru })
 }
 
+
+// PUT: tukar nomor kambing — swap jamaah antara dua slot kambing
+export async function PUT(request: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, id_workspace')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile || !['SUPER_ADMIN', 'ADMIN_PENDAFTARAN'].includes(profile.role))
+    return NextResponse.json({ error: 'Akses ditolak' }, { status: 403 })
+
+  const { id_hewan_a, id_hewan_b } = await request.json() as {
+    id_hewan_a: string
+    id_hewan_b: string
+  }
+
+  // Validasi keduanya milik workspace, jenis kambing
+  const { data: hewanList } = await supabase
+    .from('hewan')
+    .select('id, kode_resi, jenis_hewan')
+    .in('id', [id_hewan_a, id_hewan_b])
+    .eq('id_workspace', profile.id_workspace)
+    .eq('jenis_hewan', 'KAMBING')
+    .is('deleted_at', null)
+
+  if (!hewanList || hewanList.length !== 2)
+    return NextResponse.json({ error: 'Salah satu atau keduanya bukan kambing milik workspace ini' }, { status: 404 })
+
+  // Ambil jamaah aktif di masing-masing kambing
+  const { data: jamaahA } = await supabase
+    .from('jamaah').select('id').eq('id_hewan', id_hewan_a).is('deleted_at', null)
+  const { data: jamaahB } = await supabase
+    .from('jamaah').select('id').eq('id_hewan', id_hewan_b).is('deleted_at', null)
+
+  const idsA = (jamaahA ?? []).map((j) => j.id)
+  const idsB = (jamaahB ?? []).map((j) => j.id)
+
+  // Swap: gunakan id placeholder sementara untuk menghindari constraint conflict
+  // A → B, B → A (dua update atomik)
+  if (idsA.length > 0) {
+    await supabase.from('jamaah').update({ id_hewan: id_hewan_b }).in('id', idsA)
+  }
+  if (idsB.length > 0) {
+    await supabase.from('jamaah').update({ id_hewan: id_hewan_a }).in('id', idsB)
+  }
+
+  const hewanA = hewanList.find((h) => h.id === id_hewan_a)!
+  const hewanB = hewanList.find((h) => h.id === id_hewan_b)!
+
+  return NextResponse.json({
+    success: true,
+    swap: `${hewanA.kode_resi} ↔ ${hewanB.kode_resi}`,
+    id_hewan_a, id_hewan_b,
+    ids_moved_to_b: idsA,
+    ids_moved_to_a: idsB,
+  })
+}
+
 // DELETE: hapus hewan + cascade soft delete semua jamaahnya
 export async function DELETE(request: NextRequest) {
   const supabase = await createClient()

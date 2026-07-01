@@ -19,6 +19,51 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
+
+  // ── Mode B: tambah jamaah ke hewan yang sudah ada ──
+  if (body.id_hewan) {
+    const { id_hewan, jamaah } = body as { id_hewan: string; jamaah: JamaahFormData[] }
+
+    // Validasi hewan
+    const { data: hewan } = await supabase
+      .from('hewan')
+      .select('id, jenis_hewan, kode_resi')
+      .eq('id', id_hewan)
+      .eq('id_workspace', profile.id_workspace)
+      .is('deleted_at', null)
+      .single()
+
+    if (!hewan) return NextResponse.json({ error: 'Hewan tidak ditemukan' }, { status: 404 })
+
+    // Cek kapasitas
+    const { count: existing } = await supabase
+      .from('jamaah')
+      .select('id', { count: 'exact', head: true })
+      .eq('id_hewan', id_hewan)
+      .is('deleted_at', null)
+
+    const maxSlot = hewan.jenis_hewan === 'SAPI' ? 7 : 1
+    const valid = jamaah.filter((j) => j.nama_lengkap.trim())
+
+    if ((existing ?? 0) + valid.length > maxSlot)
+      return NextResponse.json({ error: `Slot ${hewan.kode_resi} hanya tersisa ${maxSlot - (existing ?? 0)}` }, { status: 409 })
+
+    const rows = valid.map((j) => ({
+      id_workspace: profile.id_workspace,
+      id_hewan,
+      nama_lengkap: j.nama_lengkap.trim(),
+      atas_nama: j.atas_nama?.trim() || null,
+      no_hp: j.no_hp?.trim() || null,
+      alamat_lengkap: j.alamat_lengkap?.trim() || null,
+    }))
+
+    const { data: inserted, error } = await supabase.from('jamaah').insert(rows).select()
+    if (error || !inserted) return NextResponse.json({ error: 'Gagal menambah jamaah' }, { status: 500 })
+
+    return NextResponse.json({ hewan, jamaah: inserted })
+  }
+
+  // ── Mode A: buat hewan baru + jamaah (existing behavior) ──
   const { jenis_hewan, tipe_sapi, jamaah } = body as {
     jenis_hewan: JenisHewan
     tipe_sapi: 'A' | 'B' | null
