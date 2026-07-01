@@ -351,7 +351,7 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
 
             {/* Header */}
             <div style={{ padding: '22px 24px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-              <div style={{ display: 'flex', align: 'center', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 {/* Left color accent */}
                 <div style={{ width: 4, borderRadius: 4, background: SG[modal.hewan.status].dot, flexShrink: 0, alignSelf: 'stretch' }} />
                 <div>
