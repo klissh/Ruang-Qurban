@@ -98,3 +98,53 @@ export async function PATCH(request: NextRequest) {
 
   return NextResponse.json({ success: true, status_baru })
 }
+
+// DELETE: hapus hewan + cascade soft delete semua jamaahnya
+export async function DELETE(request: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, id_workspace')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile || !['SUPER_ADMIN', 'ADMIN_PENDAFTARAN'].includes(profile.role))
+    return NextResponse.json({ error: 'Akses ditolak' }, { status: 403 })
+
+  const id = request.nextUrl.searchParams.get('id')
+  if (!id) return NextResponse.json({ error: 'id wajib diisi' }, { status: 400 })
+
+  // Pastikan hewan milik workspace ini
+  const { data: hewan } = await supabase
+    .from('hewan')
+    .select('id, kode_resi')
+    .eq('id', id)
+    .eq('id_workspace', profile.id_workspace)
+    .is('deleted_at', null)
+    .single()
+
+  if (!hewan) return NextResponse.json({ error: 'Hewan tidak ditemukan' }, { status: 404 })
+
+  const now = new Date().toISOString()
+
+  // Soft delete semua jamaah aktif di hewan ini
+  await supabase
+    .from('jamaah')
+    .update({ deleted_at: now })
+    .eq('id_hewan', id)
+    .is('deleted_at', null)
+
+  // Soft delete hewan
+  const { error } = await supabase
+    .from('hewan')
+    .update({ deleted_at: now })
+    .eq('id', id)
+
+  if (error)
+    return NextResponse.json({ error: 'Gagal menghapus hewan' }, { status: 500 })
+
+  return NextResponse.json({ success: true, kode_resi: hewan.kode_resi })
+}

@@ -114,3 +114,140 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({ data: data ?? [] })
 }
+
+// PATCH: edit data jamaah
+export async function PATCH(request: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, id_workspace')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile || !['SUPER_ADMIN', 'ADMIN_PENDAFTARAN'].includes(profile.role))
+    return NextResponse.json({ error: 'Akses ditolak' }, { status: 403 })
+
+  const body = await request.json()
+  const { id, nama_lengkap, atas_nama, no_hp, alamat_lengkap } = body as {
+    id: string
+    nama_lengkap: string
+    atas_nama?: string
+    no_hp?: string
+    alamat_lengkap?: string
+  }
+
+  if (!id || !nama_lengkap?.trim())
+    return NextResponse.json({ error: 'id dan nama_lengkap wajib diisi' }, { status: 400 })
+
+  const { data, error } = await supabase
+    .from('jamaah')
+    .update({
+      nama_lengkap: nama_lengkap.trim(),
+      atas_nama: atas_nama?.trim() || null,
+      no_hp: no_hp?.trim() || null,
+      alamat_lengkap: alamat_lengkap?.trim() || null,
+    })
+    .eq('id', id)
+    .eq('id_workspace', profile.id_workspace)
+    .is('deleted_at', null)
+    .select()
+    .single()
+
+  if (error || !data)
+    return NextResponse.json({ error: 'Gagal memperbarui data jamaah' }, { status: 500 })
+
+  return NextResponse.json({ jamaah: data })
+}
+
+// PUT: pindah jamaah ke hewan lain
+export async function PUT(request: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, id_workspace')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile || !['SUPER_ADMIN', 'ADMIN_PENDAFTARAN'].includes(profile.role))
+    return NextResponse.json({ error: 'Akses ditolak' }, { status: 403 })
+
+  const { id_jamaah, id_hewan_baru } = await request.json() as {
+    id_jamaah: string
+    id_hewan_baru: string
+  }
+
+  // Validasi hewan tujuan: harus ada, milik workspace ini, belum dihapus
+  const { data: hewanTujuan } = await supabase
+    .from('hewan')
+    .select('id, jenis_hewan, kode_resi')
+    .eq('id', id_hewan_baru)
+    .eq('id_workspace', profile.id_workspace)
+    .is('deleted_at', null)
+    .single()
+
+  if (!hewanTujuan)
+    return NextResponse.json({ error: 'Hewan tujuan tidak ditemukan' }, { status: 404 })
+
+  // Hitung jumlah jamaah aktif di hewan tujuan
+  const { count: jumlahDiTujuan } = await supabase
+    .from('jamaah')
+    .select('id', { count: 'exact', head: true })
+    .eq('id_hewan', id_hewan_baru)
+    .is('deleted_at', null)
+
+  const maxSlot = hewanTujuan.jenis_hewan === 'SAPI' ? 7 : 1
+  if ((jumlahDiTujuan ?? 0) >= maxSlot)
+    return NextResponse.json({ error: `Slot hewan ${hewanTujuan.kode_resi} sudah penuh (maks. ${maxSlot})` }, { status: 409 })
+
+  // Pindahkan jamaah
+  const { data, error } = await supabase
+    .from('jamaah')
+    .update({ id_hewan: id_hewan_baru })
+    .eq('id', id_jamaah)
+    .eq('id_workspace', profile.id_workspace)
+    .is('deleted_at', null)
+    .select()
+    .single()
+
+  if (error || !data)
+    return NextResponse.json({ error: 'Gagal memindahkan jamaah' }, { status: 500 })
+
+  return NextResponse.json({ jamaah: data, kode_resi_baru: hewanTujuan.kode_resi })
+}
+
+// DELETE: hapus jamaah (soft delete)
+export async function DELETE(request: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, id_workspace')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile || !['SUPER_ADMIN', 'ADMIN_PENDAFTARAN'].includes(profile.role))
+    return NextResponse.json({ error: 'Akses ditolak' }, { status: 403 })
+
+  const id = request.nextUrl.searchParams.get('id')
+  if (!id) return NextResponse.json({ error: 'id wajib diisi' }, { status: 400 })
+
+  const { error } = await supabase
+    .from('jamaah')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', id)
+    .eq('id_workspace', profile.id_workspace)
+    .is('deleted_at', null)
+
+  if (error)
+    return NextResponse.json({ error: 'Gagal menghapus jamaah' }, { status: 500 })
+
+  return NextResponse.json({ success: true })
+}
