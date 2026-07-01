@@ -42,13 +42,13 @@ const MODAL: React.CSSProperties = {
 // ─── Download template helper (format persis Google Forms export) ─────────
 function downloadTemplate() {
   const SAPI_B_NAMES = [
-    'Widhayat Rudhi Windarta',
-    'Muthiah Raihanatul Jannah',
-    'Muhammad Muhibuddin Mufqi',
-    'Muhammad Muhibuddin Mukhlish',
-    'Sopyan Supardi',
-    'Nur Fazria Maulidia',
-    'Supriyati binti Tamsir',
+    'Dummy Nama Satu bin Contoh',
+    'Dummy Nama Dua binti Contoh',
+    'Dummy Nama Tiga bin Contoh',
+    'Dummy Nama Empat binti Contoh',
+    'Dummy Nama Lima bin Contoh',
+    'Dummy Nama Enam binti Contoh',
+    'Dummy Nama Tujuh bin Contoh',
   ].join('\n')
 
   const headers = [
@@ -64,41 +64,33 @@ function downloadTemplate() {
   ]
 
   const rows = [
-    // SAPI-A individu (baris 1 dari 5 dalam kelompok)
-    ['2026-04-29 17:05:03', 'Nisatul Masturoh',   'Kavling Deplu Jl. Duta VII Rt.007/007 Cipadu Jaya Larangan Tangerang', '081219357727', '', 'Nisatul Masturoh Binti Hamdani', '', '', ''],
-    ['2026-04-30 18:58:35', 'Danang Yoga Wijaya', 'Cluster Garuda Asri Residence, Jl. Garuda Raya No.A-126/A, RT004 RW008.', '081220867689', '', 'Danang Yoga Wijaya bin Wahyu Subagja', '', '', ''],
-    ['2026-05-01 05:59:41', 'Ari Wijaya',         'Jl. Walet No. 5 Komplek Pajak RT 04/08, Jurangmangu Timur',           '08111661766', '', 'Muhammad Zahfan Hafizhuddin', '', '', ''],
-    // SAPI-A dengan beberapa nama dalam 1 sel
-    ['2026-05-08 10:00:00', 'Budi Santoso',        'Jl. Mawar No. 1 RT.01/08, Pondok Aren',                               '081234567890', '', '1) Budi bin Santoso 2) Siti Rahayu binti Santoso', '', '', ''],
-    // SAPI-B (penitipan — semua nama dalam 1 sel, pisah Enter)
-    ['2026-05-03 05:08:43', 'Mufqi',               'Komplek Pajak Jalan Cendrawasih no a84a RT 04 RW 08',                 '085878920436', '', '', SAPI_B_NAMES, '', ''],
+    // SAPI-A individu biasa
+    ['2026-01-01 08:00:00', 'Pendaftar A', 'Jl. Contoh No. 1 RT.01/01, Kel. Contoh, Kec. Contoh', '081100000001', '', 'Nama Peng-Qurban A bin Contoh', '', '', ''],
+    ['2026-01-02 09:00:00', 'Pendaftar B', 'Jl. Contoh No. 2 RT.02/01, Kel. Contoh, Kec. Contoh', '081100000002', '', 'Nama Peng-Qurban B binti Contoh', '', '', ''],
+    // SAPI-A multi-nama dalam 1 sel (format angka inline)
+    ['2026-01-03 10:00:00', 'Pendaftar C', 'Jl. Contoh No. 3 RT.03/01, Kel. Contoh, Kec. Contoh', '081100000003', '', '1) Nama Peng-Qurban C bin Contoh 2) Nama Peng-Qurban D binti Contoh', '', '', ''],
+    // SAPI-B penitipan (7 nama dalam 1 sel, pisah Enter)
+    ['2026-01-04 11:00:00', 'Pendaftar D', 'Jl. Contoh No. 4 RT.04/01, Kel. Contoh, Kec. Contoh', '081100000004', '', '', SAPI_B_NAMES, '', ''],
     // KAMBING
-    ['2026-05-04 08:00:00', 'Adi Rasidi',          'Cluster Griya Ilhami Blok B3',                                        '08156901512',  '', '', '', 'Adi Rasidi bin Sanusi', ''],
-    ['2026-05-04 09:00:00', 'Fatimah',             'Jl. Bambu No. 39A RT.009/005',                                        '082345678901', '', '', '', 'Fatimah binti Ahmad', ''],
+    ['2026-01-05 12:00:00', 'Pendaftar E', 'Jl. Contoh No. 5 RT.05/01, Kel. Contoh, Kec. Contoh', '081100000005', '', '', '', 'Nama Peng-Qurban E bin Contoh', ''],
+    ['2026-01-06 13:00:00', 'Pendaftar F', 'Jl. Contoh No. 6 RT.06/01, Kel. Contoh, Kec. Contoh', '081100000006', '', '', '', 'Nama Peng-Qurban F binti Contoh', ''],
   ]
 
   const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
 
   ws['!cols'] = [
     { wch: 20 }, // Timestamp
-    { wch: 22 }, // Nama pendaftar
-    { wch: 36 }, // Alamat lengkap
+    { wch: 18 }, // Nama pendaftar
+    { wch: 40 }, // Alamat lengkap
     { wch: 20 }, // Nomor HP
     { wch: 8  }, // ABS
-    { wch: 36 }, // TIPE A
-    { wch: 36 }, // TIPE B
+    { wch: 40 }, // TIPE A
+    { wch: 40 }, // TIPE B
     { wch: 36 }, // TIPE C
     { wch: 14 }, // Notes
   ]
 
-  // Wrap text pada sel TIPE B agar newline kelihatan
-  if (ws['G6']) ws['G6'].s = { alignment: { wrapText: true } }
-
-  // Style header row
-  headers.forEach((_, i) => {
-    const cell = ws[XLSX.utils.encode_cell({ r: 0, c: i })]
-    if (cell) cell.s = { font: { bold: true }, fill: { fgColor: { rgb: '1F2D25' } } }
-  })
+  if (ws['G5']) ws['G5'].s = { alignment: { wrapText: true } }
 
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Form Responses 1')
@@ -264,24 +256,24 @@ export default function ImportModal({ onClose, onSuccess }: Props) {
                   <tbody>
                     {([
                       {
-                        ts: '2026-04-29 17:05:03', pend: 'Nisatul Masturoh',
-                        alamat: 'Kavling Deplu Jl. Duta VII…', hp: '081219357727', abs: 'wa.me/…',
-                        a: 'Nisatul Masturoh Binti Hamdani', b: '', c: '', notes: '',
+                        ts: '2026-01-01 08:00:00', pend: 'Pendaftar A',
+                        alamat: 'Jl. Contoh No. 1 RT.01/01…', hp: '081100000001', abs: 'wa.me/…',
+                        a: 'Nama Peng-Qurban A bin Contoh', b: '', c: '', notes: '',
                       },
                       {
-                        ts: '2026-05-03 05:08:43', pend: 'Mufqi',
-                        alamat: 'Komplek Pajak Jl. Cendrawasih…', hp: '085878920436', abs: 'wa.me/…',
-                        a: '', b: 'Widhayat Rudhi Windarta\nMuthiah Raihanatul Jannah\n… (7 nama)', c: '', notes: '',
+                        ts: '2026-01-04 11:00:00', pend: 'Pendaftar D',
+                        alamat: 'Jl. Contoh No. 4 RT.04/01…', hp: '081100000004', abs: 'wa.me/…',
+                        a: '', b: 'Dummy Nama Satu\nDummy Nama Dua\n… (7 nama)', c: '', notes: '',
                       },
                       {
-                        ts: '2026-05-08 10:00:00', pend: 'Budi Santoso',
-                        alamat: 'Jl. Mawar No. 1…', hp: '081234567890', abs: 'wa.me/…',
-                        a: '1) Budi bin Santoso 2) Siti Rahayu…', b: '', c: '', notes: '',
+                        ts: '2026-01-03 10:00:00', pend: 'Pendaftar C',
+                        alamat: 'Jl. Contoh No. 3 RT.03/01…', hp: '081100000003', abs: 'wa.me/…',
+                        a: '1) Nama Peng-Qurban C 2) Nama Peng-Qurban D', b: '', c: '', notes: '',
                       },
                       {
-                        ts: '2026-05-04 08:00:00', pend: 'Adi Rasidi',
-                        alamat: 'Cluster Griya Ilhami…', hp: '08156901512', abs: 'wa.me/…',
-                        a: '', b: '', c: 'Adi Rasidi bin Sanusi', notes: '',
+                        ts: '2026-01-05 12:00:00', pend: 'Pendaftar E',
+                        alamat: 'Jl. Contoh No. 5 RT.05/01…', hp: '081100000005', abs: 'wa.me/…',
+                        a: '', b: '', c: 'Nama Peng-Qurban E bin Contoh', notes: '',
                       },
                     ] as const).map((r, i) => {
                       const isB = !!r.b
