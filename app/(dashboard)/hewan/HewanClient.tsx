@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
   Plus, Upload, Printer, Search, ChevronDown, ChevronUp,
@@ -15,6 +16,7 @@ import CetakPickerModal from '@/components/cetak/CetakPickerModal'
 import LabelPVCModal from '@/components/cetak/LabelPVCModal'
 import MarbotModal from '@/components/cetak/MarbotModal'
 import PenyembelihanModal from '@/components/cetak/PenyembelihanModal'
+import ImportModal from '@/components/import/ImportModal'
 import * as XLSX from 'xlsx'
 
 const EMPTY_JAMAAH: JamaahFormData = { nama_lengkap: '', atas_nama: '', no_hp: '', alamat_lengkap: '' }
@@ -31,6 +33,7 @@ type ModalType =
   | 'label'
   | 'marbot'
   | 'penyembelihan'
+  | 'import'
   | null
 
 const STATUS_GLASS: Record<StatusHewan, { color: string; bg: string; border: string; dot: string; topBorder: string }> = {
@@ -95,6 +98,7 @@ interface Props {
 }
 
 export default function HewanClient({ hewanList, jamaahList, kambingCount, workspaceId, namaWorkspace }: Props) {
+  const router = useRouter()
   const [hewan, setHewan] = useState<Hewan[]>(hewanList)
   const [jamaah, setJamaah] = useState<Jamaah[]>(jamaahList)
   const [modal, setModal] = useState<ModalType>(null)
@@ -102,6 +106,10 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
   const [filterTipe, setFilterTipe] = useState<'SEMUA' | 'SAPI-A' | 'SAPI-B' | 'KAMBING'>('SEMUA')
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+
+  // Sync state dengan props baru setelah router.refresh() pasca-import
+  useEffect(() => { setHewan(hewanList) }, [hewanList])
+  useEffect(() => { setJamaah(jamaahList) }, [jamaahList])
 
   // ── State form Tambah ──
   const [jenisHewan, setJenisHewan] = useState<JenisHewan>('SAPI')
@@ -115,8 +123,6 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
   const [editForm, setEditForm] = useState<JamaahFormData>(EMPTY_JAMAAH)
   const [pindahTargetId, setPindahTargetId] = useState<string>('')
   const [tambahKeHewanForm, setTambahKeHewanForm] = useState<JamaahFormData>(EMPTY_JAMAAH)
-
-  const importRef = useRef<HTMLInputElement>(null)
 
   const filtered = hewan.filter((h) => {
     // Filter tipe
@@ -154,8 +160,8 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
   // ── Preview kode berikutnya ──
   const sapiACount = hewan.filter((h) => h.kode_resi.startsWith('SAPI-A')).length
   const sapiBCount = hewan.filter((h) => h.kode_resi.startsWith('SAPI-B')).length
-  const nextKodeSapiA   = generateKodeResi('SAPI', sapiACount + 1, 'A')
-  const nextKodeSapiB   = generateKodeResi('SAPI', sapiBCount + 1, 'B')
+  const nextKodeSapiA   = generateKodeResi('SAPI', sapiACount + 1)         // index 1–9 → SAPI-A01–A09
+  const nextKodeSapiB   = generateKodeResi('SAPI', 9 + sapiBCount + 1)     // index 10–18 → SAPI-B01–B09
   const nextKodeKambing = generateKodeResi('KAMBING', kambingCount + 1)
 
   // ── Hewan valid untuk pindah (same jenis, ada slot, bukan hewan sumber) ──
@@ -329,24 +335,6 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
     }
   }
 
-  function handleFileImport(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      try {
-        const wb = XLSX.read(ev.target?.result, { type: 'binary' })
-        const ws = wb.Sheets[wb.SheetNames[0]]
-        const rows = XLSX.utils.sheet_to_json<any>(ws)
-        const valid = rows.filter((r: any) => r['nama_lengkap'] || r['Nama Lengkap'] || r['NAMA'])
-        if (!valid.length) { toast.error('Kolom nama_lengkap tidak ditemukan di file'); return }
-        toast.info(`${valid.length} baris ditemukan. Fitur import batch segera hadir.`)
-      } catch { toast.error('Gagal membaca file Excel') }
-    }
-    reader.readAsBinaryString(file)
-    e.target.value = ''
-  }
-
   function copyKode(kodePublik: string) {
     navigator.clipboard.writeText(kodePublik)
     toast.success('Kode tracking disalin!')
@@ -373,10 +361,9 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
           <button onClick={() => setModal('cetakPicker')} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 11, color: 'rgba(255,255,255,0.62)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             <Printer size={14} /> Cetak
           </button>
-          <button onClick={() => importRef.current?.click()} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 11, color: 'rgba(255,255,255,0.62)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => setModal('import')} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 11, color: 'rgba(255,255,255,0.62)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             <Upload size={14} /> Import Excel
           </button>
-          <input ref={importRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={handleFileImport} />
           <button onClick={() => setModal('tambah')} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none', borderRadius: 11, color: 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px rgba(16,185,129,0.38)' }}>
             <Plus size={14} /> Tambah Kelompok
           </button>
@@ -1071,6 +1058,14 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
       {modal === 'label' && createPortal(<LabelPVCModal data={cetakData} onClose={() => setModal(null)} onBack={() => setModal('cetakPicker')} />, document.body)}
       {modal === 'marbot' && createPortal(<MarbotModal data={cetakData} namaWorkspace={namaWorkspace} onClose={() => setModal(null)} onBack={() => setModal('cetakPicker')} />, document.body)}
       {modal === 'penyembelihan' && createPortal(<PenyembelihanModal data={cetakData} onClose={() => setModal(null)} onBack={() => setModal('cetakPicker')} />, document.body)}
+
+      {/* Import Modal */}
+      {modal === 'import' && (
+        <ImportModal
+          onClose={() => setModal(null)}
+          onSuccess={() => router.refresh()}
+        />
+      )}
     </div>
   )
 }

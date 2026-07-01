@@ -41,7 +41,6 @@ export default async function HewanPage() {
     <HewanClient
       hewanList={hewanRaw ?? []}
       jamaahList={jamaahRaw ?? []}
-      sapiCount={sapiCount}
       kambingCount={kambingCount}
       workspaceId={wid}
       namaWorkspace={(profile.workspaces as any)?.nama ?? ''}
