@@ -109,13 +109,12 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
     URL.revokeObjectURL(url)
   }
 
-  const SCALE = 0.55
-  const previewW = config.lebarMm * MM_TO_PX * SCALE
-  const previewH = config.tinggiMm * MM_TO_PX * SCALE
+  // Scale 2.2x: preview nyaman dibaca (print tetap pakai MM asli)
+  const SCALE = 2.2
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col">
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
@@ -189,15 +188,22 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
 
           {/* Preview Area */}
           <div className="flex-1 overflow-auto bg-gray-100 p-6">
-            <p className="text-xs text-gray-400 mb-4 text-center">Preview (skala {Math.round(SCALE * 100)}%)</p>
+            <p className="text-xs text-gray-400 mb-5 text-center">Preview (skala {Math.round(SCALE * 100)}%)</p>
             <div
               ref={previewRef}
-              className="flex flex-wrap gap-2 justify-start"
+              className="flex flex-wrap gap-10 justify-start"
             >
               {labels.map(({ hewan, jamaah }, idx) => (
                 <div
                   key={idx}
-                  style={{ transform: `scale(${SCALE})`, transformOrigin: 'top left', width: config.lebarMm * MM_TO_PX, height: config.tinggiMm * MM_TO_PX, marginRight: -(config.lebarMm * MM_TO_PX * (1 - SCALE)), marginBottom: -(config.tinggiMm * MM_TO_PX * (1 - SCALE)) }}
+                  style={{
+                    transform: `scale(${SCALE})`,
+                    transformOrigin: 'top left',
+                    width: config.lebarMm * MM_TO_PX,
+                    height: config.tinggiMm * MM_TO_PX,
+                    marginRight: -(config.lebarMm * MM_TO_PX * (1 - SCALE)),
+                    marginBottom: -(config.tinggiMm * MM_TO_PX * (1 - SCALE)),
+                  }}
                 >
                   <LabelCard hewan={hewan} jamaah={jamaah} config={config} />
                 </div>

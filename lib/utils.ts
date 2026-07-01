@@ -3,16 +3,23 @@
 // ============================================================
 
 /**
- * Generate kode_resi berurutan berdasarkan jenis dan urutan
- * Sapi: SAPI-A01, SAPI-A02, ...
- * Kambing: KMB-001, KMB-002, ...
+ * Generate kode_resi berurutan berdasarkan jenis, urutan, dan tipe.
+ * Sapi  : SAPI-A01, SAPI-A02, ..., SAPI-A10, SAPI-A100 dst (tanpa batas per tipe)
+ * Kambing: KMB-001, KMB-002, dst
+ *
+ * @param jenis  - 'SAPI' | 'KAMBING'
+ * @param index  - urutan dalam tipe, dimulai dari 1, tanpa batas atas
+ * @param tipe   - 'A' | 'B' (hanya untuk SAPI, default 'A')
  */
-export function generateKodeResi(jenis: 'SAPI' | 'KAMBING', index: number): string {
+export function generateKodeResi(
+  jenis: 'SAPI' | 'KAMBING',
+  index: number,
+  tipe: 'A' | 'B' = 'A'
+): string {
   if (jenis === 'SAPI') {
-    // Format: SAPI-A01, SAPI-A02, ..., SAPI-A09, SAPI-B01, dst
-    const group = String.fromCharCode(65 + Math.floor((index - 1) / 9)) // A, B, C, ...
-    const num = String((index - 1) % 9 + 1).padStart(2, '0')
-    return `SAPI-${group}${num}`
+    // padStart(2) → "01".."09" lalu "10","11","99","100","1123" — tidak pernah terpotong
+    const num = String(index).padStart(2, '0')
+    return `SAPI-${tipe}${num}`
   } else {
     return `KMB-${String(index).padStart(3, '0')}`
   }
