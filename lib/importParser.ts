@@ -23,7 +23,7 @@ export interface ImportedKelompok {
 }
 
 export interface ParseResult {
-  kelompokList: ImportedKelompok[],
+  kelompokList: ImportedKelompok[]
   errors: string[]
   skippedRows: number
   format: 'gforms' | 'simple' | 'unknown'
@@ -50,7 +50,6 @@ export function cleanNama(raw: string | null | undefined): string {
   if (s.startsWith('(') && s.endsWith(')')) {
     s = s.slice(1, -1).trim()
   } else {
-    // Hapus kurung pembuka / penutup yang tergantung
     s = s.replace(/^\(\s*/, '').replace(/\)\s*$/, '').trim()
   }
 
@@ -61,7 +60,52 @@ export function cleanNama(raw: string | null | undefined): string {
 }
 
 /**
- * Pecah sel multi-baris (TIPE B) menjadi array nama.
+ * Split sel TIPE A yang mungkin berisi beberapa nama dalam 1 sel:
+ *   - Separator 1: newline (\n) — dari Alt+Enter di Excel
+ *   - Separator 2: marker angka inline — spasi + "2. Nama" atau "2) Nama"
+ *
+ * Contoh:
+ *   "1) JONI WARMAN BIN AMIR 2) ALMH. SYAM SINAR BINTI HAMZAH"
+ *   → ["JONI WARMAN BIN AMIR", "ALMH. SYAM SINAR BINTI HAMZAH"]
+ *
+ *   "Risnawati binti Rustam Ibrahim 2. Raihan Mufadhdhol 3. Nadira meuthia"
+ *   → ["Risnawati binti Rustam Ibrahim", "Raihan Mufadhdhol", "Nadira meuthia"]
+ *
+ *   "Adi Rasidi bin Sanusi" (single, tanpa angka)
+ *   → ["Adi Rasidi bin Sanusi"]
+ */
+function splitTipeACell(raw: string): string[] {
+  if (!raw || !raw.trim()) return []
+
+  const results: string[] = []
+
+  // Pecah dulu berdasarkan newline
+  const lines = raw.split('\n').map((l) => l.trim()).filter((l) => l.length > 0)
+
+  for (const line of lines) {
+    // Cek apakah baris mengandung marker angka inline:
+    // whitespace + digit(s) + ")" atau "." + whitespace
+    // Misal: " 2) " atau " 2. " di tengah string
+    if (/\s\d+[.)]\s/.test(line)) {
+      // Pecah tepat sebelum setiap marker angka
+      // Lookahead: \d+[.)] diikuti whitespace, didahului whitespace
+      const parts = line.split(/\s+(?=\d+[.)]\s)/)
+      for (const part of parts) {
+        const cleaned = cleanNama(part.trim())
+        if (cleaned.length >= 2) results.push(cleaned)
+      }
+    } else {
+      // Baris tunggal — satu nama saja
+      const cleaned = cleanNama(line)
+      if (cleaned.length >= 2) results.push(cleaned)
+    }
+  }
+
+  return results
+}
+
+/**
+ * Pecah sel multi-baris TIPE B menjadi array nama.
  * Pisahan: newline (\n). Setiap baris dibersihkan via cleanNama.
  */
 function splitMultilineNama(raw: string): string[] {
@@ -72,7 +116,7 @@ function splitMultilineNama(raw: string): string[] {
     .filter((n) => n.length >= 2)
 }
 
-/** Normalisasi string untuk perbandingan (lowercase, trim, spasi tunggal) */
+/** Normalisasi string untuk perbandingan */
 function norm(s: string | null | undefined): string {
   return (s ?? '').toLowerCase().trim().replace(/\s+/g, ' ')
 }
@@ -88,21 +132,22 @@ const COL_TIPE_C    = 'Nama Peng-Qurban TIPE C (Penitipan Kambing)'
 // ─── Parser: Google Forms export ──────────────────────────────────────────
 /**
  * Logika grouping SAPI-A:
- * - Semua pendaftar individual SAPI-A dikumpulkan ke pool global (urutan baris)
- * - Di akhir, pool dibagi-bagi: setiap 7 orang = 1 kelompok sapi
- * - SAPI-B (penitipan) dikumpulkan terpisah — tidak mempengaruhi pool SAPI-A
- * - KAMBING dikumpulkan terpisah
- * - Urutan output: [semua SAPI-A grup, semua SAPI-B, semua KAMBING]
+ * - Tiap baris Excel menghasilkan 1 "unit" — bisa 1 orang atau lebih
+ *   (jika sel berisi "1) Joni 2) Almh. Syam" → unit berisi 2 jamaah)
+ * - Semua unit SAPI-A dari seluruh file dikumpulkan
+ * - Lalu dikemas: maks 7 jamaah per sapi, tapi unit dari 1 baris tidak dipecah
+ *   ke sapi yang berbeda (agar 1 keluarga tetap dalam sapi yang sama)
+ * - SAPI-B: kelompok tersendiri (tidak mempengaruhi packing SAPI-A)
+ * - KAMBING: entri tersendiri
+ * - Output: [SAPI-A..., SAPI-B..., KAMBING...]
  */
 function parseGForms(rows: Record<string, unknown>[]): ParseResult {
   const errors: string[] = []
   let skippedRows = 0
 
-  // Pool individu SAPI-A (semua dari seluruh file)
-  const sapiAPool: ImportedJamaah[] = []
-  // Kelompok SAPI-B (tiap baris penitipan = 1 kelompok)
+  // Unit = array jamaah dari 1 baris Excel yang harus dalam sapi yang sama
+  const sapiAUnits: ImportedJamaah[][] = []
   const sapiBGroups: ImportedKelompok[] = []
-  // Entri kambing individual
   const kambingList: ImportedKelompok[] = []
 
   rows.forEach((row, i) => {
@@ -123,31 +168,32 @@ function parseGForms(rows: Record<string, unknown>[]): ParseResult {
 
     if (!hasA && !hasB && !hasC) { skippedRows++; return }
 
-    // ── TIPE A: tambahkan ke pool global ─────────────────────────────────
+    // ── TIPE A: split sel (1 baris bisa > 1 nama), kumpulkan sebagai unit ─
     if (hasA) {
-      const namaA = cleanNama(rawA)
-      if (namaA) {
-        sapiAPool.push({
-          nama_lengkap:   namaA,
-          no_hp:          noHp   || undefined,
-          alamat_lengkap: alamat || undefined,
-        })
-      } else {
+      const names = splitTipeACell(rawA)
+      if (names.length === 0) {
         skippedRows++
+      } else {
+        // Seluruh nama dari 1 sel = 1 unit → harus di sapi yang sama
+        sapiAUnits.push(
+          names.map((n) => ({
+            nama_lengkap:   n,
+            no_hp:          noHp   || undefined,
+            alamat_lengkap: alamat || undefined,
+          }))
+        )
       }
     }
 
-    // ── TIPE B: kelompok penitipan tersendiri ─────────────────────────────
+    // ── TIPE B: setiap baris = 1 sapi penitipan ──────────────────────────
     if (hasB) {
       const names = splitMultilineNama(rawB)
       if (names.length === 0) { skippedRows++; return }
-
       if (names.length > 7) {
         errors.push(
-          `Baris ${rowNum}: SAPI-B "${pendaftarNama}" memiliki ${names.length} orang — hanya 7 pertama yang diimport`
+          `Baris ${rowNum}: SAPI-B "${pendaftarNama}" memiliki ${names.length} orang — hanya 7 pertama`
         )
       }
-
       sapiBGroups.push({
         tipe: 'SAPI-B',
         pendaftarNama,
@@ -165,7 +211,6 @@ function parseGForms(rows: Record<string, unknown>[]): ParseResult {
     if (hasC) {
       const namaC = cleanNama(rawC)
       if (!namaC) { skippedRows++; return }
-
       kambingList.push({
         tipe: 'KAMBING',
         pendaftarNama,
@@ -180,19 +225,53 @@ function parseGForms(rows: Record<string, unknown>[]): ParseResult {
     }
   })
 
-  // ── Pecah pool SAPI-A menjadi kelompok @ 7 orang ─────────────────────
+  // ── Pack unit SAPI-A → kelompok maks 7 jamaah ────────────────────────
+  // Aturan: unit dari 1 baris tidak boleh dipecah ke sapi berbeda.
+  // Jika unit berikutnya tidak muat di sapi sekarang → flush dulu.
   const sapiAGroups: ImportedKelompok[] = []
-  for (let i = 0; i < sapiAPool.length; i += 7) {
-    sapiAGroups.push({
-      tipe: 'SAPI-A',
-      pendaftarNama:   '',
-      pendaftarHp:     '',
-      pendaftarAlamat: '',
-      jamaahList: sapiAPool.slice(i, i + 7),
-    })
+  let currentJamaah: ImportedJamaah[] = []
+
+  const flushCurrent = () => {
+    if (currentJamaah.length > 0) {
+      sapiAGroups.push({
+        tipe: 'SAPI-A',
+        pendaftarNama:   '',
+        pendaftarHp:     '',
+        pendaftarAlamat: '',
+        jamaahList: currentJamaah,
+      })
+      currentJamaah = []
+    }
   }
 
-  // ── Gabungkan: SAPI-A dulu, lalu SAPI-B, lalu KAMBING ────────────────
+  for (const unit of sapiAUnits) {
+    if (unit.length >= 7) {
+      // Unit sudah penuh sendiri (sangat jarang) → flush & masukkan langsung
+      flushCurrent()
+      sapiAGroups.push({
+        tipe: 'SAPI-A',
+        pendaftarNama:   '',
+        pendaftarHp:     '',
+        pendaftarAlamat: '',
+        jamaahList: unit.slice(0, 7),
+      })
+      continue
+    }
+
+    if (currentJamaah.length + unit.length > 7) {
+      // Unit tidak muat → flush sapi sekarang, mulai sapi baru dengan unit ini
+      flushCurrent()
+    }
+
+    currentJamaah.push(...unit)
+
+    if (currentJamaah.length === 7) {
+      flushCurrent()
+    }
+  }
+
+  flushCurrent() // sisa jamaah yang belum penuh
+
   const kelompokList: ImportedKelompok[] = [
     ...sapiAGroups,
     ...sapiBGroups,
@@ -208,8 +287,6 @@ function parseSimple(rows: Record<string, unknown>[]): ParseResult {
   let skippedRows = 0
   const kelompokList: ImportedKelompok[] = []
 
-  // Untuk template sederhana: group by Nama Pendaftar (atau HP sebagai fallback)
-  // Karena user manual yang ngisi, diasumsikan grouping eksplisit lewat kolom Nama Pendaftar
   const sapiAMap   = new Map<string, ImportedKelompok>()
   const sapiAOrder : string[] = []
 
@@ -283,7 +360,6 @@ function parseSimple(rows: Record<string, unknown>[]): ParseResult {
       })
 
     } else {
-      // KAMBING
       const nama = cleanNama(namaRaw)
       if (!nama) { skippedRows++; return }
       kelompokList.push({
