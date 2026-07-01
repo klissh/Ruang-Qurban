@@ -23,7 +23,7 @@ export interface ImportedKelompok {
 }
 
 export interface ParseResult {
-  kelompokList: ImportedKelompok[]
+  kelompokList: ImportedKelompok[],
   errors: string[]
   skippedRows: number
   format: 'gforms' | 'simple' | 'unknown'
@@ -86,17 +86,32 @@ const COL_TIPE_B    = 'Nama Peng-Qurban TIPE B (Penitipan Sapi)'
 const COL_TIPE_C    = 'Nama Peng-Qurban TIPE C (Penitipan Kambing)'
 
 // ─── Parser: Google Forms export ──────────────────────────────────────────
-function parseGForms(rows: Record<string, any>[]): ParseResult {
+/**
+ * Logika grouping SAPI-A:
+ * - Pendaftar individual (1 orang per baris) dikumpulkan secara berurutan
+ * - Setiap 7 orang otomatis dijadikan 1 kelompok sapi
+ * - Ketika ada SAPI-B, kelompok SAPI-A yang sedang terkumpul langsung di-flush
+ *   (walaupun belum 7 orang), lalu SAPI-B dimasukkan sebagai kelompok tersendiri
+ * - Setelah SAPI-B, pengumpulan SAPI-A individu dilanjutkan dari awal lagi
+ * - KAMBING tidak mempengaruhi pengumpulan SAPI-A
+ */
+function parseGForms(rows: Record<string, unknown>[]): ParseResult {
   const errors: string[] = []
   let skippedRows = 0
   const kelompokList: ImportedKelompok[] = []
 
-  // SAPI-A: di-group berdasarkan (pendaftar_nama + no_hp)
-  const sapiAMap   = new Map<string, ImportedKelompok>()
-  const sapiAOrder : string[] = []
+  // Kelompok SAPI-A yang sedang dikumpulkan
+  let currentSapiA: ImportedKelompok | null = null
+
+  const flushSapiA = () => {
+    if (currentSapiA && currentSapiA.jamaahList.length > 0) {
+      kelompokList.push(currentSapiA)
+      currentSapiA = null
+    }
+  }
 
   rows.forEach((row, i) => {
-    const rowNum = i + 2 // +2 karena baris header = baris 1
+    const rowNum = i + 2 // +2 karena header = baris 1
 
     const pendaftarNama = String(row[COL_PENDAFTAR] ?? '').trim()
     const alamat        = String(row[COL_ALAMAT]    ?? '').trim()
@@ -113,43 +128,46 @@ function parseGForms(rows: Record<string, any>[]): ParseResult {
 
     if (!hasA && !hasB && !hasC) { skippedRows++; return }
 
-    // ── TIPE A ───────────────────────────────────────────────────────────
+    // ── TIPE A: individual → dikumpulkan sekuensial ───────────────────────
     if (hasA) {
       const namaA = cleanNama(rawA)
       if (!namaA) { skippedRows++; return }
 
-      // Kunci grouping: norm(pendaftar) + '|' + norm(hp)
-      // Jika keduanya kosong, pakai row index agar tidak di-merge
-      const keyRaw = norm(pendaftarNama) + '|' + norm(noHp)
-      const key    = keyRaw === '|' ? `__row_${rowNum}` : keyRaw
-
-      if (!sapiAMap.has(key)) {
-        sapiAMap.set(key, {
+      // Mulai kelompok baru jika belum ada
+      if (!currentSapiA) {
+        currentSapiA = {
           tipe: 'SAPI-A',
           pendaftarNama,
-          pendaftarHp: noHp,
+          pendaftarHp:    noHp,
           pendaftarAlamat: alamat,
           jamaahList: [],
-        })
-        sapiAOrder.push(key)
+        }
       }
 
-      const grup = sapiAMap.get(key)!
-      if (grup.jamaahList.length >= 7) {
-        errors.push(
-          `Baris ${rowNum}: "${namaA}" melebihi batas 7 orang untuk kelompok "${pendaftarNama || noHp}" — dilewati`
-        )
-      } else {
-        grup.jamaahList.push({
-          nama_lengkap:   namaA,
-          no_hp:          noHp   || undefined,
-          alamat_lengkap: alamat || undefined,
-        })
+      // Kelompok sudah penuh (7 orang) → flush & mulai baru
+      if (currentSapiA.jamaahList.length >= 7) {
+        kelompokList.push(currentSapiA)
+        currentSapiA = {
+          tipe: 'SAPI-A',
+          pendaftarNama,
+          pendaftarHp:    noHp,
+          pendaftarAlamat: alamat,
+          jamaahList: [],
+        }
       }
+
+      currentSapiA.jamaahList.push({
+        nama_lengkap:   namaA,
+        no_hp:          noHp   || undefined,
+        alamat_lengkap: alamat || undefined,
+      })
     }
 
-    // ── TIPE B ───────────────────────────────────────────────────────────
+    // ── TIPE B: flush SAPI-A yang terkumpul, lalu buat kelompok SAPI-B ───
     if (hasB) {
+      // Flush kelompok SAPI-A yang sedang terkumpul (walaupun belum 7 orang)
+      flushSapiA()
+
       const names = splitMultilineNama(rawB)
       if (names.length === 0) { skippedRows++; return }
 
@@ -162,7 +180,7 @@ function parseGForms(rows: Record<string, any>[]): ParseResult {
       kelompokList.push({
         tipe: 'SAPI-B',
         pendaftarNama,
-        pendaftarHp: noHp,
+        pendaftarHp:    noHp,
         pendaftarAlamat: alamat,
         jamaahList: names.slice(0, 7).map((n) => ({
           nama_lengkap:   n,
@@ -172,7 +190,7 @@ function parseGForms(rows: Record<string, any>[]): ParseResult {
       })
     }
 
-    // ── TIPE C (Kambing) ─────────────────────────────────────────────────
+    // ── TIPE C (Kambing): tidak mengganggu pengumpulan SAPI-A ────────────
     if (hasC) {
       const namaC = cleanNama(rawC)
       if (!namaC) { skippedRows++; return }
@@ -180,7 +198,7 @@ function parseGForms(rows: Record<string, any>[]): ParseResult {
       kelompokList.push({
         tipe: 'KAMBING',
         pendaftarNama,
-        pendaftarHp: noHp,
+        pendaftarHp:    noHp,
         pendaftarAlamat: alamat,
         jamaahList: [{
           nama_lengkap:   namaC,
@@ -191,42 +209,34 @@ function parseGForms(rows: Record<string, any>[]): ParseResult {
     }
   })
 
-  // Tambahkan SAPI-A groups (urutan insertion) ke depan list
-  for (const key of sapiAOrder) {
-    kelompokList.unshift(sapiAMap.get(key)!)
-  }
-
-  // Urutkan: SAPI-A → SAPI-B → KAMBING
-  kelompokList.sort((a, b) => {
-    const order: Record<ImportTipe, number> = { 'SAPI-A': 0, 'SAPI-B': 1, 'KAMBING': 2 }
-    return order[a.tipe] - order[b.tipe]
-  })
+  // Flush sisa kelompok SAPI-A yang belum penuh
+  flushSapiA()
 
   return { kelompokList, errors, skippedRows, format: 'gforms' }
 }
 
 // ─── Parser: Template sederhana ───────────────────────────────────────────
-function parseSimple(rows: Record<string, any>[]): ParseResult {
+function parseSimple(rows: Record<string, unknown>[]): ParseResult {
   const errors: string[] = []
   let skippedRows = 0
   const kelompokList: ImportedKelompok[] = []
 
+  // Untuk template sederhana: group by Nama Pendaftar (atau HP sebagai fallback)
+  // Karena user manual yang ngisi, diasumsikan grouping eksplisit lewat kolom Nama Pendaftar
   const sapiAMap   = new Map<string, ImportedKelompok>()
   const sapiAOrder : string[] = []
 
   rows.forEach((row, i) => {
     const rowNum = i + 2
 
-    // Coba berbagai variasi nama kolom
     const tipeRaw    = String(row['Tipe'] ?? row['tipe'] ?? row['TIPE'] ?? '').trim().toUpperCase()
     const namaRaw    = String(row['Nama Peng-Qurban'] ?? row['Nama'] ?? row['nama'] ?? '').trim()
-    const hp         = String(row['No HP'] ?? row['No. HP'] ?? row['HP'] ?? row['Nomor HP'] ?? '').trim()
-    const alamat     = String(row['Alamat'] ?? row['Alamat Lengkap'] ?? '').trim()
+    const hp         = String(row['No HP Pendaftar'] ?? row['No HP'] ?? row['No. HP'] ?? row['HP'] ?? row['Nomor HP'] ?? '').trim()
+    const alamat     = String(row['Alamat Pendaftar'] ?? row['Alamat'] ?? row['Alamat Lengkap'] ?? '').trim()
     const pendaftar  = String(row['Nama Pendaftar'] ?? '').trim()
 
     if (!tipeRaw || !namaRaw) { skippedRows++; return }
 
-    // Normalisasi nilai kolom Tipe
     const tipe: ImportTipe | null =
       ['SAPI-A', 'SAPI A', 'A'].includes(tipeRaw) ? 'SAPI-A' :
       ['SAPI-B', 'SAPI B', 'B'].includes(tipeRaw) ? 'SAPI-B' :
@@ -242,15 +252,14 @@ function parseSimple(rows: Record<string, any>[]): ParseResult {
       const nama = cleanNama(namaRaw)
       if (!nama) { skippedRows++; return }
 
-      // Grouping: prioritaskan kolom Nama Pendaftar, fallback ke No HP
-      const groupVal  = norm(pendaftar || hp)
-      const groupKey  = groupVal || `__row_${rowNum}`
+      const groupVal = norm(pendaftar || hp)
+      const groupKey = groupVal || `__row_${rowNum}`
 
       if (!sapiAMap.has(groupKey)) {
         sapiAMap.set(groupKey, {
           tipe: 'SAPI-A',
-          pendaftarNama:  pendaftar || nama,
-          pendaftarHp:    hp,
+          pendaftarNama:   pendaftar || nama,
+          pendaftarHp:     hp,
           pendaftarAlamat: alamat,
           jamaahList: [],
         })
@@ -259,7 +268,7 @@ function parseSimple(rows: Record<string, any>[]): ParseResult {
 
       const grup = sapiAMap.get(groupKey)!
       if (grup.jamaahList.length >= 7) {
-        errors.push(`Baris ${rowNum}: "${nama}" melebihi 7 orang di kelompok — dilewati`)
+        errors.push(`Baris ${rowNum}: "${nama}" melebihi 7 orang di kelompok "${pendaftar || hp}" — dilewati`)
       } else {
         grup.jamaahList.push({
           nama_lengkap:   nama,
@@ -276,8 +285,8 @@ function parseSimple(rows: Record<string, any>[]): ParseResult {
       }
       kelompokList.push({
         tipe: 'SAPI-B',
-        pendaftarNama:  pendaftar,
-        pendaftarHp:    hp,
+        pendaftarNama:   pendaftar,
+        pendaftarHp:     hp,
         pendaftarAlamat: alamat,
         jamaahList: names.slice(0, 7).map((n) => ({
           nama_lengkap:   n,
@@ -292,8 +301,8 @@ function parseSimple(rows: Record<string, any>[]): ParseResult {
       if (!nama) { skippedRows++; return }
       kelompokList.push({
         tipe: 'KAMBING',
-        pendaftarNama:  pendaftar || nama,
-        pendaftarHp:    hp,
+        pendaftarNama:   pendaftar || nama,
+        pendaftarHp:     hp,
         pendaftarAlamat: alamat,
         jamaahList: [{ nama_lengkap: nama, no_hp: hp || undefined, alamat_lengkap: alamat || undefined }],
       })
@@ -311,7 +320,7 @@ function parseSimple(rows: Record<string, any>[]): ParseResult {
 }
 
 // ─── Entry point utama ────────────────────────────────────────────────────
-export function detectAndParse(rows: Record<string, any>[]): ParseResult {
+export function detectAndParse(rows: Record<string, unknown>[]): ParseResult {
   if (!rows || rows.length === 0) {
     return {
       kelompokList: [],
@@ -323,12 +332,10 @@ export function detectAndParse(rows: Record<string, any>[]): ParseResult {
 
   const keys = Object.keys(rows[0] ?? {})
 
-  // Deteksi format Google Forms
   if (keys.some((k) => k.includes('Nama Peng-Qurban TIPE'))) {
     return parseGForms(rows)
   }
 
-  // Deteksi format template sederhana
   if (keys.some((k) => ['tipe', 'Tipe', 'TIPE'].includes(k))) {
     return parseSimple(rows)
   }

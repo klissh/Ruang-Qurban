@@ -8,6 +8,7 @@ import {
   Plus, Upload, Printer, Search, ChevronDown, ChevronUp,
   Copy, Beef, PawPrint, Phone, MapPin, X, Pencil, Trash2,
   ArrowRightLeft, AlertTriangle, Clock, Flame, Package, CheckCircle2,
+  ShieldAlert,
 } from 'lucide-react'
 import { STATUS_CONFIG } from '@/types'
 import type { StatusHewan, JenisHewan, Hewan, Jamaah, JamaahFormData } from '@/types'
@@ -34,6 +35,7 @@ type ModalType =
   | 'marbot'
   | 'penyembelihan'
   | 'import'
+  | 'hapusSemua'
   | null
 
 const STATUS_GLASS: Record<StatusHewan, { color: string; bg: string; border: string; dot: string; topBorder: string }> = {
@@ -335,6 +337,27 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
     }
   }
 
+  // ── Hapus Semua ────────────────────────────────────────────────────────
+  const [hapusSemua_confirm, setHapusSemua_confirm] = useState('')
+
+  async function handleHapusSemua() {
+    setSaving(true)
+    try {
+      const res = await fetch('/api/hewan/clear', { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      toast.success(`${data.deleted} hewan & ${data.jamaahDeleted} jamaah berhasil dihapus`)
+      setHewan([])
+      setJamaah([])
+      setModal(null)
+      setHapusSemua_confirm('')
+    } catch (e: any) {
+      toast.error(e.message ?? 'Gagal menghapus data')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   function copyKode(kodePublik: string) {
     navigator.clipboard.writeText(kodePublik)
     toast.success('Kode tracking disalin!')
@@ -363,6 +386,12 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
           </button>
           <button onClick={() => setModal('import')} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 11, color: 'rgba(255,255,255,0.62)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             <Upload size={14} /> Import Excel
+          </button>
+          <button
+            onClick={() => { setHapusSemua_confirm(''); setModal('hapusSemua') }}
+            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 11, color: 'rgba(252,165,165,0.85)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+          >
+            <Trash2 size={14} /> Hapus Semua
           </button>
           <button onClick={() => setModal('tambah')} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none', borderRadius: 11, color: 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px rgba(16,185,129,0.38)' }}>
             <Plus size={14} /> Tambah Kelompok
@@ -1066,6 +1095,66 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
           onSuccess={() => router.refresh()}
         />
       )}
+
+      {/* Hapus Semua Modal */}
+      {modal === 'hapusSemua' && createPortal(
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ ...G.modal, maxWidth: 460 }}>
+            {/* Header */}
+            <div style={{ padding: '22px 24px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ShieldAlert size={18} color="#f87171" />
+                </div>
+                <div>
+                  <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: 'rgba(255,255,255,0.95)' }}>Hapus Semua Data</p>
+                  <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>Tindakan ini tidak dapat dibatalkan</p>
+                </div>
+              </div>
+              <button onClick={() => setModal(null)} style={G.iconBtn()}>
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: '20px 24px', overflowY: 'auto' }}>
+              <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 12, padding: '14px 16px', marginBottom: 20 }}>
+                <p style={{ margin: 0, fontSize: 13, color: 'rgba(252,165,165,0.9)', lineHeight: 1.6 }}>
+                  Seluruh data hewan dan nama jamaah qurban dalam workspace ini akan <strong>dihapus permanen</strong>.
+                  Gunakan fitur ini hanya jika import salah dan perlu diulang dari awal.
+                </p>
+              </div>
+
+              <p style={{ margin: '0 0 10px', fontSize: 13, color: 'rgba(255,255,255,0.55)' }}>
+                Ketik <span style={{ fontFamily: 'ui-monospace,monospace', color: '#f87171', fontWeight: 700 }}>HAPUS SEMUA</span> untuk konfirmasi:
+              </p>
+              <input
+                value={hapusSemua_confirm}
+                onChange={(e) => setHapusSemua_confirm(e.target.value)}
+                placeholder="HAPUS SEMUA"
+                style={{ ...G.input, borderColor: hapusSemua_confirm === 'HAPUS SEMUA' ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.09)' }}
+              />
+            </div>
+
+            {/* Footer */}
+            <div style={{ padding: '14px 24px 20px', display: 'flex', gap: 10, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+              <button
+                onClick={() => setModal(null)}
+                style={{ flex: 1, padding: '10px 0', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleHapusSemua}
+                disabled={saving || hapusSemua_confirm !== 'HAPUS SEMUA'}
+                style={{ flex: 1, padding: '10px 0', background: hapusSemua_confirm === 'HAPUS SEMUA' ? 'linear-gradient(135deg,#dc2626,#b91c1c)' : 'rgba(239,68,68,0.15)', border: 'none', borderRadius: 10, color: hapusSemua_confirm === 'HAPUS SEMUA' ? 'white' : 'rgba(252,165,165,0.4)', fontSize: 13, fontWeight: 700, cursor: hapusSemua_confirm === 'HAPUS SEMUA' ? 'pointer' : 'not-allowed', transition: 'all 0.2s' }}
+              >
+                {saving ? 'Menghapus...' : 'Hapus Semua Data'}
+              </button>
+            </div>
+          </div>
+        </div>
+      , document.body)}
     </div>
   )
 }

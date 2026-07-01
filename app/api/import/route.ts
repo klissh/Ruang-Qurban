@@ -74,8 +74,8 @@ export async function POST(request: NextRequest) {
       jenis_hewan = 'SAPI'
     } else if (kelompok.tipe === 'SAPI-B') {
       sapiBCount++
-      // index 10..18 → SAPI-B01..B09  (offset 9)
-      kode_resi   = generateKodeResi('SAPI', 9 + sapiBCount)
+      // SAPI-B01, SAPI-B02, ... — tipe 'B' eksplisit
+      kode_resi   = generateKodeResi('SAPI', sapiBCount, 'B')
       jenis_hewan = 'SAPI'
     } else {
       kambingCount++
