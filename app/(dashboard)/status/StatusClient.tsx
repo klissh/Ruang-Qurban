@@ -8,7 +8,7 @@ import type { StatusHewan, JenisHewan } from '@/types'
 import { isValidGDriveUrl, convertGDriveToPreview } from '@/lib/utils'
 import {
   Beef, PawPrint, Check, Video, X, Activity,
-  Clock, Flame, Package, CheckCircle2, ChevronRight,
+  Clock, Flame, Package, CheckCircle2, ChevronRight, Search,
 } from 'lucide-react'
 
 interface HewanItem {
@@ -43,12 +43,14 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
   const [list, setList] = useState<HewanItem[]>(hewanList)
   const [modal, setModal] = useState<ModalState | null>(null)
   const [loading, setLoading] = useState(false)
-  const [filter, setFilter] = useState<'SEMUA' | JenisHewan | StatusHewan>('SEMUA')
+  const [filter, setFilter] = useState<'SEMUA' | 'SAPI-A' | 'SAPI-B' | JenisHewan | StatusHewan>('SEMUA')
+  const [search, setSearch] = useState('')
 
   // ── Counts untuk filter badges ──
   const counts = {
     SEMUA:             list.length,
-    SAPI:              list.filter((h) => h.jenis_hewan === 'SAPI').length,
+    'SAPI-A':          list.filter((h) => h.kode_resi.startsWith('SAPI-A')).length,
+    'SAPI-B':          list.filter((h) => h.kode_resi.startsWith('SAPI-B')).length,
     KAMBING:           list.filter((h) => h.jenis_hewan === 'KAMBING').length,
     BELUM_DISEMBELIH:  list.filter((h) => h.status === 'BELUM_DISEMBELIH').length,
     SEDANG_DISEMBELIH: list.filter((h) => h.status === 'SEDANG_DISEMBELIH').length,
@@ -57,9 +59,17 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
   }
 
   const filtered = list.filter((h) => {
-    if (filter === 'SEMUA') return true
-    if (filter === 'SAPI' || filter === 'KAMBING') return h.jenis_hewan === filter
-    return h.status === filter
+    // Filter tipe/status
+    if (filter === 'SAPI-A'  && !h.kode_resi.startsWith('SAPI-A')) return false
+    if (filter === 'SAPI-B'  && !h.kode_resi.startsWith('SAPI-B')) return false
+    if (filter === 'KAMBING' && h.jenis_hewan !== 'KAMBING') return false
+    if (filter !== 'SEMUA' && filter !== 'SAPI-A' && filter !== 'SAPI-B' && filter !== 'KAMBING') {
+      if (h.status !== filter) return false
+    }
+    // Search
+    if (!search.trim()) return true
+    const q = search.toLowerCase().trim()
+    return h.kode_resi.toLowerCase().includes(q)
   })
 
   async function handleSimpan() {
@@ -95,7 +105,8 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
   // ── Filter groups ──
   const jenisFilters = [
     { key: 'SEMUA',   label: 'Semua',   icon: null },
-    { key: 'SAPI',    label: 'Sapi',    icon: <Beef size={11} /> },
+    { key: 'SAPI-A',  label: 'Sapi A',  icon: <Beef size={11} /> },
+    { key: 'SAPI-B',  label: 'Sapi B',  icon: <Beef size={11} /> },
     { key: 'KAMBING', label: 'Kambing', icon: <PawPrint size={11} /> },
   ]
   const statusFilters = [
@@ -108,7 +119,7 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
   function FilterBtn({ fkey, label, icon, activeColor, activeBg, activeBorder }:
     { fkey: string; label: string; icon: React.ReactNode; activeColor?: string; activeBg?: string; activeBorder?: string }) {
     const active = filter === fkey
-    const count = counts[fkey as keyof typeof counts] ?? 0
+    const count = (counts as Record<string, number>)[fkey] ?? 0
     return (
       <button
         onClick={() => setFilter(fkey as any)}
@@ -175,6 +186,29 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
               <span style={{ fontSize: 16, fontWeight: 800, color: '#34d399', lineHeight: 1 }}>{counts.SELESAI}</span>
             </div>
           </div>
+        </div>
+
+        {/* Search bar */}
+        <div style={{ position: 'relative', marginBottom: 10 }}>
+          <Search size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.25)', pointerEvents: 'none' }} />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Cari kode resi..."
+            style={{
+              width: '100%', boxSizing: 'border-box',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.09)',
+              color: 'rgba(255,255,255,0.88)',
+              borderRadius: 10, padding: '9px 36px 9px 36px',
+              fontSize: 13, outline: 'none',
+            }}
+          />
+          {search && (
+            <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 5, cursor: 'pointer', color: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', padding: 3 }}>
+              <X size={11} />
+            </button>
+          )}
         </div>
 
         {/* Filter bar */}
