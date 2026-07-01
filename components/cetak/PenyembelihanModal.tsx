@@ -126,26 +126,26 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
                 <div
                   key={hewan.id}
                   className="bg-white shadow-lg rounded-lg overflow-hidden border-2 border-black"
-                  style={{ width: '340px', flexShrink: 0 }}
+                  style={{ width: '420px', flexShrink: 0 }}
                 >
                   {/* Header hitam */}
                   <div className="bg-black text-white text-center py-4 px-5">
-                    <p className="font-bold text-3xl tracking-widest font-mono">{hewan.kode_resi}</p>
-                    <p className="text-sm opacity-70 mt-1">{hewan.jenis_hewan}</p>
+                    <p className="font-bold text-4xl tracking-widest font-mono">{hewan.kode_resi}</p>
+                    <p className="text-base opacity-70 mt-1">{hewan.jenis_hewan}</p>
                   </div>
                   {/* Tabel nama */}
                   <table className="w-full border-collapse">
                     <tbody>
                       {jamaah.slice(0, namaPerLembar).map((j, i) => (
                         <tr key={j.id}>
-                          <td className="border-2 border-black px-4 py-2.5 font-bold text-center w-12 text-gray-900 text-base">{i + 1}</td>
-                          <td className="border-2 border-black px-4 py-2.5 font-bold text-base uppercase text-gray-900">{j.nama_lengkap}</td>
+                          <td className="border-2 border-black px-4 py-3 font-bold text-center w-14 text-gray-900 text-lg">{i + 1}</td>
+                          <td className="border-2 border-black px-4 py-3 font-bold text-lg uppercase text-gray-900">{j.nama_lengkap}</td>
                         </tr>
                       ))}
                       {Array.from({ length: Math.max(0, namaPerLembar - jamaah.length) }).map((_, i) => (
                         <tr key={`empty-${i}`}>
-                          <td className="border-2 border-black px-4 py-2.5 font-bold text-center w-12 text-gray-200 text-base">{jamaah.length + i + 1}</td>
-                          <td className="border-2 border-black px-4 py-2.5 text-gray-200">—</td>
+                          <td className="border-2 border-black px-4 py-3 font-bold text-center w-14 text-gray-200 text-lg">{jamaah.length + i + 1}</td>
+                          <td className="border-2 border-black px-4 py-3 text-gray-200 text-lg">—</td>
                         </tr>
                       ))}
                     </tbody>
