@@ -94,22 +94,22 @@ export default function MarbotModal({ data, namaWorkspace, onClose, onBack }: Pr
   const right = data.slice(mid)
 
   const KelompokPreview = ({ k, idx }: { k: KelompokData; idx: number }) => (
-    <div className="mb-4 break-inside-avoid">
-      <p className="font-bold text-xs mb-1.5 text-gray-700">KELOMPOK {idx + 1}</p>
-      <table className="w-full border-collapse text-xs">
+    <div className="mb-5 break-inside-avoid">
+      <p className="font-bold text-sm mb-2 text-gray-700">KELOMPOK {idx + 1}</p>
+      <table className="w-full border-collapse text-sm">
         <thead>
           <tr>
-            <th className="border border-gray-400 px-2 py-1 bg-gray-100 text-center w-8 text-gray-700 font-semibold">NO.</th>
-            <th className="border border-gray-400 px-2 py-1 bg-gray-100 text-left text-gray-700 font-semibold">NAMA</th>
+            <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 text-center w-10 text-gray-700 font-semibold">NO.</th>
+            <th className="border border-gray-400 px-3 py-1.5 bg-gray-100 text-left text-gray-700 font-semibold">NAMA</th>
           </tr>
         </thead>
         <tbody>
           {k.jamaah.map((j, i) => (
             <tr key={j.id}>
-              <td className="border border-gray-400 px-2 py-1 text-center text-gray-800">{i + 1}</td>
-              <td className="border border-gray-400 px-2 py-1 text-gray-800">
+              <td className="border border-gray-400 px-3 py-1.5 text-center text-gray-800">{i + 1}</td>
+              <td className="border border-gray-400 px-3 py-1.5 text-gray-800">
                 <span>{j.nama_lengkap}</span>
-                {j.atas_nama && <span className="block text-gray-500 text-[10px]">({j.atas_nama})</span>}
+                {j.atas_nama && <span className="block text-gray-500 text-xs">({j.atas_nama})</span>}
               </td>
             </tr>
           ))}
@@ -175,8 +175,8 @@ export default function MarbotModal({ data, namaWorkspace, onClose, onBack }: Pr
             <p className="text-xs text-gray-400 mb-4 text-center">Preview</p>
             <div className="bg-white shadow-md rounded-xl p-8 mx-auto" style={{ maxWidth: '900px' }}>
               <div className="text-center mb-6 pb-4 border-b-2 border-black">
-                <p className="font-bold text-base text-gray-900">DAFTAR NAMA PENGURBAN</p>
-                <p className="text-sm mt-1 text-gray-700">{judulAtas} — {tahun} H</p>
+                <p className="font-bold text-xl text-gray-900">DAFTAR NAMA PENGURBAN</p>
+                <p className="text-base mt-1 text-gray-700">{judulAtas} — {tahun} H</p>
               </div>
               <div className="grid grid-cols-2 gap-6">
                 <div>{left.map((k, i) => <KelompokPreview key={k.hewan.id} k={k} idx={i} />)}</div>
