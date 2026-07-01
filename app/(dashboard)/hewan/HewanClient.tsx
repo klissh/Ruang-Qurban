@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { Plus, Upload, Printer, Search, ChevronDown, ChevronUp, Copy, Beef, PawPrint, Phone, MapPin, X } from 'lucide-react'
 import { STATUS_CONFIG } from '@/types'
@@ -323,8 +324,8 @@ export default function HewanClient({ hewanList, jamaahList, sapiCount, kambingC
       </div>
 
       {/* Modal Tambah Kelompok */}
-      {modal === 'tambah' && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.62)', backdropFilter: 'blur(10px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      {modal === 'tambah' && createPortal(
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.62)', backdropFilter: 'blur(10px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={G.modal}>
             <div style={{ padding: '22px 26px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -428,13 +429,13 @@ export default function HewanClient({ hewanList, jamaahList, sapiCount, kambingC
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* Cetak Modals */}
-      {modal === 'cetakPicker' && <CetakPickerModal onPilih={(t) => setModal(t as ModalType)} onClose={() => setModal(null)} />}
-      {modal === 'label' && <LabelPVCModal data={cetakData} onClose={() => setModal(null)} />}
-      {modal === 'marbot' && <MarbotModal data={cetakData} namaWorkspace={namaWorkspace} onClose={() => setModal(null)} />}
-      {modal === 'penyembelihan' && <PenyembelihanModal data={cetakData} onClose={() => setModal(null)} />}
+      {modal === 'cetakPicker' && createPortal(<CetakPickerModal onPilih={(t) => setModal(t as ModalType)} onClose={() => setModal(null)} />, document.body)}
+      {modal === 'label' && createPortal(<LabelPVCModal data={cetakData} onClose={() => setModal(null)} />, document.body)}
+      {modal === 'marbot' && createPortal(<MarbotModal data={cetakData} namaWorkspace={namaWorkspace} onClose={() => setModal(null)} />, document.body)}
+      {modal === 'penyembelihan' && createPortal(<PenyembelihanModal data={cetakData} onClose={() => setModal(null)} />, document.body)}
     </div>
   )
 }

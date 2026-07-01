@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { STATUS_CONFIG, STATUS_ORDER } from '@/types'
 import type { StatusHewan, JenisHewan } from '@/types'
@@ -206,8 +207,8 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
       </div>
 
       {/* Modal Update Status */}
-      {modal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(10px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      {modal && createPortal(
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(10px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{
             background: 'rgba(7,18,11,0.97)',
             backdropFilter: 'blur(36px)',
@@ -305,7 +306,7 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </div>
   )
 }
