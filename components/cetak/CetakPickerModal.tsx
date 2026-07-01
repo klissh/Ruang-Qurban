@@ -19,7 +19,7 @@ const OPTIONS = [
   {
     type: 'marbot' as CetakType,
     icon: <List size={24} />,
-    label: 'Daftar Marbot',
+    label: 'Daftar Nama',
     desc: 'Daftar nama pengurban untuk dibacakan',
   },
   {

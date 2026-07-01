@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { X, Printer, Download } from 'lucide-react'
+import { X, Printer, Download, ArrowLeft } from 'lucide-react'
 import type { Hewan, Jamaah } from '@/types'
 
 interface KelompokData {
@@ -13,14 +13,14 @@ interface Props {
   data: KelompokData[]
   namaWorkspace: string
   onClose: () => void
+  onBack?: () => void
 }
 
-export default function MarbotModal({ data, namaWorkspace, onClose }: Props) {
+export default function MarbotModal({ data, namaWorkspace, onClose, onBack }: Props) {
   const [tahun, setTahun] = useState(new Date().getFullYear().toString())
   const [judulAtas, setJudulAtas] = useState(namaWorkspace)
 
   const buildPrintHTML = useCallback(() => {
-    // Split kelompok jadi 2 kolom
     const mid = Math.ceil(data.length / 2)
     const left = data.slice(0, mid)
     const right = data.slice(mid)
@@ -85,32 +85,31 @@ export default function MarbotModal({ data, namaWorkspace, onClose }: Props) {
     const blob = new Blob([buildPrintHTML()], { type: 'text/html' })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
-    a.download = 'daftar-marbot.html'
+    a.download = 'daftar-nama.html'
     a.click()
   }
 
-  // Preview (simplified version of the layout)
   const mid = Math.ceil(data.length / 2)
   const left = data.slice(0, mid)
   const right = data.slice(mid)
 
   const KelompokPreview = ({ k, idx }: { k: KelompokData; idx: number }) => (
     <div className="mb-3 break-inside-avoid">
-      <p className="font-bold text-[10px] mb-1">KELOMPOK {idx + 1}</p>
+      <p className="font-bold text-[10px] mb-1 text-gray-700">KELOMPOK {idx + 1}</p>
       <table className="w-full border-collapse text-[9px]">
         <thead>
           <tr>
-            <th className="border border-gray-400 px-1 py-0.5 bg-gray-100 text-center w-7">NO.</th>
-            <th className="border border-gray-400 px-1 py-0.5 bg-gray-100 text-left">NAMA</th>
+            <th className="border border-gray-400 px-1 py-0.5 bg-gray-100 text-center w-7 text-gray-700">NO.</th>
+            <th className="border border-gray-400 px-1 py-0.5 bg-gray-100 text-left text-gray-700">NAMA</th>
           </tr>
         </thead>
         <tbody>
           {k.jamaah.map((j, i) => (
             <tr key={j.id}>
-              <td className="border border-gray-400 px-1 py-0.5 text-center">{i + 1}</td>
-              <td className="border border-gray-400 px-1 py-0.5">
+              <td className="border border-gray-400 px-1 py-0.5 text-center text-gray-800">{i + 1}</td>
+              <td className="border border-gray-400 px-1 py-0.5 text-gray-800">
                 <span>{j.nama_lengkap}</span>
-                {j.atas_nama && <span className="block text-gray-400 text-[8px]">({j.atas_nama})</span>}
+                {j.atas_nama && <span className="block text-gray-500 text-[8px]">({j.atas_nama})</span>}
               </td>
             </tr>
           ))}
@@ -123,9 +122,23 @@ export default function MarbotModal({ data, namaWorkspace, onClose }: Props) {
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col">
 
+        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
-          <h2 className="font-bold text-gray-900 text-lg">Cetak Daftar Marbot</h2>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500"><X size={16} /></button>
+          <div className="flex items-center gap-3">
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition"
+                title="Kembali ke pilihan cetak"
+              >
+                <ArrowLeft size={16} />
+              </button>
+            )}
+            <h2 className="font-bold text-gray-900 text-lg">Cetak Daftar Nama</h2>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition">
+            <X size={16} />
+          </button>
         </div>
 
         <div className="flex flex-1 overflow-hidden">
@@ -140,7 +153,7 @@ export default function MarbotModal({ data, namaWorkspace, onClose }: Props) {
                   <input
                     value={judulAtas}
                     onChange={(e) => setJudulAtas(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
                 <div>
@@ -149,7 +162,7 @@ export default function MarbotModal({ data, namaWorkspace, onClose }: Props) {
                     value={tahun}
                     onChange={(e) => setTahun(e.target.value)}
                     placeholder="1446 H"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
               </div>
@@ -162,8 +175,8 @@ export default function MarbotModal({ data, namaWorkspace, onClose }: Props) {
             <p className="text-xs text-gray-400 mb-3 text-center">Preview</p>
             <div className="bg-white shadow rounded-lg p-6 max-w-2xl mx-auto">
               <div className="text-center mb-4 pb-3 border-b-2 border-black">
-                <p className="font-bold text-sm">DAFTAR NAMA PENGURBAN</p>
-                <p className="text-xs mt-0.5">{judulAtas} — {tahun} H</p>
+                <p className="font-bold text-sm text-gray-900">DAFTAR NAMA PENGURBAN</p>
+                <p className="text-xs mt-0.5 text-gray-700">{judulAtas} — {tahun} H</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>{left.map((k, i) => <KelompokPreview key={k.hewan.id} k={k} idx={i} />)}</div>
@@ -173,6 +186,7 @@ export default function MarbotModal({ data, namaWorkspace, onClose }: Props) {
           </div>
         </div>
 
+        {/* Footer */}
         <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 flex-shrink-0">
           <button onClick={handleDownload} className="flex items-center gap-2 px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">
             <Download size={15} /> Download

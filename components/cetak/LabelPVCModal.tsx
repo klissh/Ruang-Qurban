@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
-import { X, Printer, Download } from 'lucide-react'
+import { X, Printer, Download, ArrowLeft } from 'lucide-react'
 import type { Jamaah, Hewan } from '@/types'
 
 interface LabelData {
@@ -18,6 +18,7 @@ interface Config {
 interface Props {
   data: LabelData[]
   onClose: () => void
+  onBack?: () => void
 }
 
 const DEFAULT_CONFIG: Config = { lebarMm: 85.6, tinggiMm: 53.98, kolomPerBaris: 2 }
@@ -33,11 +34,11 @@ function LabelCard({ hewan, jamaah, config }: { hewan: Hewan; jamaah: Jamaah[]; 
       style={{ width: w, height: h, flexShrink: 0 }}
       className="border border-black bg-white flex flex-col p-[6px] font-mono overflow-hidden box-border"
     >
-      <div className="font-bold text-[11px] leading-tight border-b border-black pb-[3px] mb-[3px] tracking-wide">
+      <div className="font-bold text-[11px] leading-tight border-b border-black pb-[3px] mb-[3px] tracking-wide text-gray-900">
         {hewan.kode_resi}
       </div>
       {jamaah.map((j, idx) => (
-        <div key={j.id} className="text-[8px] leading-[1.2] truncate">
+        <div key={j.id} className="text-[8px] leading-[1.2] truncate text-gray-800">
           {jamaah.length > 1 ? `${idx + 1}. ` : ''}{j.nama_lengkap}
         </div>
       ))}
@@ -53,20 +54,13 @@ function LabelCard({ hewan, jamaah, config }: { hewan: Hewan; jamaah: Jamaah[]; 
   )
 }
 
-export default function LabelPVCModal({ data, onClose }: Props) {
+export default function LabelPVCModal({ data, onClose, onBack }: Props) {
   const [config, setConfig] = useState<Config>(DEFAULT_CONFIG)
   const previewRef = useRef<HTMLDivElement>(null)
 
-  // Flatten: setiap jamaah punya label sendiri untuk sapi,
-  // tiap hewan kambing satu label
   const labels: Array<{ hewan: Hewan; jamaah: Jamaah[] }> = []
   data.forEach(({ hewan, jamaah }) => {
-    if (hewan.jenis_hewan === 'SAPI') {
-      // Satu label per jamaah (tapi tetap tampilkan semua nama di label yang sama)
-      labels.push({ hewan, jamaah })
-    } else {
-      labels.push({ hewan, jamaah })
-    }
+    labels.push({ hewan, jamaah })
   })
 
   const buildPrintHTML = useCallback(() => {
@@ -125,8 +119,19 @@ export default function LabelPVCModal({ data, onClose }: Props) {
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
-          <h2 className="font-bold text-gray-900 text-lg">Cetak Label PVC</h2>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500">
+          <div className="flex items-center gap-3">
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition"
+                title="Kembali ke pilihan cetak"
+              >
+                <ArrowLeft size={16} />
+              </button>
+            )}
+            <h2 className="font-bold text-gray-900 text-lg">Cetak Label PVC</h2>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition">
             <X size={16} />
           </button>
         </div>
@@ -144,7 +149,7 @@ export default function LabelPVCModal({ data, onClose }: Props) {
                     type="number"
                     value={config.lebarMm}
                     onChange={(e) => setConfig((c) => ({ ...c, lebarMm: +e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
                 <div>
@@ -153,7 +158,7 @@ export default function LabelPVCModal({ data, onClose }: Props) {
                     type="number"
                     value={config.tinggiMm}
                     onChange={(e) => setConfig((c) => ({ ...c, tinggiMm: +e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
                 <div>
@@ -161,7 +166,7 @@ export default function LabelPVCModal({ data, onClose }: Props) {
                   <select
                     value={config.kolomPerBaris}
                     onChange={(e) => setConfig((c) => ({ ...c, kolomPerBaris: +e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   >
                     {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n} kolom</option>)}
                   </select>

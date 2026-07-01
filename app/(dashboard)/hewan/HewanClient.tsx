@@ -1068,9 +1068,9 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
 
       {/* Cetak Modals */}
       {modal === 'cetakPicker' && createPortal(<CetakPickerModal onPilih={(t) => setModal(t as ModalType)} onClose={() => setModal(null)} />, document.body)}
-      {modal === 'label' && createPortal(<LabelPVCModal data={cetakData} onClose={() => setModal(null)} />, document.body)}
-      {modal === 'marbot' && createPortal(<MarbotModal data={cetakData} namaWorkspace={namaWorkspace} onClose={() => setModal(null)} />, document.body)}
-      {modal === 'penyembelihan' && createPortal(<PenyembelihanModal data={cetakData} onClose={() => setModal(null)} />, document.body)}
+      {modal === 'label' && createPortal(<LabelPVCModal data={cetakData} onClose={() => setModal(null)} onBack={() => setModal('cetakPicker')} />, document.body)}
+      {modal === 'marbot' && createPortal(<MarbotModal data={cetakData} namaWorkspace={namaWorkspace} onClose={() => setModal(null)} onBack={() => setModal('cetakPicker')} />, document.body)}
+      {modal === 'penyembelihan' && createPortal(<PenyembelihanModal data={cetakData} onClose={() => setModal(null)} onBack={() => setModal('cetakPicker')} />, document.body)}
     </div>
   )
 }
