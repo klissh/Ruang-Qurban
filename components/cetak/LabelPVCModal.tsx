@@ -109,8 +109,8 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
     URL.revokeObjectURL(url)
   }
 
-  // Scale lebih besar agar label mudah dibaca di preview
-  const SCALE = 0.85
+  // Scale 2.2x: preview nyaman dibaca (print tetap pakai MM asli)
+  const SCALE = 2.2
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
@@ -191,7 +191,7 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
             <p className="text-xs text-gray-400 mb-5 text-center">Preview (skala {Math.round(SCALE * 100)}%)</p>
             <div
               ref={previewRef}
-              className="flex flex-wrap gap-4 justify-start"
+              className="flex flex-wrap gap-10 justify-start"
             >
               {labels.map(({ hewan, jamaah }, idx) => (
                 <div
