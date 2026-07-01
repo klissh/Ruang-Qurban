@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 
 /**
  * DELETE /api/hewan/clear
- * Hapus semua data hewan + jamaah dalam workspace.
+ * Hapus SEMUA data hewan + jamaah dalam workspace (termasuk soft-deleted).
  * Hanya boleh dilakukan oleh SUPER_ADMIN.
  */
 export async function DELETE() {
@@ -28,12 +28,12 @@ export async function DELETE() {
 
   const workspaceId = profile.id_workspace!
 
-  // ── Ambil semua ID hewan dalam workspace ─────────────────────────────────
+  // ── Ambil SEMUA ID hewan dalam workspace (termasuk soft-deleted) ─────────
+  // Tidak pakai filter deleted_at agar tidak ada record yatim yang lolos.
   const { data: hewanList, error: fetchErr } = await supabase
     .from('hewan')
     .select('id')
     .eq('id_workspace', workspaceId)
-    .is('deleted_at', null)
 
   if (fetchErr) {
     return NextResponse.json({ error: fetchErr.message }, { status: 500 })
@@ -55,12 +55,11 @@ export async function DELETE() {
     return NextResponse.json({ error: `Gagal hapus jamaah: ${jamaahErr.message}` }, { status: 500 })
   }
 
-  // ── Hapus semua hewan ────────────────────────────────────────────────────
+  // ── Hapus SEMUA hewan (tanpa filter deleted_at) ──────────────────────────
   const { count: hewanDeleted, error: hewanErr } = await supabase
     .from('hewan')
     .delete({ count: 'exact' })
     .eq('id_workspace', workspaceId)
-    .is('deleted_at', null)
 
   if (hewanErr) {
     return NextResponse.json({ error: `Gagal hapus hewan: ${hewanErr.message}` }, { status: 500 })
