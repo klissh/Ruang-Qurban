@@ -99,10 +99,12 @@ export async function POST(request: NextRequest) {
       continue
     }
 
-    // Insert semua jamaah dalam kelompok ini
+    // ── Insert jamaah satu per satu (bukan batch) ─────────────────────────
+    // Tujuan: setiap jamaah mendapat created_at unik sehingga
+    // ORDER BY created_at di page.tsx mengembalikan urutan Excel yang benar.
     const jamaahRows = kelompok.jamaahList
       .filter((j) => j.nama_lengkap?.trim())
-      .map((j) => ({
+      .map((j, idx) => ({
         id_workspace:   workspaceId,
         id_hewan:       hewan.id,
         nama_lengkap:   j.nama_lengkap.trim(),
@@ -111,17 +113,26 @@ export async function POST(request: NextRequest) {
       }))
 
     if (jamaahRows.length === 0) {
-      // Tidak ada jamaah valid → hapus hewan yang baru dibuat (jangan biarkan yatim)
       await supabase.from('hewan').delete().eq('id', hewan.id)
       errors.push(`${kode_resi}: tidak ada jamaah valid, dilewati`)
       continue
     }
 
-    const { error: jamaahErr } = await supabase.from('jamaah').insert(jamaahRows)
-    if (jamaahErr) {
-      // Jamaah gagal → hapus hewan agar tidak ada hewan kosong
+    let jamaahFailed = false
+    for (const jamaahRow of jamaahRows) {
+      const { error: jamaahErr } = await supabase.from('jamaah').insert(jamaahRow)
+      if (jamaahErr) {
+        errors.push(`Jamaah "${jamaahRow.nama_lengkap}" untuk ${kode_resi} gagal: ${jamaahErr.message}`)
+        jamaahFailed = true
+        break
+      }
+    }
+
+    if (jamaahFailed) {
+      // Hapus hewan + jamaah yang sudah terlanjur masuk
+      await supabase.from('jamaah').delete().eq('id_hewan', hewan.id)
       await supabase.from('hewan').delete().eq('id', hewan.id)
-      errors.push(`Jamaah untuk ${kode_resi} gagal: ${jamaahErr.message} — hewan dihapus`)
+      errors.push(`${kode_resi} dibatalkan karena gagal insert jamaah — semua data kelompok ini dihapus`)
       continue
     }
 
