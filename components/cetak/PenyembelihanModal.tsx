@@ -262,13 +262,19 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
       }
 
       // Selalu mulai dengan landscape untuk sapi (atau portrait kalau hanya kambing)
-      const startOrientation = sapiData.length > 0 ? 'landscape' : 'portrait'
-      const pdf = new jsPDF({ orientation: startOrientation, unit: 'mm', format: 'a4' })
+      // Dimensi eksplisit (bukan string + orientation) agar jsPDF selalu benar
+      const SAPI_DIMS = [SAPI_W, SAPI_H] as [number, number]       // landscape: [297, 210]
+      const kmbDims   = kambingOrientation === 'landscape'
+        ? [kmbW, kmbH] as [number, number]   // landscape: lebar > tinggi
+        : [kmbW, kmbH] as [number, number]   // portrait:  lebar < tinggi
+
+      const startFormat = sapiData.length > 0 ? SAPI_DIMS : (kambingOrientation === 'landscape' ? [kmbW, kmbH] as [number, number] : [kmbW, kmbH] as [number, number])
+      const pdf = new jsPDF({ unit: 'mm', format: startFormat })
       let isFirst = true
 
       // ── Halaman sapi (landscape A4) ───────────────────────────────────
       sapiData.forEach(({ hewan, jamaah }) => {
-        if (!isFirst) pdf.addPage('a4', 'landscape')
+        if (!isFirst) pdf.addPage(SAPI_DIMS)
         isFirst = false
         const mx = SAPI_M, my = SAPI_M
         const cw = SAPI_CW
@@ -297,7 +303,7 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
 
       for (let i = 0; i < kambingFlat.length; i += kambingPerHal) {
         const isFirstKmb = i === 0
-        pdf.addPage('a4', kambingOrientation)
+        pdf.addPage(kmbDims)
         const batch = kambingFlat.slice(i, i + kambingPerHal)
         const mx    = KMB_M, my = KMB_M
         const cw    = kmbCW
