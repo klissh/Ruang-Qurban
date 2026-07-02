@@ -31,6 +31,8 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
   const previewAnimal = data[0]
   const MAX_W = 520, MAX_H = 680
   const previewScale = Math.min(MAX_W / paperWpx, MAX_H / paperHpx, 1)
+  const [zoomFactor, setZoomFactor] = useState(1.0)
+  const effectiveScale = previewScale * zoomFactor
 
   // Dimensions for the card on paper (mm)
   const marginMm = 15
@@ -226,17 +228,39 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
 
           {/* Preview — 1 lembar pertama */}
           <div className="flex-1 overflow-auto bg-gray-200 p-6">
-            <p className="text-xs text-gray-500 mb-5 text-center">
-              Preview lembar 1{data.length > 1 ? ` dari ${data.length}` : ''} — skala {Math.round(previewScale * 100)}%
-            </p>
+
+            {/* Zoom controls */}
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-xs text-gray-500">{`Preview lembar 1${data.length > 1 ? ` dari ${data.length}` : ''}`}</p>
+              <div className="flex items-center bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                <button
+                  onClick={() => setZoomFactor(z => Math.max(0.25, +(z - 0.25).toFixed(2)))}
+                  disabled={zoomFactor <= 0.25}
+                  className="px-3 py-1.5 text-sm font-bold text-gray-600 hover:bg-gray-100 disabled:text-gray-300 transition border-r border-gray-200"
+                >−</button>
+                <span className="px-3 py-1.5 text-xs font-medium text-gray-700 min-w-[52px] text-center select-none">
+                  {Math.round(effectiveScale * 100)}%
+                </span>
+                <button
+                  onClick={() => setZoomFactor(z => Math.min(4.0, +(z + 0.25).toFixed(2)))}
+                  disabled={zoomFactor >= 4.0}
+                  className="px-3 py-1.5 text-sm font-bold text-gray-600 hover:bg-gray-100 disabled:text-gray-300 transition border-l border-gray-200"
+                >+</button>
+                <button
+                  onClick={() => setZoomFactor(1.0)}
+                  className="px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100 transition border-l border-gray-200"
+                  title="Reset zoom"
+                >Fit</button>
+              </div>
+            </div>
             <div className="flex justify-center">
               {previewAnimal ? (
-                <div style={{ width: paperWpx * previewScale, height: paperHpx * previewScale, position: 'relative', flexShrink: 0 }}
+                <div style={{ width: paperWpx * effectiveScale, height: paperHpx * effectiveScale, position: 'relative', flexShrink: 0 }}
                   className="shadow-2xl">
                   <div style={{
                     width: paperWpx, height: paperHpx,
                     position: 'absolute', top: 0, left: 0,
-                    transform: `scale(${previewScale})`, transformOrigin: 'top left',
+                    transform: `scale(${effectiveScale})`, transformOrigin: 'top left',
                     background: 'white', overflow: 'hidden',
                   }}>
                     <PreviewCard hewan={previewAnimal.hewan} jamaah={previewAnimal.jamaah} />
