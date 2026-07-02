@@ -33,7 +33,7 @@ function LabelCard({ hewan, jamaah, lw, lh }: { hewan: Hewan; jamaah: Jamaah[]; 
         </div>
       ))}
       <div className="mt-auto pt-[2px] border-t border-gray-300">
-        <div className="text-[7px] leading-[1.3] text-gray-600 truncate">{jamaah[0]?.alamat_lengkap ?? '—'}</div>
+        <div className="text-[7px] leading-[1.3] text-gray-600 break-words whitespace-normal">{jamaah[0]?.alamat_lengkap ?? '—'}</div>
         {jamaah[0]?.no_hp && <div className="text-[7px] text-gray-500">{jamaah[0].no_hp}</div>}
       </div>
     </div>
@@ -56,6 +56,9 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
   const marginMm = 10, gapMm = 3
   const cols = config.kolomPerBaris
   const lw = config.lebarMm, lh = config.tinggiMm
+  const usableW = paperW - 2 * marginMm
+  const fitsInPaper = cols * lw + (cols - 1) * gapMm <= usableW
+  const autoFitLw = Math.floor(((usableW - (cols - 1) * gapMm) / cols) * 10) / 10
   const rowsPerPage = Math.max(1, Math.floor((paperH - 2 * marginMm + gapMm) / (lh + gapMm)))
   const labelsPerPage = cols * rowsPerPage
   const totalPages = Math.ceil(Math.max(1, labels.length) / labelsPerPage)
@@ -76,7 +79,7 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
         <div style="font-weight:bold;font-size:11px;border-bottom:1px solid black;padding-bottom:2px;margin-bottom:2px;letter-spacing:.5px">${hewan.kode_resi}</div>
         ${names}
         <div style="margin-top:auto;padding-top:2px;border-top:1px solid #ccc">
-          <div style="font-size:7px;color:#444;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${jamaah[0]?.alamat_lengkap ?? ''}</div>
+          <div style="font-size:7px;color:#444;overflow:hidden;white-space:normal;word-break:break-word">${jamaah[0]?.alamat_lengkap ?? ''}</div>
           ${jamaah[0]?.no_hp ? `<div style="font-size:7px;color:#666">${jamaah[0].no_hp}</div>` : ''}
         </div>
       </div>`
@@ -128,10 +131,17 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
         const addr = jamaah[0]?.alamat_lengkap ?? ''
         const hp = jamaah[0]?.no_hp ?? ''
         if (addr || hp) {
-          pdf.setDrawColor(180); pdf.line(x, y + lh - 8, x + lw, y + lh - 8); pdf.setDrawColor(0)
-          pdf.setFontSize(6); pdf.setTextColor(80)
-          if (addr) pdf.text(addr.slice(0, 50), x + 2, y + lh - 5)
-          if (hp)   pdf.text(hp, x + 2, y + lh - 2)
+          const divY = y + lh - (hp ? 10 : 7)
+          pdf.setDrawColor(180); pdf.line(x, divY, x + lw, divY); pdf.setDrawColor(0)
+          pdf.setFontSize(5.5); pdf.setTextColor(80)
+          if (addr) {
+            const lines = pdf.splitTextToSize(addr, lw - 4)
+            const maxLines = hp ? 2 : 3
+            lines.slice(0, maxLines).forEach((ln: string, li: number) => {
+              pdf.text(ln, x + 2, divY + 3 + li * 3)
+            })
+          }
+          if (hp) pdf.text(hp, x + 2, y + lh - 2)
           pdf.setTextColor(0)
         }
       })
@@ -209,9 +219,24 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
               </div>
             </div>
 
-            <div className="text-xs text-gray-400 space-y-0.5 pt-1 border-t border-gray-100">
-              <p>{labels.length} label • {labelsPerPage}/halaman • <span className="font-medium text-gray-600">{totalPages} hal.</span></p>
-              <p>{paperW.toFixed(0)} × {paperH.toFixed(0)} mm</p>
+            <div className="text-xs space-y-1.5 pt-1 border-t border-gray-100">
+              {!fitsInPaper && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5">
+                  <p className="text-amber-700 font-medium text-[11px]">⚠ Label terlalu lebar</p>
+                  <p className="text-amber-600 text-[10px] mt-0.5">
+                    {cols} kol × {lw}mm = {(cols * lw + (cols-1) * gapMm).toFixed(1)}mm,<br/>
+                    maks {usableW.toFixed(0)}mm
+                  </p>
+                  <button
+                    onClick={() => setConfig(c => ({ ...c, lebarMm: autoFitLw }))}
+                    className="mt-1.5 w-full py-1 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-medium rounded transition"
+                  >
+                    Auto-fit → {autoFitLw}mm
+                  </button>
+                </div>
+              )}
+              <p className="text-gray-400">{labels.length} label • {labelsPerPage}/hal • <span className="font-medium text-gray-600">{totalPages} hal.</span></p>
+              <p className="text-gray-400">{paperW.toFixed(0)} × {paperH.toFixed(0)} mm</p>
             </div>
           </div>
 
