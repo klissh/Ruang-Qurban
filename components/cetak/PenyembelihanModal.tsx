@@ -297,7 +297,7 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
 
       for (let i = 0; i < kambingFlat.length; i += kambingPerHal) {
         const isFirstKmb = i === 0
-        pdf.addPage('a4', 'portrait')
+        pdf.addPage('a4', kambingOrientation)
         const batch = kambingFlat.slice(i, i + kambingPerHal)
         const mx    = KMB_M, my = KMB_M
         const cw    = kmbCW
