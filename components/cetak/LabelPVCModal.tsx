@@ -32,38 +32,38 @@ function LabelCard({ hewan, jamaah, lw, lh }: {
       className="border border-gray-800 bg-white flex flex-col overflow-hidden"
     >
       {/* Kode hewan + jenis — putih, no ink fill */}
-      <div className="flex items-baseline justify-between px-[7px] pt-[5px] pb-[3px] border-b-2 border-gray-800 flex-shrink-0">
-        <span className="font-black text-[14px] tracking-[1px] font-mono leading-none text-black">
+      <div className="flex items-baseline justify-between px-[6px] pt-[4px] pb-[2px] border-b-2 border-gray-800 flex-shrink-0">
+        <span className="font-black text-[17px] tracking-[1px] font-mono leading-none text-black">
           {hewan.kode_resi}
         </span>
-        <span className="text-[8px] font-bold font-sans uppercase tracking-wider leading-none text-gray-500">
+        <span className="text-[9px] font-bold font-sans uppercase tracking-wider leading-none text-gray-500">
           {hewan.jenis_hewan}
         </span>
       </div>
 
       {/* Nama */}
-      <div className="px-[7px] pt-[4px] pb-[3px] border-b border-gray-300 flex-shrink-0">
-        <p className="font-bold text-[11px] leading-[1.25] text-gray-900 break-words">
+      <div className="px-[6px] pt-[3px] pb-[2px] border-b border-gray-300 flex-shrink-0">
+        <p className="font-bold text-[14px] leading-[1.2] text-gray-900 break-words">
           {jamaah.nama_lengkap}
         </p>
         {jamaah.atas_nama && (
-          <p className="text-[8.5px] text-gray-500 leading-tight mt-[1px]">
+          <p className="text-[10px] text-gray-500 leading-tight mt-[1px]">
             a/n {jamaah.atas_nama}
           </p>
         )}
       </div>
 
       {/* Alamat — flex-1 agar mengisi sisa ruang */}
-      <div className="px-[7px] pt-[4px] flex-1 overflow-hidden">
-        <p className="text-[9px] leading-[1.4] text-gray-700 break-words whitespace-normal">
+      <div className="px-[6px] pt-[3px] flex-1 overflow-hidden">
+        <p className="text-[12.5px] leading-[1.35] text-gray-700 break-words whitespace-normal">
           {jamaah.alamat_lengkap ?? '—'}
         </p>
       </div>
 
       {/* Telepon — selalu di bawah */}
       {jamaah.no_hp && (
-        <div className="px-[7px] pb-[4px] pt-[3px] border-t border-gray-300 flex-shrink-0">
-          <p className="text-[9.5px] font-bold text-gray-900 leading-none">
+        <div className="px-[6px] pb-[3px] pt-[2px] border-t border-gray-300 flex-shrink-0">
+          <p className="text-[13px] font-bold text-gray-900 leading-none">
             ☎ {jamaah.no_hp}
           </p>
         </div>
@@ -110,18 +110,18 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
   function buildPrintHTML() {
     const labelHTMLs = labels.map(({ hewan, jamaah }) => `
       <div style="width:${lw}mm;height:${lh}mm;border:1px solid #1f2937;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;break-inside:avoid;font-family:Arial,sans-serif;background:white">
-        <div style="display:flex;align-items:baseline;justify-content:space-between;padding:4px 7px 2px;border-bottom:2px solid #1f2937;flex-shrink:0">
-          <span style="font-weight:900;font-size:13px;letter-spacing:1px;font-family:monospace;color:#000;line-height:1">${hewan.kode_resi}</span>
-          <span style="font-size:7.5px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#6b7280;line-height:1">${hewan.jenis_hewan}</span>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;padding:3px 6px 2px;border-bottom:2px solid #1f2937;flex-shrink:0">
+          <span style="font-weight:900;font-size:16px;letter-spacing:1px;font-family:monospace;color:#000;line-height:1">${hewan.kode_resi}</span>
+          <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#6b7280;line-height:1">${hewan.jenis_hewan}</span>
         </div>
-        <div style="padding:4px 7px 2px;border-bottom:1px solid #d1d5db;flex-shrink:0">
-          <p style="font-weight:700;font-size:10.5px;line-height:1.25;margin:0;color:#111;word-break:break-word">${jamaah.nama_lengkap}</p>
-          ${jamaah.atas_nama ? `<p style="font-size:8px;color:#6b7280;margin:1px 0 0;line-height:1.2">a/n ${jamaah.atas_nama}</p>` : ''}
+        <div style="padding:3px 6px 2px;border-bottom:1px solid #d1d5db;flex-shrink:0">
+          <p style="font-weight:700;font-size:13.5px;line-height:1.2;margin:0;color:#111;word-break:break-word">${jamaah.nama_lengkap}</p>
+          ${jamaah.atas_nama ? `<p style="font-size:10px;color:#6b7280;margin:1px 0 0;line-height:1.2">a/n ${jamaah.atas_nama}</p>` : ''}
         </div>
-        <div style="padding:4px 7px 0;flex:1;overflow:hidden">
-          <p style="font-size:8.5px;line-height:1.4;margin:0;color:#374151;word-break:break-word;white-space:normal">${jamaah.alamat_lengkap ?? '—'}</p>
+        <div style="padding:3px 6px 0;flex:1;overflow:hidden">
+          <p style="font-size:12px;line-height:1.35;margin:0;color:#374151;word-break:break-word;white-space:normal">${jamaah.alamat_lengkap ?? '—'}</p>
         </div>
-        ${jamaah.no_hp ? `<div style="padding:2px 7px 4px;border-top:1px solid #d1d5db;flex-shrink:0"><p style="font-size:9px;font-weight:700;color:#111;margin:0;line-height:1.2">☎ ${jamaah.no_hp}</p></div>` : ''}
+        ${jamaah.no_hp ? `<div style="padding:2px 6px 3px;border-top:1px solid #d1d5db;flex-shrink:0"><p style="font-size:12.5px;font-weight:700;color:#111;margin:0;line-height:1.2">☎ ${jamaah.no_hp}</p></div>` : ''}
       </div>`).join('')
 
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
@@ -161,10 +161,10 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
         pdf.rect(x, y, lw, lh)
 
         // ── Kode hewan + jenis (putih, no fill) ───────────────────────────
-        const headerH = 7
-        pdf.setFont('courier', 'bold'); pdf.setFontSize(11.5); pdf.setTextColor(0)
+        const headerH = 8.5
+        pdf.setFont('courier', 'bold'); pdf.setFontSize(14); pdf.setTextColor(0)
         pdf.text(hewan.kode_resi, x + 2.5, y + 5)
-        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(6.5); pdf.setTextColor(100)
+        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8); pdf.setTextColor(100)
         pdf.text(hewan.jenis_hewan.toUpperCase(), x + lw - 2.5, y + 5, { align: 'right' })
 
         // Garis tebal di bawah header
@@ -173,15 +173,15 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
         pdf.setLineWidth(0.1)
 
         // ── Nama ──────────────────────────────────────────────────────────
-        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9.5); pdf.setTextColor(0)
+        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(12); pdf.setTextColor(0)
         const nameLines = pdf.splitTextToSize(jamaah.nama_lengkap, lw - 5)
         let curY = y + headerH + 4
         nameLines.slice(0, 2).forEach((line: string) => {
-          pdf.text(line, x + 2.5, curY); curY += 4
+          pdf.text(line, x + 2.5, curY); curY += 5
         })
         if (jamaah.atas_nama) {
-          pdf.setFont('helvetica', 'italic'); pdf.setFontSize(7); pdf.setTextColor(120)
-          pdf.text(`a/n ${jamaah.atas_nama}`, x + 2.5, curY); curY += 3.5
+          pdf.setFont('helvetica', 'italic'); pdf.setFontSize(9); pdf.setTextColor(120)
+          pdf.text(`a/n ${jamaah.atas_nama}`, x + 2.5, curY); curY += 4.5
         }
 
         // Garis tipis pemisah nama - alamat
@@ -191,18 +191,18 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
         // ── Alamat ────────────────────────────────────────────────────────
         const hpH = jamaah.no_hp ? 6 : 0
         const addrMaxH = y + lh - hpH - curY - 1
-        const addrMaxLines = Math.max(1, Math.floor(addrMaxH / 3.5))
-        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(55)
+        const addrMaxLines = Math.max(1, Math.floor(addrMaxH / 4.2))
+        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10.5); pdf.setTextColor(55)
         const addrLines = pdf.splitTextToSize(jamaah.alamat_lengkap ?? '—', lw - 5)
         addrLines.slice(0, addrMaxLines).forEach((line: string) => {
-          pdf.text(line, x + 2.5, curY); curY += 3.5
+          pdf.text(line, x + 2.5, curY); curY += 4.2
         })
 
         // ── Telepon ───────────────────────────────────────────────────────
         if (jamaah.no_hp) {
           const hpY = y + lh - 1.5
           pdf.setDrawColor(200); pdf.line(x, hpY - 4, x + lw, hpY - 4)
-          pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8.5); pdf.setTextColor(0)
+          pdf.setFont('helvetica', 'bold'); pdf.setFontSize(10.5); pdf.setTextColor(0)
           pdf.text(`\u260E ${jamaah.no_hp}`, x + 2.5, hpY)
         }
         pdf.setDrawColor(0)
