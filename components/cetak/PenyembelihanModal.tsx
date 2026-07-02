@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Printer, Download, ArrowLeft } from 'lucide-react'
+import { X, ArrowLeft, Download } from 'lucide-react'
 import type { Hewan, Jamaah } from '@/types'
 
 interface KelompokData { hewan: Hewan; jamaah: Jamaah[] }
@@ -10,77 +10,67 @@ interface Props { data: KelompokData[]; onClose: () => void; onBack?: () => void
 const MM_TO_PX = 3.7795
 
 // ── Spec exact dari docx ───────────────────────────────────────────────────
-// SAPI: A4 Landscape 297×210mm, margin 25.4mm, font 40pt/36pt/26pt
-const SAPI_W = 297, SAPI_H = 210, SAPI_M = 25.4
-const SAPI_CW = SAPI_W - 2 * SAPI_M   // 246.2mm
-const SAPI_CH = SAPI_H - 2 * SAPI_M   // 159.2mm
-const SAPI_ROW_H = SAPI_CH / 8        // 19.9mm per baris (1 header + 7 nama)
-const SAPI_NO_W = 24                   // lebar kolom nomor mm
-const SAPI_FONT_HEADER = 40            // pt
-const SAPI_FONT_NO     = 36            // pt
-const SAPI_FONT_NAME   = 26            // pt
+const SAPI_M = 25.4   // margin sapi (1 inch)
+const KMB_M  = 8.8    // margin kambing
+const KMB_NO_W = 28   // lebar kolom nomor kambing (mm)
+const SAPI_NO_W = 24  // lebar kolom nomor sapi (mm)
 
-// KAMBING: A4 Portrait 210×297mm, margin 8.8mm, font 50pt
-const KMB_W = 210, KMB_H = 297, KMB_M = 8.8
-const KMB_CW = KMB_W - 2 * KMB_M     // 192.4mm
-const KMB_CH = KMB_H - 2 * KMB_M     // 279.4mm
-const KMB_NO_W = 28                    // lebar kolom nomor mm
-const KMB_FONT = 50                    // pt
+// Font sizes (fixed sesuai docx)
+const SAPI_FONT_HEADER = 40
+const SAPI_FONT_NO     = 36
+const SAPI_FONT_NAME   = 26
+const KMB_FONT         = 50
 
-// pt → px di 96dpi
 const ptToPx = (pt: number) => pt * 4 / 3
-// pt → mm
 const ptToMm = (pt: number) => pt * 25.4 / 72
 
-function isKambing(hewan: Hewan) { return hewan.kode_resi.toUpperCase().startsWith('KMB') }
+function isKambing(h: Hewan) { return h.kode_resi.toUpperCase().startsWith('KMB') }
 
-// ── Preview Component: 1 lembar sapi ────────────────────────────────────────
-function SapiSheet({ hewan, jamaah }: { hewan: Hewan; jamaah: Jamaah[] }) {
-  const paperWpx = SAPI_W * MM_TO_PX
-  const paperHpx = SAPI_H * MM_TO_PX
-  const mPx      = SAPI_M * MM_TO_PX
-  const cwPx     = SAPI_CW * MM_TO_PX
-  const chPx     = SAPI_CH * MM_TO_PX
-  const rowHpx   = SAPI_ROW_H * MM_TO_PX
-  const noWpx    = SAPI_NO_W * MM_TO_PX
-  const BORDER   = '2px solid #000'
+// Dimensi kertas berdasarkan orientasi (A4)
+function paperDims(orientation: 'portrait' | 'landscape') {
+  return orientation === 'landscape'
+    ? { w: 297, h: 210 }
+    : { w: 210, h: 297 }
+}
+
+// ── Preview: 1 lembar sapi ────────────────────────────────────────────────
+function SapiSheet({ hewan, jamaah, orientation }: {
+  hewan: Hewan; jamaah: Jamaah[]; orientation: 'portrait' | 'landscape'
+}) {
+  const { w, h } = paperDims(orientation)
+  const wpx  = w * MM_TO_PX
+  const hpx  = h * MM_TO_PX
+  const mPx  = SAPI_M * MM_TO_PX
+  const cwPx = (w - 2 * SAPI_M) * MM_TO_PX
+  const chPx = (h - 2 * SAPI_M) * MM_TO_PX
+  const rh   = chPx / 8   // 1 header + 7 baris
+  const nwPx = SAPI_NO_W * MM_TO_PX
+  const B    = '2px solid #000'
 
   return (
     <div style={{ position: 'absolute', inset: mPx }}>
-      {/* Header — kode hewan, centered, 40pt */}
-      <div style={{
-        width: cwPx, height: rowHpx,
-        border: BORDER,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxSizing: 'border-box',
-      }}>
-        <span style={{ fontFamily: 'Arial,sans-serif', fontWeight: 900, fontSize: ptToPx(SAPI_FONT_HEADER), color: '#000', letterSpacing: 2 }}>
+      {/* Header */}
+      <div style={{ width: cwPx, height: rh, border: B, boxSizing: 'border-box',
+        display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ fontFamily: 'Arial', fontWeight: 900,
+          fontSize: ptToPx(SAPI_FONT_HEADER), color: '#000', letterSpacing: 2 }}>
           {hewan.kode_resi}
         </span>
       </div>
       {/* Baris nama */}
       {jamaah.map((j, i) => (
-        <div key={j.id} style={{ display: 'flex', width: cwPx, height: rowHpx }}>
-          {/* Nomor */}
-          <div style={{
-            width: noWpx, height: rowHpx, flexShrink: 0,
-            borderBottom: BORDER, borderLeft: BORDER, borderRight: BORDER,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxSizing: 'border-box',
-          }}>
-            <span style={{ fontFamily: 'Arial,sans-serif', fontWeight: 900, fontSize: ptToPx(SAPI_FONT_NO), color: '#000' }}>
-              {i + 1}
-            </span>
+        <div key={j.id} style={{ display: 'flex', width: cwPx, height: rh }}>
+          <div style={{ width: nwPx, height: rh, flexShrink: 0, boxSizing: 'border-box',
+            borderBottom: B, borderLeft: B, borderRight: B,
+            display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontFamily: 'Arial', fontWeight: 900,
+              fontSize: ptToPx(SAPI_FONT_NO), color: '#000' }}>{i + 1}</span>
           </div>
-          {/* Nama */}
-          <div style={{
-            flex: 1, height: rowHpx,
-            borderBottom: BORDER, borderRight: BORDER,
-            display: 'flex', alignItems: 'center',
-            padding: `0 ${8 * MM_TO_PX}px`,
-            boxSizing: 'border-box',
-          }}>
-            <span style={{ fontFamily: 'Arial,sans-serif', fontWeight: 700, fontSize: ptToPx(SAPI_FONT_NAME), color: '#000', lineHeight: 1.2 }}>
+          <div style={{ flex: 1, height: rh, boxSizing: 'border-box',
+            borderBottom: B, borderRight: B,
+            display: 'flex', alignItems: 'center', padding: `0 ${6 * MM_TO_PX}px` }}>
+            <span style={{ fontFamily: 'Arial', fontWeight: 700,
+              fontSize: ptToPx(SAPI_FONT_NAME), color: '#000', lineHeight: 1.2 }}>
               {j.nama_lengkap}
             </span>
           </div>
@@ -90,53 +80,41 @@ function SapiSheet({ hewan, jamaah }: { hewan: Hewan; jamaah: Jamaah[] }) {
   )
 }
 
-// ── Preview Component: 1 halaman kambing ────────────────────────────────────
-function KambingSheet({ entries, kambingPerHal, showTitle, paperW, paperH }: {
+// ── Preview: 1 halaman kambing ────────────────────────────────────────────
+function KambingSheet({ entries, kambingPerHal, showTitle, orientation }: {
   entries: Array<{ hewan: Hewan; jamaah: Jamaah; globalNo: number }>
-  kambingPerHal: number
-  showTitle: boolean
-  paperW: number
-  paperH: number
+  kambingPerHal: number; showTitle: boolean; orientation: 'portrait' | 'landscape'
 }) {
-  const mPx     = KMB_M * MM_TO_PX
-  const cwPx    = (paperW - 2 * KMB_M) * MM_TO_PX
-  const chPx    = (paperH - 2 * KMB_M) * MM_TO_PX
-  const titleHpx = showTitle ? 20 * MM_TO_PX : 0
-  const rowHpx  = (chPx - titleHpx) / kambingPerHal
-  const noWpx   = KMB_NO_W * MM_TO_PX
-  const BORDER  = '1.5px solid #000'
+  const { w, h }  = paperDims(orientation)
+  const mPx       = KMB_M * MM_TO_PX
+  const cwPx      = (w - 2 * KMB_M) * MM_TO_PX
+  const chPx      = (h - 2 * KMB_M) * MM_TO_PX
+  const titleHpx  = showTitle ? 20 * MM_TO_PX : 0
+  const rowHpx    = (chPx - titleHpx) / kambingPerHal
+  const nwPx      = KMB_NO_W * MM_TO_PX
+  const B         = '1.5px solid #000'
 
   return (
     <div style={{ position: 'absolute', inset: mPx }}>
       {showTitle && (
         <div style={{ height: titleHpx, display: 'flex', alignItems: 'flex-end', paddingBottom: 4, marginBottom: 4 }}>
-          <span style={{ fontFamily: 'Arial,sans-serif', fontWeight: 700, fontSize: ptToPx(16), color: '#000' }}>
+          <span style={{ fontFamily: 'Arial', fontWeight: 700, fontSize: ptToPx(14), color: '#000' }}>
             TIPE C (Penitipan Kambing)
           </span>
         </div>
       )}
-      {entries.map(({ hewan, jamaah, globalNo }) => (
-        <div key={globalNo} style={{ display: 'flex', width: cwPx, height: rowHpx }}>
-          {/* Nomor */}
-          <div style={{
-            width: noWpx, height: rowHpx, flexShrink: 0,
-            border: BORDER,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxSizing: 'border-box', marginTop: '-1px',
-          }}>
-            <span style={{ fontFamily: 'Arial,sans-serif', fontWeight: 900, fontSize: ptToPx(KMB_FONT), color: '#000' }}>
-              {globalNo}
-            </span>
+      {entries.map(({ jamaah, globalNo }, bi) => (
+        <div key={globalNo} style={{ display: 'flex', width: cwPx, height: rowHpx, marginTop: bi > 0 ? -1 : 0 }}>
+          <div style={{ width: nwPx, flexShrink: 0, boxSizing: 'border-box',
+            border: B, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontFamily: 'Arial', fontWeight: 900,
+              fontSize: ptToPx(KMB_FONT), color: '#000' }}>{globalNo}</span>
           </div>
-          {/* Nama */}
-          <div style={{
-            flex: 1, height: rowHpx,
-            borderTop: BORDER, borderBottom: BORDER, borderRight: BORDER,
-            display: 'flex', alignItems: 'center',
-            padding: `0 ${6 * MM_TO_PX}px`,
-            boxSizing: 'border-box', marginTop: '-1px',
-          }}>
-            <span style={{ fontFamily: 'Arial,sans-serif', fontWeight: 700, fontSize: ptToPx(KMB_FONT), color: '#000', lineHeight: 1.2 }}>
+          <div style={{ flex: 1, boxSizing: 'border-box',
+            borderTop: B, borderBottom: B, borderRight: B,
+            display: 'flex', alignItems: 'center', padding: `0 ${5 * MM_TO_PX}px` }}>
+            <span style={{ fontFamily: 'Arial', fontWeight: 700,
+              fontSize: ptToPx(KMB_FONT), color: '#000', lineHeight: 1.2 }}>
               {jamaah.nama_lengkap}
             </span>
           </div>
@@ -146,205 +124,147 @@ function KambingSheet({ entries, kambingPerHal, showTitle, paperW, paperH }: {
   )
 }
 
-// ── Main Component ───────────────────────────────────────────────────────────
+// ── PDF helper ────────────────────────────────────────────────────────────
+function textVCenter(
+  pdf: any, text: string, x: number, cellY: number, cellH: number, fontPt: number, opts?: object
+) {
+  const y = cellY + cellH / 2 + ptToMm(fontPt) * 0.36
+  pdf.text(text, x, y, opts)
+}
+
+// ── Main Component ────────────────────────────────────────────────────────
 export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
+  const [orientation, setOrientation]     = useState<'portrait' | 'landscape'>('landscape')
   const [kambingPerHal, setKambingPerHal] = useState(2)
-  const [kambingOrientation, setKambingOrientation] = useState<'portrait' | 'landscape'>('portrait')
-  const [isGenerating, setIsGenerating]   = useState(false)
+  const [isGenSapi, setIsGenSapi]         = useState(false)
+  const [isGenKmb, setIsGenKmb]           = useState(false)
   const [zoomFactor, setZoomFactor]       = useState(1.0)
   const [previewType, setPreviewType]     = useState<'sapi' | 'kambing'>('sapi')
-
-  // Dimensi kambing berdasarkan orientasi
-  const kmbW = kambingOrientation === 'portrait' ? KMB_W : KMB_H
-  const kmbH = kambingOrientation === 'portrait' ? KMB_H : KMB_W
-  const kmbCW = kmbW - 2 * KMB_M
-  const kmbCH = kmbH - 2 * KMB_M
 
   const sapiData    = data.filter(d => !isKambing(d.hewan))
   const kambingData = data.filter(d =>  isKambing(d.hewan))
   const kambingFlat = kambingData.flatMap(d => d.jamaah.map(j => ({ hewan: d.hewan, jamaah: j })))
 
+  const { w: paperW, h: paperH } = paperDims(orientation)
+  const paperWpx = paperW * MM_TO_PX
+  const paperHpx = paperH * MM_TO_PX
+
   const sapiPages    = sapiData.length
   const kambingPages = Math.ceil(kambingFlat.length / kambingPerHal)
   const totalPages   = sapiPages + kambingPages
 
-  // Skala preview
-  const MAX_DIM = 560
-  const sapiScale   = Math.min(MAX_DIM / (SAPI_W * MM_TO_PX), MAX_DIM / (SAPI_H * MM_TO_PX), 1)
-  const kmbScale    = Math.min(MAX_DIM / (kmbW * MM_TO_PX), MAX_DIM / (kmbH * MM_TO_PX), 1)
-  const baseScale   = previewType === 'sapi' ? sapiScale : kmbScale
-  const effScale    = baseScale * zoomFactor
+  const MAX_DIM    = 560
+  const baseScale  = Math.min(MAX_DIM / paperWpx, MAX_DIM / paperHpx, 1)
+  const effScale   = baseScale * zoomFactor
 
-  const previewW    = previewType === 'sapi' ? SAPI_W * MM_TO_PX : kmbW * MM_TO_PX
-  const previewH    = previewType === 'sapi' ? SAPI_H * MM_TO_PX : kmbH * MM_TO_PX
+  const previewKmb = kambingFlat.slice(0, kambingPerHal).map((e, i) => ({ ...e, globalNo: i + 1 }))
 
-  const previewKmb  = kambingFlat.slice(0, kambingPerHal).map((e, i) => ({ ...e, globalNo: i + 1 }))
-
-  // ── Build print HTML ─────────────────────────────────────────────────────
-  function buildPrintHTML() {
-    const pages: string[] = []
-
-    // Halaman sapi — A4 Landscape, exact docx specs
-    sapiData.forEach(({ hewan, jamaah }) => {
-      const nameRows = jamaah.map((j, i) => `
-        <tr style="height:${100 / 8}%">
-          <td style="border:2px solid #000;text-align:center;vertical-align:middle;font-size:${SAPI_FONT_NO}pt;font-weight:900;font-family:Arial;color:#000;width:${SAPI_NO_W}mm">${i + 1}</td>
-          <td style="border:2px solid #000;vertical-align:middle;padding:0 8mm;font-size:${SAPI_FONT_NAME}pt;font-weight:700;font-family:Arial;color:#000">${j.nama_lengkap}</td>
-        </tr>`).join('')
-
-      pages.push(`
-        <div style="width:${SAPI_W}mm;height:${SAPI_H}mm;box-sizing:border-box;padding:${SAPI_M}mm;page-break-after:always">
-          <table style="border-collapse:collapse;width:100%;height:100%;table-layout:fixed">
-            <colgroup><col style="width:${SAPI_NO_W}mm"/><col/></colgroup>
-            <tbody>
-              <tr style="height:${100 / 8}%">
-                <td colspan="2" style="border:2px solid #000;text-align:center;vertical-align:middle;font-size:${SAPI_FONT_HEADER}pt;font-weight:900;font-family:Arial;color:#000;letter-spacing:2px">${hewan.kode_resi}</td>
-              </tr>
-              ${nameRows}
-            </tbody>
-          </table>
-        </div>`)
-    })
-
-    // Halaman kambing — orientasi sesuai pilihan user
-    for (let i = 0; i < kambingFlat.length; i += kambingPerHal) {
-      const isFirstPage = i === 0
-      const batch       = kambingFlat.slice(i, i + kambingPerHal)
-      const rowPct      = (100 - (isFirstPage ? 5 : 0)) / kambingPerHal
-
-      const titleHTML = isFirstPage ? `
-        <div style="font-family:Arial;font-weight:700;font-size:16pt;color:#000;margin-bottom:6mm">
-          TIPE C (Penitipan Kambing)
-        </div>` : ''
-
-      const tableRows = batch.map((e, bi) => {
-        const no = i + bi + 1
-        return `
-          <tr style="height:${rowPct}%">
-            <td style="border:1.5px solid #000;text-align:center;vertical-align:middle;font-size:${KMB_FONT}pt;font-weight:900;font-family:Arial;color:#000;width:${KMB_NO_W}mm">${no}</td>
-            <td style="border:1.5px solid #000;vertical-align:middle;padding:0 6mm;font-size:${KMB_FONT}pt;font-weight:700;font-family:Arial;color:#000">${e.jamaah.nama_lengkap}</td>
-          </tr>`
-      }).join('')
-
-      pages.push(`
-        <div style="width:${kmbW}mm;height:${kmbH}mm;box-sizing:border-box;padding:${KMB_M}mm;page-break-after:always;display:flex;flex-direction:column">
-          ${titleHTML}
-          <table style="border-collapse:collapse;width:100%;flex:1;table-layout:fixed">
-            <colgroup><col style="width:${KMB_NO_W}mm"/><col/></colgroup>
-            <tbody>${tableRows}</tbody>
-          </table>
-        </div>`)
-    }
-
-    return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-      @page { margin:0 }
-      body { margin:0; font-family:Arial,sans-serif }
-    </style></head><body>${pages.join('')}</body></html>`
-  }
-
-  function handlePrint() {
-    const win = window.open('', '_blank')
-    if (!win) return
-    win.document.write(buildPrintHTML())
-    win.document.close()
-    win.onload = () => win.print()
-  }
-
-  // ── PDF (jsPDF) ──────────────────────────────────────────────────────────
-  async function handleDownloadPDF() {
-    setIsGenerating(true)
+  // ── Download Sapi PDF ─────────────────────────────────────────────────
+  async function downloadSapiPDF() {
+    if (!sapiData.length) return
+    setIsGenSapi(true)
     try {
       const { default: jsPDF } = await import('jspdf')
+      const dims = [paperW, paperH] as [number, number]  // landscape=[297,210], portrait=[210,297]
+      const pdf  = new jsPDF({ unit: 'mm', format: dims })
 
-      function textVCenter(pdf: InstanceType<typeof jsPDF>, text: string, x: number, cellY: number, cellH: number, fontPt: number, opts?: object) {
-        const y = cellY + cellH / 2 + ptToMm(fontPt) * 0.36
-        pdf.text(text, x, y, opts)
-      }
+      sapiData.forEach(({ hewan, jamaah }, idx) => {
+        if (idx > 0) pdf.addPage(dims)
 
-      // Selalu mulai dengan landscape untuk sapi (atau portrait kalau hanya kambing)
-      // Dimensi eksplisit (bukan string + orientation) agar jsPDF selalu benar
-      const SAPI_DIMS = [SAPI_W, SAPI_H] as [number, number]       // landscape: [297, 210]
-      const kmbDims   = kambingOrientation === 'landscape'
-        ? [kmbW, kmbH] as [number, number]   // landscape: lebar > tinggi
-        : [kmbW, kmbH] as [number, number]   // portrait:  lebar < tinggi
+        const mx  = SAPI_M, my = SAPI_M
+        const cw  = paperW - 2 * SAPI_M
+        const ch  = paperH - 2 * SAPI_M
+        const rh  = ch / 8
+        const nw  = SAPI_NO_W
 
-      const startFormat = sapiData.length > 0 ? SAPI_DIMS : (kambingOrientation === 'landscape' ? [kmbW, kmbH] as [number, number] : [kmbW, kmbH] as [number, number])
-      const pdf = new jsPDF({ unit: 'mm', format: startFormat })
-      let isFirst = true
-
-      // ── Halaman sapi (landscape A4) ───────────────────────────────────
-      sapiData.forEach(({ hewan, jamaah }) => {
-        if (!isFirst) pdf.addPage(SAPI_DIMS)
-        isFirst = false
-        const mx = SAPI_M, my = SAPI_M
-        const cw = SAPI_CW
-        const rh = SAPI_ROW_H, nw = SAPI_NO_W
+        // Header
         pdf.setDrawColor(0); pdf.setLineWidth(0.4)
         pdf.rect(mx, my, cw, rh)
         pdf.setFont('helvetica', 'bold'); pdf.setFontSize(SAPI_FONT_HEADER); pdf.setTextColor(0)
         textVCenter(pdf, hewan.kode_resi, mx + cw / 2, my, rh, SAPI_FONT_HEADER, { align: 'center' })
+
+        // Baris nama
         jamaah.forEach((j, i) => {
           const ry = my + rh + i * rh
           pdf.setLineWidth(0.4)
           pdf.rect(mx, ry, nw, rh)
           pdf.rect(mx + nw, ry, cw - nw, rh)
+
           pdf.setFontSize(SAPI_FONT_NO)
           textVCenter(pdf, String(i + 1), mx + nw / 2, ry, rh, SAPI_FONT_NO, { align: 'center' })
+
           pdf.setFontSize(SAPI_FONT_NAME)
-          const nl = pdf.splitTextToSize(j.nama_lengkap, cw - nw - 8)
-          const lh = ptToMm(SAPI_FONT_NAME) * 1.3
-          const th = nl.length * lh
-          const sy = ry + (rh - th) / 2 + ptToMm(SAPI_FONT_NAME) * 0.75
-          nl.slice(0, 2).forEach((line: string, li: number) => pdf.text(line, mx + nw + 5, sy + li * lh))
+          const nl  = pdf.splitTextToSize(j.nama_lengkap, cw - nw - 8)
+          const lh  = ptToMm(SAPI_FONT_NAME) * 1.3
+          const th  = nl.length * lh
+          const sy  = ry + (rh - th) / 2 + ptToMm(SAPI_FONT_NAME) * 0.75
+          nl.slice(0, 2).forEach((line: string, li: number) =>
+            pdf.text(line, mx + nw + 5, sy + li * lh))
         })
       })
 
-      // ── Halaman kambing (portrait A4) ─────────────────────────────────
+      pdf.save('sapi-penyembelihan.pdf')
+    } finally { setIsGenSapi(false) }
+  }
+
+  // ── Download Kambing PDF ──────────────────────────────────────────────
+  async function downloadKambingPDF() {
+    if (!kambingFlat.length) return
+    setIsGenKmb(true)
+    try {
+      const { default: jsPDF } = await import('jspdf')
+      const dims    = [paperW, paperH] as [number, number]
+      const pdf     = new jsPDF({ unit: 'mm', format: dims })
+      const cw      = paperW - 2 * KMB_M
+      const nw      = KMB_NO_W
+      let   isFirst = true
 
       for (let i = 0; i < kambingFlat.length; i += kambingPerHal) {
-        const isFirstKmb = i === 0
-        pdf.addPage(kmbDims)
-        const batch = kambingFlat.slice(i, i + kambingPerHal)
-        const mx    = KMB_M, my = KMB_M
-        const cw    = kmbCW
-        const nw    = KMB_NO_W
-        let   curY  = my
+        if (!isFirst) pdf.addPage(dims)
+        isFirst = false
 
-        // Judul hanya di halaman pertama
-        if (isFirstKmb) {
-          pdf.setFont('helvetica', 'bold'); pdf.setFontSize(16); pdf.setTextColor(0)
+        const isFirstPage = i === 0
+        const batch = kambingFlat.slice(i, i + kambingPerHal)
+        const mx    = KMB_M
+        let   curY  = KMB_M
+
+        if (isFirstPage) {
+          pdf.setFont('helvetica', 'bold'); pdf.setFontSize(14); pdf.setTextColor(0)
           pdf.text('TIPE C (Penitipan Kambing)', mx, curY + 8)
           curY += 14
         }
 
-        const rh = (kmbH - my - curY) / kambingPerHal
+        const rh = (paperH - KMB_M - curY) / kambingPerHal
 
         batch.forEach((e, bi) => {
           const no = i + bi + 1
           const ry = curY + bi * rh
+
           pdf.setDrawColor(0); pdf.setLineWidth(0.4)
           pdf.rect(mx, ry, nw, rh)
           pdf.rect(mx + nw, ry, cw - nw, rh)
-          // Nomor
+
           pdf.setFont('helvetica', 'bold'); pdf.setFontSize(KMB_FONT); pdf.setTextColor(0)
           textVCenter(pdf, String(no), mx + nw / 2, ry, rh, KMB_FONT, { align: 'center' })
-          // Nama
-          const nl = pdf.splitTextToSize(e.jamaah.nama_lengkap, cw - nw - 8)
-          const lh = ptToMm(KMB_FONT) * 1.3
-          const th = nl.length * lh
-          const sy = ry + (rh - th) / 2 + ptToMm(KMB_FONT) * 0.75
-          nl.slice(0, 2).forEach((line: string, li: number) => pdf.text(line, mx + nw + 6, sy + li * lh))
+
+          const nl  = pdf.splitTextToSize(e.jamaah.nama_lengkap, cw - nw - 8)
+          const lh  = ptToMm(KMB_FONT) * 1.3
+          const th  = nl.length * lh
+          const sy  = ry + (rh - th) / 2 + ptToMm(KMB_FONT) * 0.75
+          nl.slice(0, 2).forEach((line: string, li: number) =>
+            pdf.text(line, mx + nw + 6, sy + li * lh))
         })
       }
 
-      pdf.save('kertas-penyembelihan.pdf')
-    } finally { setIsGenerating(false) }
+      pdf.save('kambing-penyembelihan.pdf')
+    } finally { setIsGenKmb(false) }
   }
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col">
 
+        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
           <div className="flex items-center gap-3">
             {onBack && (
@@ -364,61 +284,68 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
           {/* Settings */}
           <div className="w-64 flex-shrink-0 border-r border-gray-100 p-5 space-y-5 overflow-y-auto">
 
-            {/* Sapi info */}
+            {/* Orientasi — SATU untuk sapi+kambing */}
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Orientasi Kertas</p>
+              <div className="flex gap-2">
+                {(['portrait', 'landscape'] as const).map(o => (
+                  <button key={o} onClick={() => setOrientation(o)}
+                    className={`flex-1 py-2 text-xs rounded-lg border font-medium transition ${orientation === o ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                    {o === 'portrait' ? 'Potret' : 'Landscape'}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-gray-400 mt-2">Berlaku untuk sapi &amp; kambing</p>
+            </div>
+
+            {/* Info sapi */}
             {sapiData.length > 0 && (
               <div>
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Sapi</p>
                 <div className="bg-gray-50 rounded-lg p-3 space-y-1 text-xs text-gray-600">
-                  <p><span className="font-medium">Format:</span> A4 Landscape</p>
-                  <p><span className="font-medium">Margin:</span> 25.4 mm (1 inch)</p>
                   <p><span className="font-medium">Font:</span> 40pt / 36pt / 26pt</p>
+                  <p><span className="font-medium">Margin:</span> 25.4 mm</p>
                   <p><span className="font-medium">Total:</span> {sapiPages} halaman</p>
                 </div>
               </div>
             )}
 
-            {/* Kambing settings */}
+            {/* Settings kambing */}
             {kambingData.length > 0 && (
               <div>
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Kambing</p>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <div className="bg-gray-50 rounded-lg p-3 space-y-1 text-xs text-gray-600">
-                    <p><span className="font-medium">Format:</span> A4 {kambingOrientation === 'portrait' ? 'Potret' : 'Landscape'}</p>
-                    <p><span className="font-medium">Margin:</span> 8.8 mm</p>
                     <p><span className="font-medium">Font:</span> 50pt bold</p>
+                    <p><span className="font-medium">Margin:</span> 8.8 mm</p>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-600 mb-2 block">Orientasi</label>
-                    <div className="flex gap-2">
-                      {(['portrait', 'landscape'] as const).map(o => (
-                        <button key={o} onClick={() => setKambingOrientation(o)}
-                          className={`flex-1 py-2 text-xs rounded-lg border font-medium transition ${kambingOrientation === o ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
-                          {o === 'portrait' ? 'Potret' : 'Landscape'}
-                        </button>
-                      ))}
-                    </div>
+                    <label className="text-xs text-gray-600 mb-1 block">Kambing per halaman</label>
+                    <select value={kambingPerHal} onChange={e => setKambingPerHal(+e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                      {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n} per halaman</option>)}
+                    </select>
+                    <p className="text-xs text-gray-400 mt-1">{kambingFlat.length} kambing • {kambingPages} halaman</p>
                   </div>
-                  <label className="text-xs text-gray-600 block mt-2">Kambing per halaman</label>
-                  <select value={kambingPerHal} onChange={e => setKambingPerHal(+e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                    {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n} per halaman</option>)}
-                  </select>
-                  <p className="text-xs text-gray-400">{kambingFlat.length} kambing • {kambingPages} halaman</p>
                 </div>
               </div>
             )}
 
             <div className="pt-1 border-t border-gray-100">
-              <p className="text-xs font-medium text-gray-600">Total: {totalPages} halaman</p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                {sapiPages > 0 && `${sapiPages} sapi`}{sapiPages > 0 && kambingPages > 0 && ' + '}{kambingPages > 0 && `${kambingPages} kambing`}
+              <p className="text-xs font-medium text-gray-600">
+                Total: {totalPages} halaman
+                {sapiPages > 0 && kambingPages > 0 && (
+                  <span className="text-gray-400 font-normal"> ({sapiPages} sapi + {kambingPages} kambing)</span>
+                )}
               </p>
+              <p className="text-xs text-gray-400 mt-0.5">{paperW} × {paperH} mm</p>
             </div>
           </div>
 
           {/* Preview */}
           <div className="flex-1 overflow-auto bg-gray-200 p-6 flex flex-col">
 
+            {/* Tab + Zoom */}
             <div className="flex items-center justify-between mb-4 flex-shrink-0">
               <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
                 {sapiData.length > 0 && (
@@ -449,19 +376,20 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
               </div>
             </div>
 
+            {/* Paper */}
             <div className="flex justify-center">
-              <div style={{ width: previewW * effScale, height: previewH * effScale, position: 'relative', flexShrink: 0 }}
+              <div style={{ width: paperWpx * effScale, height: paperHpx * effScale, position: 'relative', flexShrink: 0 }}
                 className="shadow-2xl">
                 <div style={{
-                  width: previewW, height: previewH,
+                  width: paperWpx, height: paperHpx,
                   position: 'absolute', top: 0, left: 0,
                   transform: `scale(${effScale})`, transformOrigin: 'top left',
                   background: 'white', overflow: 'hidden',
                 }}>
                   {previewType === 'sapi' && sapiData[0] ? (
-                    <SapiSheet hewan={sapiData[0].hewan} jamaah={sapiData[0].jamaah} />
+                    <SapiSheet hewan={sapiData[0].hewan} jamaah={sapiData[0].jamaah} orientation={orientation} />
                   ) : previewType === 'kambing' && previewKmb.length > 0 ? (
-                    <KambingSheet entries={previewKmb} kambingPerHal={kambingPerHal} showTitle paperW={kmbW} paperH={kmbH} />
+                    <KambingSheet entries={previewKmb} kambingPerHal={kambingPerHal} showTitle orientation={orientation} />
                   ) : (
                     <div className="flex items-center justify-center h-full text-sm text-gray-400">Tidak ada data</div>
                   )}
@@ -471,21 +399,28 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
 
             <p className="text-xs text-gray-400 mt-3 text-center flex-shrink-0">
               {previewType === 'sapi'
-                ? `Preview sapi pertama dari ${sapiPages} hal • A4 Landscape`
-                : `Preview hal. 1 kambing (${kambingFlat.length} entri, ${kambingPerHal}/hal) • A4 ${kambingOrientation === 'portrait' ? 'Potret' : 'Landscape'}`}
+                ? `Preview sapi pertama • ${paperW}×${paperH}mm`
+                : `Preview hal. 1 kambing • ${paperW}×${paperH}mm`}
             </p>
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 flex-shrink-0">
-          <button onClick={handleDownloadPDF} disabled={isGenerating}
-            className="flex items-center gap-2 px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition">
-            <Download size={15} /> {isGenerating ? 'Membuat PDF...' : 'Download PDF'}
-          </button>
-          <button onClick={handlePrint}
-            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 rounded-xl text-sm font-medium text-white transition">
-            <Printer size={15} /> Print
-          </button>
+        {/* Footer — dua tombol download terpisah, tanpa Print (tidak buka tab baru) */}
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 flex-shrink-0">
+          {sapiData.length > 0 && (
+            <button onClick={downloadSapiPDF} disabled={isGenSapi}
+              className="flex items-center gap-2 px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition">
+              <Download size={15} />
+              {isGenSapi ? 'Membuat...' : `Download Sapi (${sapiPages} hal)`}
+            </button>
+          )}
+          {kambingFlat.length > 0 && (
+            <button onClick={downloadKambingPDF} disabled={isGenKmb}
+              className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 rounded-xl text-sm font-medium text-white disabled:opacity-50 transition">
+              <Download size={15} />
+              {isGenKmb ? 'Membuat...' : `Download Kambing (${kambingPages} hal)`}
+            </button>
+          )}
         </div>
       </div>
     </div>
