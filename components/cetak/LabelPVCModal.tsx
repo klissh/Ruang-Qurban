@@ -4,9 +4,7 @@ import { useState } from 'react'
 import { X, Printer, Download, ArrowLeft } from 'lucide-react'
 import type { Jamaah, Hewan } from '@/types'
 
-// Input: per hewan dengan array jamaah (tidak berubah dari parent)
 interface LabelData { hewan: Hewan; jamaah: Jamaah[] }
-// Internal: 1 label = 1 orang
 interface LabelItem { hewan: Hewan; jamaah: Jamaah }
 interface Config { lebarMm: number; tinggiMm: number; kolomPerBaris: number }
 interface Props { data: LabelData[]; onClose: () => void; onBack?: () => void }
@@ -21,49 +19,55 @@ const PAPER_SIZES = {
 } as const
 type PaperKey = keyof typeof PAPER_SIZES
 
-// ─── Label Card — 1 orang per label ──────────────────────────────────────────
-function LabelCard({ hewan, jamaah, lw, lh }: { hewan: Hewan; jamaah: Jamaah; lw: number; lh: number }) {
+// ─── Label Card — putih bersih, teks mengisi ruang ───────────────────────────
+function LabelCard({ hewan, jamaah, lw, lh }: {
+  hewan: Hewan; jamaah: Jamaah; lw: number; lh: number
+}) {
   const wpx = lw * MM_TO_PX
   const hpx = lh * MM_TO_PX
 
   return (
     <div
       style={{ width: wpx, height: hpx, flexShrink: 0, boxSizing: 'border-box' }}
-      className="border border-black bg-white flex flex-col overflow-hidden"
+      className="border border-gray-800 bg-white flex flex-col overflow-hidden"
     >
-      {/* Header: kode hewan + jenis */}
-      <div className="flex items-center justify-between bg-black text-white px-[5px] py-[3px] flex-shrink-0">
-        <span className="font-bold text-[10px] tracking-[2px] font-mono leading-none">
+      {/* Kode hewan + jenis — putih, no ink fill */}
+      <div className="flex items-baseline justify-between px-[7px] pt-[5px] pb-[3px] border-b-2 border-gray-800 flex-shrink-0">
+        <span className="font-black text-[14px] tracking-[1px] font-mono leading-none text-black">
           {hewan.kode_resi}
         </span>
-        <span className="text-[7px] opacity-70 font-sans uppercase tracking-wide leading-none">
+        <span className="text-[8px] font-bold font-sans uppercase tracking-wider leading-none text-gray-500">
           {hewan.jenis_hewan}
         </span>
       </div>
 
       {/* Nama */}
-      <div className="px-[6px] pt-[4px] pb-[3px] border-b border-gray-300 flex-shrink-0">
-        <p className="font-bold text-[9px] leading-[1.25] text-gray-900 break-words">
+      <div className="px-[7px] pt-[4px] pb-[3px] border-b border-gray-300 flex-shrink-0">
+        <p className="font-bold text-[11px] leading-[1.25] text-gray-900 break-words">
           {jamaah.nama_lengkap}
         </p>
         {jamaah.atas_nama && (
-          <p className="text-[7px] text-gray-500 leading-tight mt-[1px]">
+          <p className="text-[8.5px] text-gray-500 leading-tight mt-[1px]">
             a/n {jamaah.atas_nama}
           </p>
         )}
       </div>
 
-      {/* Alamat + Telepon */}
-      <div className="px-[6px] pt-[3px] pb-[3px] flex-1 overflow-hidden flex flex-col justify-between">
-        <p className="text-[7px] leading-[1.35] text-gray-700 break-words whitespace-normal">
+      {/* Alamat — flex-1 agar mengisi sisa ruang */}
+      <div className="px-[7px] pt-[4px] flex-1 overflow-hidden">
+        <p className="text-[9px] leading-[1.4] text-gray-700 break-words whitespace-normal">
           {jamaah.alamat_lengkap ?? '—'}
         </p>
-        {jamaah.no_hp && (
-          <p className="text-[7.5px] font-semibold text-gray-800 mt-auto pt-[2px] border-t border-gray-200 leading-tight">
+      </div>
+
+      {/* Telepon — selalu di bawah */}
+      {jamaah.no_hp && (
+        <div className="px-[7px] pb-[4px] pt-[3px] border-t border-gray-300 flex-shrink-0">
+          <p className="text-[9.5px] font-bold text-gray-900 leading-none">
             ☎ {jamaah.no_hp}
           </p>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -76,7 +80,7 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [zoomFactor, setZoomFactor] = useState(1.0)
 
-  // ── Flatten: 1 label per jamaah (bukan per hewan) ────────────────────────
+  // 1 label per jamaah (flatMap)
   const labels: LabelItem[] = data.flatMap(({ hewan, jamaah }) =>
     jamaah.map(j => ({ hewan, jamaah: j }))
   )
@@ -102,22 +106,22 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
 
   const firstPageLabels = labels.slice(0, labelsPerPage)
 
-  // ── Build print HTML (tiap jamaah = 1 label) ──────────────────────────────
+  // ── Print HTML ────────────────────────────────────────────────────────────
   function buildPrintHTML() {
     const labelHTMLs = labels.map(({ hewan, jamaah }) => `
-      <div style="width:${lw}mm;height:${lh}mm;border:1px solid black;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;break-inside:avoid;font-family:Arial,sans-serif">
-        <div style="display:flex;align-items:center;justify-content:space-between;background:black;color:white;padding:2px 5px;flex-shrink:0">
-          <span style="font-weight:700;font-size:10px;letter-spacing:2px;font-family:monospace">${hewan.kode_resi}</span>
-          <span style="font-size:7px;opacity:.7;text-transform:uppercase;letter-spacing:1px">${hewan.jenis_hewan}</span>
+      <div style="width:${lw}mm;height:${lh}mm;border:1px solid #1f2937;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;break-inside:avoid;font-family:Arial,sans-serif;background:white">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;padding:4px 7px 2px;border-bottom:2px solid #1f2937;flex-shrink:0">
+          <span style="font-weight:900;font-size:13px;letter-spacing:1px;font-family:monospace;color:#000;line-height:1">${hewan.kode_resi}</span>
+          <span style="font-size:7.5px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#6b7280;line-height:1">${hewan.jenis_hewan}</span>
         </div>
-        <div style="padding:3px 6px 2px;border-bottom:1px solid #d1d5db;flex-shrink:0">
-          <p style="font-weight:700;font-size:9px;line-height:1.25;margin:0;color:#111;word-break:break-word">${jamaah.nama_lengkap}</p>
-          ${jamaah.atas_nama ? `<p style="font-size:7px;color:#6b7280;margin:1px 0 0;line-height:1.2">a/n ${jamaah.atas_nama}</p>` : ''}
+        <div style="padding:4px 7px 2px;border-bottom:1px solid #d1d5db;flex-shrink:0">
+          <p style="font-weight:700;font-size:10.5px;line-height:1.25;margin:0;color:#111;word-break:break-word">${jamaah.nama_lengkap}</p>
+          ${jamaah.atas_nama ? `<p style="font-size:8px;color:#6b7280;margin:1px 0 0;line-height:1.2">a/n ${jamaah.atas_nama}</p>` : ''}
         </div>
-        <div style="padding:3px 6px;flex:1;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between">
-          <p style="font-size:7px;line-height:1.35;margin:0;color:#374151;word-break:break-word;white-space:normal">${jamaah.alamat_lengkap ?? '—'}</p>
-          ${jamaah.no_hp ? `<p style="font-size:7.5px;font-weight:600;color:#1f2937;margin:2px 0 0;padding-top:2px;border-top:1px solid #e5e7eb;line-height:1.2">☎ ${jamaah.no_hp}</p>` : ''}
+        <div style="padding:4px 7px 0;flex:1;overflow:hidden">
+          <p style="font-size:8.5px;line-height:1.4;margin:0;color:#374151;word-break:break-word;white-space:normal">${jamaah.alamat_lengkap ?? '—'}</p>
         </div>
+        ${jamaah.no_hp ? `<div style="padding:2px 7px 4px;border-top:1px solid #d1d5db;flex-shrink:0"><p style="font-size:9px;font-weight:700;color:#111;margin:0;line-height:1.2">☎ ${jamaah.no_hp}</p></div>` : ''}
       </div>`).join('')
 
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
@@ -135,6 +139,7 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
     win.onload = () => win.print()
   }
 
+  // ── PDF (jsPDF) ───────────────────────────────────────────────────────────
   async function handleDownloadPDF() {
     setIsGenerating(true)
     try {
@@ -151,57 +156,56 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
         const x = marginMm + col * lw
         const y = marginMm + row * lh
 
-        // Border
-        pdf.setDrawColor(0); pdf.setLineWidth(0.25)
+        // ── Border luar ───────────────────────────────────────────────────
+        pdf.setDrawColor(31, 41, 55); pdf.setLineWidth(0.3)
         pdf.rect(x, y, lw, lh)
 
-        // ── Header hitam ──────────────────────────────────────────────────
-        const headerH = 5.5
-        pdf.setFillColor(0, 0, 0)
-        pdf.rect(x, y, lw, headerH, 'F')
-        pdf.setFont('courier', 'bold'); pdf.setFontSize(9); pdf.setTextColor(255, 255, 255)
-        pdf.text(hewan.kode_resi, x + 2.5, y + 3.8, { charSpace: 1.5 })
-        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(5.5)
-        pdf.text(hewan.jenis_hewan.toUpperCase(), x + lw - 2.5, y + 3.8, { align: 'right' })
+        // ── Kode hewan + jenis (putih, no fill) ───────────────────────────
+        const headerH = 7
+        pdf.setFont('courier', 'bold'); pdf.setFontSize(11.5); pdf.setTextColor(0)
+        pdf.text(hewan.kode_resi, x + 2.5, y + 5)
+        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(6.5); pdf.setTextColor(100)
+        pdf.text(hewan.jenis_hewan.toUpperCase(), x + lw - 2.5, y + 5, { align: 'right' })
+
+        // Garis tebal di bawah header
+        pdf.setDrawColor(31, 41, 55); pdf.setLineWidth(0.5)
+        pdf.line(x, y + headerH, x + lw, y + headerH)
+        pdf.setLineWidth(0.1)
 
         // ── Nama ──────────────────────────────────────────────────────────
-        const nameY = y + headerH + 3.5
-        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8); pdf.setTextColor(0)
-        const nameLines = pdf.splitTextToSize(jamaah.nama_lengkap, lw - 4)
-        nameLines.slice(0, 2).forEach((line: string, i: number) => {
-          pdf.text(line, x + 2, nameY + i * 3.5)
+        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9.5); pdf.setTextColor(0)
+        const nameLines = pdf.splitTextToSize(jamaah.nama_lengkap, lw - 5)
+        let curY = y + headerH + 4
+        nameLines.slice(0, 2).forEach((line: string) => {
+          pdf.text(line, x + 2.5, curY); curY += 4
         })
-
-        const afterName = nameY + Math.min(nameLines.length, 2) * 3.5 + 0.5
-        // Divider tipis
-        pdf.setDrawColor(200); pdf.setLineWidth(0.1)
-        pdf.line(x, afterName, x + lw, afterName)
-        pdf.setDrawColor(0)
-
-        // Atas nama (jika ada)
-        let addrStartY = afterName + 2.5
         if (jamaah.atas_nama) {
-          pdf.setFont('helvetica', 'italic'); pdf.setFontSize(6); pdf.setTextColor(120)
-          pdf.text(`a/n ${jamaah.atas_nama}`, x + 2, addrStartY)
-          addrStartY += 3
+          pdf.setFont('helvetica', 'italic'); pdf.setFontSize(7); pdf.setTextColor(120)
+          pdf.text(`a/n ${jamaah.atas_nama}`, x + 2.5, curY); curY += 3.5
         }
 
+        // Garis tipis pemisah nama - alamat
+        pdf.setDrawColor(200); pdf.line(x, curY, x + lw, curY)
+        curY += 2.5
+
         // ── Alamat ────────────────────────────────────────────────────────
-        const addrMaxH = y + lh - (jamaah.no_hp ? 5.5 : 2) - addrStartY
-        const addrMaxLines = Math.max(1, Math.floor(addrMaxH / 3))
-        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6.5); pdf.setTextColor(60)
-        const addrLines = pdf.splitTextToSize(jamaah.alamat_lengkap ?? '—', lw - 4)
-        addrLines.slice(0, addrMaxLines).forEach((line: string, i: number) => {
-          pdf.text(line, x + 2, addrStartY + i * 3)
+        const hpH = jamaah.no_hp ? 6 : 0
+        const addrMaxH = y + lh - hpH - curY - 1
+        const addrMaxLines = Math.max(1, Math.floor(addrMaxH / 3.5))
+        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(55)
+        const addrLines = pdf.splitTextToSize(jamaah.alamat_lengkap ?? '—', lw - 5)
+        addrLines.slice(0, addrMaxLines).forEach((line: string) => {
+          pdf.text(line, x + 2.5, curY); curY += 3.5
         })
 
         // ── Telepon ───────────────────────────────────────────────────────
         if (jamaah.no_hp) {
-          const hpY = y + lh - 2.5
-          pdf.setDrawColor(200); pdf.line(x, hpY - 3, x + lw, hpY - 3); pdf.setDrawColor(0)
-          pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7); pdf.setTextColor(0)
-          pdf.text(`\u260E ${jamaah.no_hp}`, x + 2, hpY)
+          const hpY = y + lh - 1.5
+          pdf.setDrawColor(200); pdf.line(x, hpY - 4, x + lw, hpY - 4)
+          pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8.5); pdf.setTextColor(0)
+          pdf.text(`\u260E ${jamaah.no_hp}`, x + 2.5, hpY)
         }
+        pdf.setDrawColor(0)
       })
 
       pdf.save('label-qurban.pdf')
@@ -212,7 +216,7 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col">
 
-        {/* Header */}
+        {/* Header modal */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
           <div className="flex items-center gap-3">
             {onBack && (
@@ -229,7 +233,7 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
 
         <div className="flex flex-1 overflow-hidden">
 
-          {/* ── Settings Panel ──────────────────────────────────────────── */}
+          {/* ── Settings ─────────────────────────────────────────────────── */}
           <div className="w-64 flex-shrink-0 border-r border-gray-100 p-5 space-y-5 overflow-y-auto">
 
             <div>
@@ -288,7 +292,6 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
               </div>
             </div>
 
-            {/* Info + warning */}
             <div className="space-y-1.5 pt-1 border-t border-gray-100">
               {!fitsInPaper && (
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5">
@@ -312,41 +315,30 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
             </div>
           </div>
 
-          {/* ── Preview Area ─────────────────────────────────────────────── */}
+          {/* ── Preview ───────────────────────────────────────────────────── */}
           <div className="flex-1 overflow-auto bg-gray-200 p-6">
-
-            {/* Zoom controls */}
             <div className="flex items-center justify-between mb-4">
               <p className="text-xs text-gray-500">
                 Preview hal. 1{totalPages > 1 ? ` dari ${totalPages}` : ''}
               </p>
               <div className="flex items-center bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-                <button
-                  onClick={() => setZoomFactor(z => Math.max(0.25, +(z - 0.25).toFixed(2)))}
+                <button onClick={() => setZoomFactor(z => Math.max(0.25, +(z - 0.25).toFixed(2)))}
                   disabled={zoomFactor <= 0.25}
-                  className="px-3 py-1.5 text-sm font-bold text-gray-600 hover:bg-gray-100 disabled:text-gray-300 transition border-r border-gray-200"
-                >−</button>
+                  className="px-3 py-1.5 text-sm font-bold text-gray-600 hover:bg-gray-100 disabled:text-gray-300 transition border-r border-gray-200">−</button>
                 <span className="px-3 py-1.5 text-xs font-medium text-gray-700 min-w-[52px] text-center select-none">
                   {Math.round(effectiveScale * 100)}%
                 </span>
-                <button
-                  onClick={() => setZoomFactor(z => Math.min(4.0, +(z + 0.25).toFixed(2)))}
+                <button onClick={() => setZoomFactor(z => Math.min(4.0, +(z + 0.25).toFixed(2)))}
                   disabled={zoomFactor >= 4.0}
-                  className="px-3 py-1.5 text-sm font-bold text-gray-600 hover:bg-gray-100 disabled:text-gray-300 transition border-l border-gray-200"
-                >+</button>
-                <button
-                  onClick={() => setZoomFactor(1.0)}
-                  className="px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100 transition border-l border-gray-200"
-                >Fit</button>
+                  className="px-3 py-1.5 text-sm font-bold text-gray-600 hover:bg-gray-100 disabled:text-gray-300 transition border-l border-gray-200">+</button>
+                <button onClick={() => setZoomFactor(1.0)}
+                  className="px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100 transition border-l border-gray-200">Fit</button>
               </div>
             </div>
 
-            {/* Paper */}
             <div className="flex justify-center">
-              <div
-                style={{ width: paperWpx * effectiveScale, height: paperHpx * effectiveScale, position: 'relative', flexShrink: 0 }}
-                className="shadow-2xl"
-              >
+              <div style={{ width: paperWpx * effectiveScale, height: paperHpx * effectiveScale, position: 'relative', flexShrink: 0 }}
+                className="shadow-2xl">
                 <div style={{
                   width: paperWpx, height: paperHpx,
                   position: 'absolute', top: 0, left: 0,
