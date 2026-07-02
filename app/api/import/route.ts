@@ -99,12 +99,13 @@ export async function POST(request: NextRequest) {
       continue
     }
 
-    // ── Insert jamaah satu per satu (bukan batch) ─────────────────────────
-    // Tujuan: setiap jamaah mendapat created_at unik sehingga
-    // ORDER BY created_at di page.tsx mengembalikan urutan Excel yang benar.
+    // ── Insert jamaah satu per satu dengan created_at eksplisit ──────────
+    // Setiap jamaah mendapat created_at = baseTime + (idx * 100ms) agar
+    // ORDER BY created_at di page.tsx selalu mengembalikan urutan Excel.
+    // (Sequential await saja berisiko jika network sangat cepat → sama ms)
     const jamaahRows = kelompok.jamaahList
       .filter((j) => j.nama_lengkap?.trim())
-      .map((j, idx) => ({
+      .map((j) => ({
         id_workspace:   workspaceId,
         id_hewan:       hewan.id,
         nama_lengkap:   j.nama_lengkap.trim(),
@@ -118,21 +119,28 @@ export async function POST(request: NextRequest) {
       continue
     }
 
+    const baseTime = Date.now()
     let jamaahFailed = false
-    for (const jamaahRow of jamaahRows) {
-      const { error: jamaahErr } = await supabase.from('jamaah').insert(jamaahRow)
+
+    for (let idx = 0; idx < jamaahRows.length; idx++) {
+      const { error: jamaahErr } = await supabase.from('jamaah').insert({
+        ...jamaahRows[idx],
+        // Offset 200ms per slot: slot #1 = baseTime, #2 = baseTime+200ms, dst.
+        // Ini menjamin urutan lexicographic created_at = urutan Excel.
+        created_at: new Date(baseTime + idx * 200).toISOString(),
+      })
+
       if (jamaahErr) {
-        errors.push(`Jamaah "${jamaahRow.nama_lengkap}" untuk ${kode_resi} gagal: ${jamaahErr.message}`)
+        errors.push(`Jamaah "${jamaahRows[idx].nama_lengkap}" untuk ${kode_resi} gagal: ${jamaahErr.message}`)
         jamaahFailed = true
         break
       }
     }
 
     if (jamaahFailed) {
-      // Hapus hewan + jamaah yang sudah terlanjur masuk
       await supabase.from('jamaah').delete().eq('id_hewan', hewan.id)
       await supabase.from('hewan').delete().eq('id', hewan.id)
-      errors.push(`${kode_resi} dibatalkan karena gagal insert jamaah — semua data kelompok ini dihapus`)
+      errors.push(`${kode_resi} dibatalkan — semua data kelompok ini dihapus`)
       continue
     }
 
