@@ -9,232 +9,228 @@ interface Props { data: KelompokData[]; onClose: () => void; onBack?: () => void
 
 const MM_TO_PX = 3.7795
 
-const PAPER_SIZES = {
-  A4:     { w: 210,   h: 297,   label: 'A4 (210 × 297 mm)'     },
-  F4:     { w: 215.9, h: 330.2, label: 'F4 (216 × 330 mm)'     },
-  Letter: { w: 215.9, h: 279.4, label: 'Letter (216 × 279 mm)' },
-} as const
-type PaperKey = keyof typeof PAPER_SIZES
+// ── Spec exact dari docx ───────────────────────────────────────────────────
+// SAPI: A4 Landscape 297×210mm, margin 25.4mm, font 40pt/36pt/26pt
+const SAPI_W = 297, SAPI_H = 210, SAPI_M = 25.4
+const SAPI_CW = SAPI_W - 2 * SAPI_M   // 246.2mm
+const SAPI_CH = SAPI_H - 2 * SAPI_M   // 159.2mm
+const SAPI_ROW_H = SAPI_CH / 8        // 19.9mm per baris (1 header + 7 nama)
+const SAPI_NO_W = 24                   // lebar kolom nomor mm
+const SAPI_FONT_HEADER = 40            // pt
+const SAPI_FONT_NO     = 36            // pt
+const SAPI_FONT_NAME   = 26            // pt
 
-function isKambing(hewan: Hewan) {
-  return hewan.kode_resi.toUpperCase().startsWith('KMB')
+// KAMBING: A4 Portrait 210×297mm, margin 8.8mm, font 50pt
+const KMB_W = 210, KMB_H = 297, KMB_M = 8.8
+const KMB_CW = KMB_W - 2 * KMB_M     // 192.4mm
+const KMB_CH = KMB_H - 2 * KMB_M     // 279.4mm
+const KMB_NO_W = 28                    // lebar kolom nomor mm
+const KMB_FONT = 50                    // pt
+
+// pt → px di 96dpi
+const ptToPx = (pt: number) => pt * 4 / 3
+// pt → mm
+const ptToMm = (pt: number) => pt * 25.4 / 72
+
+function isKambing(hewan: Hewan) { return hewan.kode_resi.toUpperCase().startsWith('KMB') }
+
+// ── Preview Component: 1 lembar sapi ────────────────────────────────────────
+function SapiSheet({ hewan, jamaah }: { hewan: Hewan; jamaah: Jamaah[] }) {
+  const paperWpx = SAPI_W * MM_TO_PX
+  const paperHpx = SAPI_H * MM_TO_PX
+  const mPx      = SAPI_M * MM_TO_PX
+  const cwPx     = SAPI_CW * MM_TO_PX
+  const chPx     = SAPI_CH * MM_TO_PX
+  const rowHpx   = SAPI_ROW_H * MM_TO_PX
+  const noWpx    = SAPI_NO_W * MM_TO_PX
+  const BORDER   = '2px solid #000'
+
+  return (
+    <div style={{ position: 'absolute', inset: mPx }}>
+      {/* Header — kode hewan, centered, 40pt */}
+      <div style={{
+        width: cwPx, height: rowHpx,
+        border: BORDER,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxSizing: 'border-box',
+      }}>
+        <span style={{ fontFamily: 'Arial,sans-serif', fontWeight: 900, fontSize: ptToPx(SAPI_FONT_HEADER), color: '#000', letterSpacing: 2 }}>
+          {hewan.kode_resi}
+        </span>
+      </div>
+      {/* Baris nama */}
+      {jamaah.map((j, i) => (
+        <div key={j.id} style={{ display: 'flex', width: cwPx, height: rowHpx }}>
+          {/* Nomor */}
+          <div style={{
+            width: noWpx, height: rowHpx, flexShrink: 0,
+            borderBottom: BORDER, borderLeft: BORDER, borderRight: BORDER,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxSizing: 'border-box',
+          }}>
+            <span style={{ fontFamily: 'Arial,sans-serif', fontWeight: 900, fontSize: ptToPx(SAPI_FONT_NO), color: '#000' }}>
+              {i + 1}
+            </span>
+          </div>
+          {/* Nama */}
+          <div style={{
+            flex: 1, height: rowHpx,
+            borderBottom: BORDER, borderRight: BORDER,
+            display: 'flex', alignItems: 'center',
+            padding: `0 ${8 * MM_TO_PX}px`,
+            boxSizing: 'border-box',
+          }}>
+            <span style={{ fontFamily: 'Arial,sans-serif', fontWeight: 700, fontSize: ptToPx(SAPI_FONT_NAME), color: '#000', lineHeight: 1.2 }}>
+              {j.nama_lengkap}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
 }
 
+// ── Preview Component: 1 halaman kambing ────────────────────────────────────
+function KambingSheet({ entries, kambingPerHal, showTitle }: {
+  entries: Array<{ hewan: Hewan; jamaah: Jamaah; globalNo: number }>
+  kambingPerHal: number
+  showTitle: boolean
+}) {
+  const mPx     = KMB_M * MM_TO_PX
+  const cwPx    = KMB_CW * MM_TO_PX
+  const chPx    = KMB_CH * MM_TO_PX
+  const titleHpx = showTitle ? 20 * MM_TO_PX : 0
+  const rowHpx  = (chPx - titleHpx) / kambingPerHal
+  const noWpx   = KMB_NO_W * MM_TO_PX
+  const BORDER  = '1.5px solid #000'
+
+  return (
+    <div style={{ position: 'absolute', inset: mPx }}>
+      {showTitle && (
+        <div style={{ height: titleHpx, display: 'flex', alignItems: 'flex-end', paddingBottom: 4, marginBottom: 4 }}>
+          <span style={{ fontFamily: 'Arial,sans-serif', fontWeight: 700, fontSize: ptToPx(16), color: '#000' }}>
+            TIPE C (Penitipan Kambing)
+          </span>
+        </div>
+      )}
+      {entries.map(({ hewan, jamaah, globalNo }) => (
+        <div key={globalNo} style={{ display: 'flex', width: cwPx, height: rowHpx }}>
+          {/* Nomor */}
+          <div style={{
+            width: noWpx, height: rowHpx, flexShrink: 0,
+            border: BORDER,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxSizing: 'border-box', marginTop: '-1px',
+          }}>
+            <span style={{ fontFamily: 'Arial,sans-serif', fontWeight: 900, fontSize: ptToPx(KMB_FONT), color: '#000' }}>
+              {globalNo}
+            </span>
+          </div>
+          {/* Nama */}
+          <div style={{
+            flex: 1, height: rowHpx,
+            borderTop: BORDER, borderBottom: BORDER, borderRight: BORDER,
+            display: 'flex', alignItems: 'center',
+            padding: `0 ${6 * MM_TO_PX}px`,
+            boxSizing: 'border-box', marginTop: '-1px',
+          }}>
+            <span style={{ fontFamily: 'Arial,sans-serif', fontWeight: 700, fontSize: ptToPx(KMB_FONT), color: '#000', lineHeight: 1.2 }}>
+              {jamaah.nama_lengkap}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ── Main Component ───────────────────────────────────────────────────────────
 export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
-  const [paperKey, setPaperKey]           = useState<PaperKey>('A4')
-  const [orientation, setOrientation]     = useState<'portrait' | 'landscape'>('portrait')
   const [kambingPerHal, setKambingPerHal] = useState(2)
   const [isGenerating, setIsGenerating]   = useState(false)
   const [zoomFactor, setZoomFactor]       = useState(1.0)
   const [previewType, setPreviewType]     = useState<'sapi' | 'kambing'>('sapi')
 
-  const paperW   = orientation === 'portrait' ? PAPER_SIZES[paperKey].w : PAPER_SIZES[paperKey].h
-  const paperH   = orientation === 'portrait' ? PAPER_SIZES[paperKey].h : PAPER_SIZES[paperKey].w
-  const paperWpx = paperW * MM_TO_PX
-  const paperHpx = paperH * MM_TO_PX
-  const marginMm = 12
-
   const sapiData    = data.filter(d => !isKambing(d.hewan))
-  const kambingData = data.filter(d => isKambing(d.hewan))
+  const kambingData = data.filter(d =>  isKambing(d.hewan))
   const kambingFlat = kambingData.flatMap(d => d.jamaah.map(j => ({ hewan: d.hewan, jamaah: j })))
 
   const sapiPages    = sapiData.length
   const kambingPages = Math.ceil(kambingFlat.length / kambingPerHal)
   const totalPages   = sapiPages + kambingPages
 
-  const MAX_W = 500, MAX_H = 660
-  const previewScale   = Math.min(MAX_W / paperWpx, MAX_H / paperHpx, 1)
-  const effectiveScale = previewScale * zoomFactor
+  // Skala preview
+  const MAX_DIM = 560
+  const sapiScale   = Math.min(MAX_DIM / (SAPI_W * MM_TO_PX), MAX_DIM / (SAPI_H * MM_TO_PX), 1)
+  const kmbScale    = Math.min(MAX_DIM / (KMB_W * MM_TO_PX), MAX_DIM / (KMB_H * MM_TO_PX), 1)
+  const baseScale   = previewType === 'sapi' ? sapiScale : kmbScale
+  const effScale    = baseScale * zoomFactor
 
-  // ── Preview: lembar sapi — putih, no fill, sama persis dengan docx ────────
-  const SapiSheet = ({ hewan, jamaah }: { hewan: Hewan; jamaah: Jamaah[] }) => {
-    const mPx    = marginMm * MM_TO_PX
-    const usableH = paperHpx - mPx * 2
-    const usableW = paperWpx - mPx * 2
-    // Header: 16% tinggi usable, baris: sisanya dibagi rata
-    const headerH = usableH * 0.16
-    const rowH    = (usableH - headerH) / Math.max(jamaah.length, 1)
+  const previewW    = previewType === 'sapi' ? SAPI_W * MM_TO_PX : KMB_W * MM_TO_PX
+  const previewH    = previewType === 'sapi' ? SAPI_H * MM_TO_PX : KMB_H * MM_TO_PX
 
-    return (
-      <div style={{
-        position: 'absolute', inset: mPx,
-        border: '2.5px solid #111',
-        display: 'flex', flexDirection: 'column',
-        overflow: 'hidden',
-        background: 'white',
-      }}>
-        {/* Kode hewan — putih, teks besar, centered */}
-        <div style={{
-          height: headerH, flexShrink: 0,
-          borderBottom: '2.5px solid #111',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <span style={{
-            fontWeight: 900,
-            fontSize: Math.round(headerH * 0.52),
-            letterSpacing: Math.round(headerH * 0.06),
-            fontFamily: 'monospace',
-            color: '#000',
-            lineHeight: 1,
-          }}>
-            {hewan.kode_resi}
-          </span>
-        </div>
+  const previewKmb  = kambingFlat.slice(0, kambingPerHal).map((e, i) => ({ ...e, globalNo: i + 1 }))
 
-        {/* Baris nama — mengisi sisa halaman */}
-        {jamaah.map((j, i) => (
-          <div key={j.id} style={{
-            height: rowH, flexShrink: 0,
-            display: 'flex',
-            borderBottom: i < jamaah.length - 1 ? '2px solid #111' : 'none',
-          }}>
-            {/* Nomor */}
-            <div style={{
-              width: usableW * 0.1, flexShrink: 0,
-              borderRight: '2px solid #111',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <span style={{ fontWeight: 700, fontSize: Math.round(rowH * 0.38), color: '#111' }}>
-                {i + 1}
-              </span>
-            </div>
-            {/* Nama */}
-            <div style={{
-              flex: 1, display: 'flex', alignItems: 'center',
-              padding: `0 ${Math.round(usableW * 0.03)}px`,
-            }}>
-              <span style={{
-                fontWeight: 700,
-                fontSize: Math.round(rowH * 0.33),
-                color: '#111',
-                lineHeight: 1.2,
-                wordBreak: 'break-word',
-              }}>
-                {j.nama_lengkap}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-    )
-  }
-
-  // ── Preview: halaman kambing ───────────────────────────────────────────────
-  const KambingSheet = ({ entries }: { entries: Array<{ hewan: Hewan; jamaah: Jamaah; globalNo: number }> }) => {
-    const mPx     = marginMm * MM_TO_PX
-    const usableH = paperHpx - mPx * 2
-    const usableW = paperWpx - mPx * 2
-    const headerH = 28
-    const rowH    = (usableH - headerH - 8 * (entries.length - 1)) / entries.length
-
-    return (
-      <div style={{ position: 'absolute', inset: mPx, display: 'flex', flexDirection: 'column' }}>
-        <div style={{
-          textAlign: 'center', borderBottom: '2px solid #111',
-          paddingBottom: 6, marginBottom: 10, flexShrink: 0,
-        }}>
-          <p style={{ fontWeight: 700, fontSize: 14, margin: 0, letterSpacing: 1, color: '#111' }}>
-            TIPE C — KAMBING QURBAN
-          </p>
-        </div>
-
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {entries.map(({ hewan, jamaah, globalNo }) => (
-            <div key={globalNo} style={{
-              flex: 1, border: '2px solid #111', display: 'flex', alignItems: 'center', overflow: 'hidden',
-            }}>
-              <div style={{
-                background: '#f3f4f6', borderRight: '2px solid #111',
-                width: usableW * 0.12, alignSelf: 'stretch',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}>
-                <span style={{ fontWeight: 900, fontSize: Math.round(rowH * 0.35), color: '#111' }}>
-                  {globalNo}
-                </span>
-              </div>
-              <div style={{ padding: '6px 14px', flex: 1 }}>
-                <p style={{
-                  fontWeight: 700, fontSize: Math.round(rowH * 0.15),
-                  margin: 0, color: '#6b7280', fontFamily: 'monospace', letterSpacing: 1,
-                }}>
-                  {hewan.kode_resi}
-                </p>
-                <p style={{
-                  fontWeight: 700, fontSize: Math.round(rowH * 0.28),
-                  margin: '4px 0 0', color: '#111', lineHeight: 1.2,
-                }}>
-                  {jamaah.nama_lengkap}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    )
-  }
-
-  const previewSapi    = sapiData[0]
-  const previewKambing = kambingFlat.slice(0, kambingPerHal).map((e, i) => ({ ...e, globalNo: i + 1 }))
-
-  // ── Build print HTML ───────────────────────────────────────────────────────
+  // ── Build print HTML ─────────────────────────────────────────────────────
   function buildPrintHTML() {
     const pages: string[] = []
 
-    // Halaman sapi — putih, no fill
+    // Halaman sapi — A4 Landscape, exact docx specs
     sapiData.forEach(({ hewan, jamaah }) => {
-      const rows = jamaah.map((j, i) => `
-        <tr>
-          <td style="border:2px solid #111;padding:0 12px;font-weight:700;font-size:18px;text-align:center;width:48px;color:#111;height:auto">${i + 1}</td>
-          <td style="border:2px solid #111;padding:8px 16px;font-weight:700;font-size:18px;color:#111">${j.nama_lengkap}</td>
+      const nameRows = jamaah.map((j, i) => `
+        <tr style="height:${100 / 8}%">
+          <td style="border:2px solid #000;text-align:center;vertical-align:middle;font-size:${SAPI_FONT_NO}pt;font-weight:900;font-family:Arial;color:#000;width:${SAPI_NO_W}mm">${i + 1}</td>
+          <td style="border:2px solid #000;vertical-align:middle;padding:0 8mm;font-size:${SAPI_FONT_NAME}pt;font-weight:700;font-family:Arial;color:#000">${j.nama_lengkap}</td>
         </tr>`).join('')
 
       pages.push(`
-        <div style="width:${paperW}mm;height:${paperH}mm;box-sizing:border-box;padding:${marginMm}mm;page-break-after:always;display:flex;flex-direction:column">
+        <div style="width:${SAPI_W}mm;height:${SAPI_H}mm;box-sizing:border-box;padding:${SAPI_M}mm;page-break-after:always">
           <table style="border-collapse:collapse;width:100%;height:100%;table-layout:fixed">
+            <colgroup><col style="width:${SAPI_NO_W}mm"/><col/></colgroup>
             <tbody>
-              <tr style="height:16%">
-                <td colspan="2" style="border:2.5px solid #111;text-align:center;vertical-align:middle">
-                  <span style="font-weight:900;font-size:44px;letter-spacing:5px;font-family:monospace;color:#000">${hewan.kode_resi}</span>
-                </td>
+              <tr style="height:${100 / 8}%">
+                <td colspan="2" style="border:2px solid #000;text-align:center;vertical-align:middle;font-size:${SAPI_FONT_HEADER}pt;font-weight:900;font-family:Arial;color:#000;letter-spacing:2px">${hewan.kode_resi}</td>
               </tr>
-              ${jamaah.map((j, i) => `
-              <tr style="height:${84 / jamaah.length}%">
-                <td style="border:2px solid #111;text-align:center;vertical-align:middle;font-weight:700;font-size:20px;color:#111;width:48px">${i + 1}</td>
-                <td style="border:2px solid #111;padding:0 16px;vertical-align:middle;font-weight:700;font-size:20px;color:#111">${j.nama_lengkap}</td>
-              </tr>`).join('')}
+              ${nameRows}
             </tbody>
           </table>
         </div>`)
     })
 
-    // Halaman kambing
+    // Halaman kambing — A4 Portrait, exact docx specs
     for (let i = 0; i < kambingFlat.length; i += kambingPerHal) {
-      const batch = kambingFlat.slice(i, i + kambingPerHal)
-      const rows = batch.map((e, bi) => {
+      const isFirst = i === 0
+      const batch   = kambingFlat.slice(i, i + kambingPerHal)
+      const titleH  = isFirst ? 12 : 0  // mm untuk judul halaman pertama
+      const rowPct  = (100 - (isFirst ? 5 : 0)) / kambingPerHal
+
+      const titleHTML = isFirst ? `
+        <div style="font-family:Arial;font-weight:700;font-size:16pt;color:#000;margin-bottom:6mm">
+          TIPE C (Penitipan Kambing)
+        </div>` : ''
+
+      const tableRows = batch.map((e, bi) => {
         const no = i + bi + 1
         return `
-          <div style="flex:1;border:2px solid #111;display:flex;align-items:center;overflow:hidden">
-            <div style="background:#f3f4f6;border-right:2px solid #111;width:60px;align-self:stretch;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-              <span style="font-weight:900;font-size:28px;color:#111">${no}</span>
-            </div>
-            <div style="padding:10px 18px;flex:1">
-              <p style="font-weight:700;font-size:11px;margin:0;color:#6b7280;font-family:monospace;letter-spacing:1px">${e.hewan.kode_resi}</p>
-              <p style="font-weight:700;font-size:22px;margin:4px 0 0;color:#111;line-height:1.2">${e.jamaah.nama_lengkap}</p>
-            </div>
-          </div>`
+          <tr style="height:${rowPct}%">
+            <td style="border:1.5px solid #000;text-align:center;vertical-align:middle;font-size:${KMB_FONT}pt;font-weight:900;font-family:Arial;color:#000;width:${KMB_NO_W}mm">${no}</td>
+            <td style="border:1.5px solid #000;vertical-align:middle;padding:0 6mm;font-size:${KMB_FONT}pt;font-weight:700;font-family:Arial;color:#000">${e.jamaah.nama_lengkap}</td>
+          </tr>`
       }).join('')
 
       pages.push(`
-        <div style="width:${paperW}mm;height:${paperH}mm;box-sizing:border-box;padding:${marginMm}mm;page-break-after:always;display:flex;flex-direction:column">
-          <div style="text-align:center;border-bottom:2px solid #111;padding-bottom:6px;margin-bottom:10px;flex-shrink:0">
-            <p style="font-weight:700;font-size:13px;letter-spacing:1px;margin:0;color:#111">TIPE C — KAMBING QURBAN</p>
-          </div>
-          <div style="flex:1;display:flex;flex-direction:column;gap:10px">${rows}</div>
+        <div style="width:${KMB_W}mm;height:${KMB_H}mm;box-sizing:border-box;padding:${KMB_M}mm;page-break-after:always;display:flex;flex-direction:column">
+          ${titleHTML}
+          <table style="border-collapse:collapse;width:100%;flex:1;table-layout:fixed">
+            <colgroup><col style="width:${KMB_NO_W}mm"/><col/></colgroup>
+            <tbody>${tableRows}</tbody>
+          </table>
         </div>`)
     }
 
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-      @page{size:${paperW}mm ${paperH}mm;margin:0} body{margin:0;font-family:Arial,sans-serif}
+      @page { margin:0 }
+      body { margin:0; font-family:Arial,sans-serif }
     </style></head><body>${pages.join('')}</body></html>`
   }
 
@@ -246,124 +242,84 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
     win.onload = () => win.print()
   }
 
-  // ── PDF ───────────────────────────────────────────────────────────────────
+  // ── PDF (jsPDF) ──────────────────────────────────────────────────────────
   async function handleDownloadPDF() {
     setIsGenerating(true)
     try {
       const { default: jsPDF } = await import('jspdf')
-      const fmt = paperKey === 'A4' ? 'a4' : paperKey === 'Letter' ? 'letter'
-        : [PAPER_SIZES[paperKey].w, PAPER_SIZES[paperKey].h] as [number, number]
-      const pdf = new jsPDF({ orientation, unit: 'mm', format: fmt })
-      const mx = marginMm, my = marginMm
-      const cw = paperW - 2 * mx
-      const ch = paperH - 2 * my
+
+      function textVCenter(pdf: InstanceType<typeof jsPDF>, text: string, x: number, cellY: number, cellH: number, fontPt: number, opts?: object) {
+        const y = cellY + cellH / 2 + ptToMm(fontPt) * 0.36
+        pdf.text(text, x, y, opts)
+      }
+
+      // Selalu mulai dengan landscape untuk sapi (atau portrait kalau hanya kambing)
+      const startOrientation = sapiData.length > 0 ? 'landscape' : 'portrait'
+      const pdf = new jsPDF({ orientation: startOrientation, unit: 'mm', format: 'a4' })
       let isFirst = true
 
-      // ── Halaman sapi — putih, no fill ─────────────────────────────────
+      // ── Halaman sapi (landscape A4) ───────────────────────────────────
       sapiData.forEach(({ hewan, jamaah }) => {
-        if (!isFirst) pdf.addPage()
+        if (!isFirst) pdf.addPage('a4', 'landscape')
         isFirst = false
-
-        const headerH = ch * 0.16
-        const rowH    = (ch - headerH) / Math.max(jamaah.length, 1)
-
-        // Border luar
-        pdf.setDrawColor(17, 24, 39); pdf.setLineWidth(0.5)
-        pdf.rect(mx, my, cw, ch)
-
-        // Header: kode hewan — PUTIH, no fill
-        const headerFontSize = Math.min(28, headerH * 0.55)
-        pdf.setFont('courier', 'bold')
-        pdf.setFontSize(headerFontSize)
-        pdf.setTextColor(0)
-        pdf.text(hewan.kode_resi, mx + cw / 2, my + headerH * 0.62, {
-          align: 'center', charSpace: 3
-        })
-        // Garis bawah header
-        pdf.setLineWidth(0.5)
-        pdf.line(mx, my + headerH, mx + cw, my + headerH)
-
-        // Baris nama
-        pdf.setFont('helvetica', 'bold')
-        const nameFontSize = Math.min(18, rowH * 0.38)
-        const noFontSize   = Math.min(16, rowH * 0.35)
-        const noColW       = cw * 0.1
-
+        const mx = SAPI_M, my = SAPI_M
+        const cw = SAPI_CW
+        const rh = SAPI_ROW_H, nw = SAPI_NO_W
+        pdf.setDrawColor(0); pdf.setLineWidth(0.4)
+        pdf.rect(mx, my, cw, rh)
+        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(SAPI_FONT_HEADER); pdf.setTextColor(0)
+        textVCenter(pdf, hewan.kode_resi, mx + cw / 2, my, rh, SAPI_FONT_HEADER, { align: 'center' })
         jamaah.forEach((j, i) => {
-          const ry = my + headerH + i * rowH
-          pdf.setLineWidth(0.3)
-          // Garis bawah baris (kecuali terakhir sudah ada border luar)
-          if (i < jamaah.length - 1) pdf.line(mx, ry + rowH, mx + cw, ry + rowH)
-          // Garis kolom nomor
-          pdf.line(mx + noColW, ry, mx + noColW, ry + rowH)
-
-          // Nomor
-          pdf.setFontSize(noFontSize); pdf.setTextColor(0)
-          pdf.text(String(i + 1), mx + noColW / 2, ry + rowH * 0.62, { align: 'center' })
-
-          // Nama
-          pdf.setFontSize(nameFontSize)
-          const nameLines = pdf.splitTextToSize(j.nama_lengkap, cw - noColW - 6)
-          const lineH     = nameFontSize * 0.4
-          const totalH    = nameLines.length * lineH
-          const startY    = ry + (rowH - totalH) / 2 + lineH * 0.8
-          nameLines.slice(0, 2).forEach((line: string, li: number) => {
-            pdf.text(line, mx + noColW + 4, startY + li * lineH)
-          })
+          const ry = my + rh + i * rh
+          pdf.setLineWidth(0.4)
+          pdf.rect(mx, ry, nw, rh)
+          pdf.rect(mx + nw, ry, cw - nw, rh)
+          pdf.setFontSize(SAPI_FONT_NO)
+          textVCenter(pdf, String(i + 1), mx + nw / 2, ry, rh, SAPI_FONT_NO, { align: 'center' })
+          pdf.setFontSize(SAPI_FONT_NAME)
+          const nl = pdf.splitTextToSize(j.nama_lengkap, cw - nw - 8)
+          const lh = ptToMm(SAPI_FONT_NAME) * 1.3
+          const th = nl.length * lh
+          const sy = ry + (rh - th) / 2 + ptToMm(SAPI_FONT_NAME) * 0.75
+          nl.slice(0, 2).forEach((line: string, li: number) => pdf.text(line, mx + nw + 5, sy + li * lh))
         })
-        pdf.setDrawColor(0)
       })
 
-      // ── Halaman kambing ───────────────────────────────────────────────
-      const kambingRowH = (ch - 14) / kambingPerHal - 4
+      // ── Halaman kambing (portrait A4) ─────────────────────────────────
 
       for (let i = 0; i < kambingFlat.length; i += kambingPerHal) {
-        if (!isFirst) pdf.addPage()
-        isFirst = false
-
+        const isFirstKmb = i === 0
+        pdf.addPage('a4', 'portrait')
         const batch = kambingFlat.slice(i, i + kambingPerHal)
+        const mx    = KMB_M, my = KMB_M
+        const cw    = KMB_CW
+        const nw    = KMB_NO_W
+        let   curY  = my
 
-        // Header
-        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(11); pdf.setTextColor(0)
-        pdf.text('TIPE C — KAMBING QURBAN', paperW / 2, my + 6, { align: 'center' })
-        pdf.setDrawColor(17, 24, 39); pdf.setLineWidth(0.5)
-        pdf.line(mx, my + 9, paperW - mx, my + 9)
+        // Judul hanya di halaman pertama
+        if (isFirstKmb) {
+          pdf.setFont('helvetica', 'bold'); pdf.setFontSize(16); pdf.setTextColor(0)
+          pdf.text('TIPE C (Penitipan Kambing)', mx, curY + 8)
+          curY += 14
+        }
 
-        let curY = my + 14
-        const noColW = cw * 0.12
+        const rh = (KMB_H - my - curY) / kambingPerHal
 
         batch.forEach((e, bi) => {
-          const no  = i + bi + 1
-          const boxH = kambingRowH
-
-          // Border kotak
-          pdf.setLineWidth(0.4)
-          pdf.rect(mx, curY, cw, boxH)
-
-          // Kolom nomor (abu tipis)
-          pdf.setFillColor(243, 244, 246)
-          pdf.rect(mx, curY, noColW, boxH, 'F')
-          pdf.line(mx + noColW, curY, mx + noColW, curY + boxH)
-
+          const no = i + bi + 1
+          const ry = curY + bi * rh
+          pdf.setDrawColor(0); pdf.setLineWidth(0.4)
+          pdf.rect(mx, ry, nw, rh)
+          pdf.rect(mx + nw, ry, cw - nw, rh)
           // Nomor
-          const noFont = Math.min(20, boxH * 0.38)
-          pdf.setFont('helvetica', 'bold'); pdf.setFontSize(noFont); pdf.setTextColor(17)
-          pdf.text(String(no), mx + noColW / 2, curY + boxH * 0.62, { align: 'center' })
-
-          // Kode kambing
-          pdf.setFont('courier', 'bold'); pdf.setFontSize(8); pdf.setTextColor(107)
-          pdf.text(e.hewan.kode_resi, mx + noColW + 4, curY + 8)
-
+          pdf.setFont('helvetica', 'bold'); pdf.setFontSize(KMB_FONT); pdf.setTextColor(0)
+          textVCenter(pdf, String(no), mx + nw / 2, ry, rh, KMB_FONT, { align: 'center' })
           // Nama
-          const nameFont = Math.min(17, boxH * 0.3)
-          pdf.setFont('helvetica', 'bold'); pdf.setFontSize(nameFont); pdf.setTextColor(0)
-          const nameLines = pdf.splitTextToSize(e.jamaah.nama_lengkap, cw - noColW - 8)
-          nameLines.slice(0, 2).forEach((line: string, li: number) => {
-            pdf.text(line, mx + noColW + 4, curY + 14 + li * (nameFont * 0.42))
-          })
-
-          curY += boxH + 4
-          pdf.setDrawColor(0)
+          const nl = pdf.splitTextToSize(e.jamaah.nama_lengkap, cw - nw - 8)
+          const lh = ptToMm(KMB_FONT) * 1.3
+          const th = nl.length * lh
+          const sy = ry + (rh - th) / 2 + ptToMm(KMB_FONT) * 0.75
+          nl.slice(0, 2).forEach((line: string, li: number) => pdf.text(line, mx + nw + 6, sy + li * lh))
         })
       }
 
@@ -394,67 +350,50 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
           {/* Settings */}
           <div className="w-64 flex-shrink-0 border-r border-gray-100 p-5 space-y-5 overflow-y-auto">
 
-            <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Kertas</p>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs text-gray-600 mb-1 block">Ukuran</label>
-                  <select value={paperKey} onChange={e => setPaperKey(e.target.value as PaperKey)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                    {(Object.keys(PAPER_SIZES) as PaperKey[]).map(k => (
-                      <option key={k} value={k}>{PAPER_SIZES[k].label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-gray-600 mb-2 block">Orientasi</label>
-                  <div className="flex gap-2">
-                    {(['portrait', 'landscape'] as const).map(o => (
-                      <button key={o} onClick={() => setOrientation(o)}
-                        className={`flex-1 py-2 text-xs rounded-lg border font-medium transition ${orientation === o ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
-                        {o === 'portrait' ? 'Potret' : 'Landscape'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
+            {/* Sapi info */}
             {sapiData.length > 0 && (
               <div>
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Sapi</p>
-                <p className="text-xs text-gray-400">{sapiData.length} sapi • 1 halaman/sapi</p>
+                <div className="bg-gray-50 rounded-lg p-3 space-y-1 text-xs text-gray-600">
+                  <p><span className="font-medium">Format:</span> A4 Landscape</p>
+                  <p><span className="font-medium">Margin:</span> 25.4 mm (1 inch)</p>
+                  <p><span className="font-medium">Font:</span> 40pt / 36pt / 26pt</p>
+                  <p><span className="font-medium">Total:</span> {sapiPages} halaman</p>
+                </div>
               </div>
             )}
 
+            {/* Kambing settings */}
             {kambingData.length > 0 && (
               <div>
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Kambing</p>
                 <div className="space-y-2">
-                  <label className="text-xs text-gray-600 block">Kambing per halaman</label>
+                  <div className="bg-gray-50 rounded-lg p-3 space-y-1 text-xs text-gray-600">
+                    <p><span className="font-medium">Format:</span> A4 Portrait</p>
+                    <p><span className="font-medium">Margin:</span> 8.8 mm</p>
+                    <p><span className="font-medium">Font:</span> 50pt bold</p>
+                  </div>
+                  <label className="text-xs text-gray-600 block mt-2">Kambing per halaman</label>
                   <select value={kambingPerHal} onChange={e => setKambingPerHal(+e.target.value)}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                    {[1, 2, 3, 4].map(n => (
-                      <option key={n} value={n}>{n} per halaman</option>
-                    ))}
+                    {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n} per halaman</option>)}
                   </select>
                   <p className="text-xs text-gray-400">{kambingFlat.length} kambing • {kambingPages} halaman</p>
                 </div>
               </div>
             )}
 
-            <div className="pt-1 border-t border-gray-100 space-y-1">
+            <div className="pt-1 border-t border-gray-100">
               <p className="text-xs font-medium text-gray-600">Total: {totalPages} halaman</p>
-              <p className="text-xs text-gray-400">
-                {sapiPages > 0 && `${sapiPages} hal sapi`}
-                {sapiPages > 0 && kambingPages > 0 && ' + '}
-                {kambingPages > 0 && `${kambingPages} hal kambing`}
+              <p className="text-xs text-gray-400 mt-0.5">
+                {sapiPages > 0 && `${sapiPages} sapi`}{sapiPages > 0 && kambingPages > 0 && ' + '}{kambingPages > 0 && `${kambingPages} kambing`}
               </p>
             </div>
           </div>
 
           {/* Preview */}
           <div className="flex-1 overflow-auto bg-gray-200 p-6 flex flex-col">
+
             <div className="flex items-center justify-between mb-4 flex-shrink-0">
               <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
                 {sapiData.length > 0 && (
@@ -470,13 +409,12 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
                   </button>
                 )}
               </div>
-
               <div className="flex items-center bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
                 <button onClick={() => setZoomFactor(z => Math.max(0.25, +(z - 0.25).toFixed(2)))}
                   disabled={zoomFactor <= 0.25}
                   className="px-3 py-1.5 text-sm font-bold text-gray-600 hover:bg-gray-100 disabled:text-gray-300 transition border-r border-gray-200">−</button>
                 <span className="px-3 py-1.5 text-xs font-medium text-gray-700 min-w-[52px] text-center select-none">
-                  {Math.round(effectiveScale * 100)}%
+                  {Math.round(effScale * 100)}%
                 </span>
                 <button onClick={() => setZoomFactor(z => Math.min(4.0, +(z + 0.25).toFixed(2)))}
                   disabled={zoomFactor >= 4.0}
@@ -487,22 +425,20 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
             </div>
 
             <div className="flex justify-center">
-              <div style={{ width: paperWpx * effectiveScale, height: paperHpx * effectiveScale, position: 'relative', flexShrink: 0 }}
+              <div style={{ width: previewW * effScale, height: previewH * effScale, position: 'relative', flexShrink: 0 }}
                 className="shadow-2xl">
                 <div style={{
-                  width: paperWpx, height: paperHpx,
+                  width: previewW, height: previewH,
                   position: 'absolute', top: 0, left: 0,
-                  transform: `scale(${effectiveScale})`, transformOrigin: 'top left',
+                  transform: `scale(${effScale})`, transformOrigin: 'top left',
                   background: 'white', overflow: 'hidden',
                 }}>
-                  {previewType === 'sapi' && previewSapi ? (
-                    <SapiSheet hewan={previewSapi.hewan} jamaah={previewSapi.jamaah} />
-                  ) : previewType === 'kambing' && previewKambing.length > 0 ? (
-                    <KambingSheet entries={previewKambing} />
+                  {previewType === 'sapi' && sapiData[0] ? (
+                    <SapiSheet hewan={sapiData[0].hewan} jamaah={sapiData[0].jamaah} />
+                  ) : previewType === 'kambing' && previewKmb.length > 0 ? (
+                    <KambingSheet entries={previewKmb} kambingPerHal={kambingPerHal} showTitle />
                   ) : (
-                    <div className="flex items-center justify-center h-full text-sm text-gray-400">
-                      Tidak ada data
-                    </div>
+                    <div className="flex items-center justify-center h-full text-sm text-gray-400">Tidak ada data</div>
                   )}
                 </div>
               </div>
@@ -510,8 +446,8 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
 
             <p className="text-xs text-gray-400 mt-3 text-center flex-shrink-0">
               {previewType === 'sapi'
-                ? `Preview sapi pertama dari ${sapiPages} halaman`
-                : `Preview hal. 1 kambing — ${kambingFlat.length} entri, ${kambingPerHal}/hal`}
+                ? `Preview sapi pertama dari ${sapiPages} hal • A4 Landscape`
+                : `Preview hal. 1 kambing (${kambingFlat.length} entri, ${kambingPerHal}/hal) • A4 Portrait`}
             </p>
           </div>
         </div>
