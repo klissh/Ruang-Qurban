@@ -132,21 +132,21 @@ const COL_TIPE_C    = 'Nama Peng-Qurban TIPE C (Penitipan Kambing)'
 // ─── Parser: Google Forms export ──────────────────────────────────────────
 /**
  * Logika grouping SAPI-A:
- * - Tiap baris Excel menghasilkan 1 "unit" — bisa 1 orang atau lebih
- *   (jika sel berisi "1) Joni 2) Almh. Syam" → unit berisi 2 jamaah)
- * - Semua unit SAPI-A dari seluruh file dikumpulkan
- * - Lalu dikemas: maks 7 jamaah per sapi, tapi unit dari 1 baris tidak dipecah
- *   ke sapi yang berbeda (agar 1 keluarga tetap dalam sapi yang sama)
- * - SAPI-B: kelompok tersendiri (tidak mempengaruhi packing SAPI-A)
- * - KAMBING: entri tersendiri
- * - Output: [SAPI-A..., SAPI-B..., KAMBING...]
+ * - splitTipeACell() membaca setiap sel TIPE A dan memisahkan nama-nama
+ *   yang digabung inline (format "1) Nama 2) Nama") atau dipisah newline
+ * - Semua nama dari seluruh file dikumpul ke pool datar (flat list)
+ * - Pool dibagi rata: setiap 7 nama = 1 kelompok sapi
+ *
+ * Catatan: nama-nama dari 1 sel yang sama sesekali bisa berada di sapi
+ * berbeda jika tepat berada di perbatasan kelompok 7. Ini diterima karena
+ * prioritas utama adalah setiap sapi terisi penuh 7 orang.
  */
 function parseGForms(rows: Record<string, unknown>[]): ParseResult {
   const errors: string[] = []
   let skippedRows = 0
 
-  // Unit = array jamaah dari 1 baris Excel yang harus dalam sapi yang sama
-  const sapiAUnits: ImportedJamaah[][] = []
+  // Pool datar — semua individu SAPI-A dari seluruh file
+  const sapiAPool: ImportedJamaah[] = []
   const sapiBGroups: ImportedKelompok[] = []
   const kambingList: ImportedKelompok[] = []
 
@@ -168,20 +168,19 @@ function parseGForms(rows: Record<string, unknown>[]): ParseResult {
 
     if (!hasA && !hasB && !hasC) { skippedRows++; return }
 
-    // ── TIPE A: split sel (1 baris bisa > 1 nama), kumpulkan sebagai unit ─
+    // ── TIPE A: split sel (multi-nama), masuk pool datar ─────────────────
     if (hasA) {
       const names = splitTipeACell(rawA)
       if (names.length === 0) {
         skippedRows++
       } else {
-        // Seluruh nama dari 1 sel = 1 unit → harus di sapi yang sama
-        sapiAUnits.push(
-          names.map((n) => ({
-            nama_lengkap:   n,
+        for (const nama of names) {
+          sapiAPool.push({
+            nama_lengkap:   nama,
             no_hp:          noHp   || undefined,
             alamat_lengkap: alamat || undefined,
-          }))
-        )
+          })
+        }
       }
     }
 
@@ -225,52 +224,17 @@ function parseGForms(rows: Record<string, unknown>[]): ParseResult {
     }
   })
 
-  // ── Pack unit SAPI-A → kelompok maks 7 jamaah ────────────────────────
-  // Aturan: unit dari 1 baris tidak boleh dipecah ke sapi berbeda.
-  // Jika unit berikutnya tidak muat di sapi sekarang → flush dulu.
+  // ── Pecah pool datar SAPI-A → kelompok tepat 7 orang ─────────────────
   const sapiAGroups: ImportedKelompok[] = []
-  let currentJamaah: ImportedJamaah[] = []
-
-  const flushCurrent = () => {
-    if (currentJamaah.length > 0) {
-      sapiAGroups.push({
-        tipe: 'SAPI-A',
-        pendaftarNama:   '',
-        pendaftarHp:     '',
-        pendaftarAlamat: '',
-        jamaahList: currentJamaah,
-      })
-      currentJamaah = []
-    }
+  for (let i = 0; i < sapiAPool.length; i += 7) {
+    sapiAGroups.push({
+      tipe: 'SAPI-A',
+      pendaftarNama:   '',
+      pendaftarHp:     '',
+      pendaftarAlamat: '',
+      jamaahList: sapiAPool.slice(i, i + 7),
+    })
   }
-
-  for (const unit of sapiAUnits) {
-    if (unit.length >= 7) {
-      // Unit sudah penuh sendiri (sangat jarang) → flush & masukkan langsung
-      flushCurrent()
-      sapiAGroups.push({
-        tipe: 'SAPI-A',
-        pendaftarNama:   '',
-        pendaftarHp:     '',
-        pendaftarAlamat: '',
-        jamaahList: unit.slice(0, 7),
-      })
-      continue
-    }
-
-    if (currentJamaah.length + unit.length > 7) {
-      // Unit tidak muat → flush sapi sekarang, mulai sapi baru dengan unit ini
-      flushCurrent()
-    }
-
-    currentJamaah.push(...unit)
-
-    if (currentJamaah.length === 7) {
-      flushCurrent()
-    }
-  }
-
-  flushCurrent() // sisa jamaah yang belum penuh
 
   const kelompokList: ImportedKelompok[] = [
     ...sapiAGroups,
