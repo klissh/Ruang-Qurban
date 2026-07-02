@@ -53,7 +53,7 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
   const paperWpx = paperW * MM_TO_PX
   const paperHpx = paperH * MM_TO_PX
 
-  const marginMm = 10, gapMm = 3
+  const marginMm = 10, gapMm = 0
   const cols = config.kolomPerBaris
   const lw = config.lebarMm, lh = config.tinggiMm
   const usableW = paperW - 2 * marginMm
