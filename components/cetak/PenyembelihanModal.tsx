@@ -91,14 +91,16 @@ function SapiSheet({ hewan, jamaah }: { hewan: Hewan; jamaah: Jamaah[] }) {
 }
 
 // ── Preview Component: 1 halaman kambing ────────────────────────────────────
-function KambingSheet({ entries, kambingPerHal, showTitle }: {
+function KambingSheet({ entries, kambingPerHal, showTitle, paperW, paperH }: {
   entries: Array<{ hewan: Hewan; jamaah: Jamaah; globalNo: number }>
   kambingPerHal: number
   showTitle: boolean
+  paperW: number
+  paperH: number
 }) {
   const mPx     = KMB_M * MM_TO_PX
-  const cwPx    = KMB_CW * MM_TO_PX
-  const chPx    = KMB_CH * MM_TO_PX
+  const cwPx    = (paperW - 2 * KMB_M) * MM_TO_PX
+  const chPx    = (paperH - 2 * KMB_M) * MM_TO_PX
   const titleHpx = showTitle ? 20 * MM_TO_PX : 0
   const rowHpx  = (chPx - titleHpx) / kambingPerHal
   const noWpx   = KMB_NO_W * MM_TO_PX
@@ -147,9 +149,16 @@ function KambingSheet({ entries, kambingPerHal, showTitle }: {
 // ── Main Component ───────────────────────────────────────────────────────────
 export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
   const [kambingPerHal, setKambingPerHal] = useState(2)
+  const [kambingOrientation, setKambingOrientation] = useState<'portrait' | 'landscape'>('portrait')
   const [isGenerating, setIsGenerating]   = useState(false)
   const [zoomFactor, setZoomFactor]       = useState(1.0)
   const [previewType, setPreviewType]     = useState<'sapi' | 'kambing'>('sapi')
+
+  // Dimensi kambing berdasarkan orientasi
+  const kmbW = kambingOrientation === 'portrait' ? KMB_W : KMB_H
+  const kmbH = kambingOrientation === 'portrait' ? KMB_H : KMB_W
+  const kmbCW = kmbW - 2 * KMB_M
+  const kmbCH = kmbH - 2 * KMB_M
 
   const sapiData    = data.filter(d => !isKambing(d.hewan))
   const kambingData = data.filter(d =>  isKambing(d.hewan))
@@ -162,12 +171,12 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
   // Skala preview
   const MAX_DIM = 560
   const sapiScale   = Math.min(MAX_DIM / (SAPI_W * MM_TO_PX), MAX_DIM / (SAPI_H * MM_TO_PX), 1)
-  const kmbScale    = Math.min(MAX_DIM / (KMB_W * MM_TO_PX), MAX_DIM / (KMB_H * MM_TO_PX), 1)
+  const kmbScale    = Math.min(MAX_DIM / (kmbW * MM_TO_PX), MAX_DIM / (kmbH * MM_TO_PX), 1)
   const baseScale   = previewType === 'sapi' ? sapiScale : kmbScale
   const effScale    = baseScale * zoomFactor
 
-  const previewW    = previewType === 'sapi' ? SAPI_W * MM_TO_PX : KMB_W * MM_TO_PX
-  const previewH    = previewType === 'sapi' ? SAPI_H * MM_TO_PX : KMB_H * MM_TO_PX
+  const previewW    = previewType === 'sapi' ? SAPI_W * MM_TO_PX : kmbW * MM_TO_PX
+  const previewH    = previewType === 'sapi' ? SAPI_H * MM_TO_PX : kmbH * MM_TO_PX
 
   const previewKmb  = kambingFlat.slice(0, kambingPerHal).map((e, i) => ({ ...e, globalNo: i + 1 }))
 
@@ -197,14 +206,13 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
         </div>`)
     })
 
-    // Halaman kambing — A4 Portrait, exact docx specs
+    // Halaman kambing — orientasi sesuai pilihan user
     for (let i = 0; i < kambingFlat.length; i += kambingPerHal) {
-      const isFirst = i === 0
-      const batch   = kambingFlat.slice(i, i + kambingPerHal)
-      const titleH  = isFirst ? 12 : 0  // mm untuk judul halaman pertama
-      const rowPct  = (100 - (isFirst ? 5 : 0)) / kambingPerHal
+      const isFirstPage = i === 0
+      const batch       = kambingFlat.slice(i, i + kambingPerHal)
+      const rowPct      = (100 - (isFirstPage ? 5 : 0)) / kambingPerHal
 
-      const titleHTML = isFirst ? `
+      const titleHTML = isFirstPage ? `
         <div style="font-family:Arial;font-weight:700;font-size:16pt;color:#000;margin-bottom:6mm">
           TIPE C (Penitipan Kambing)
         </div>` : ''
@@ -219,7 +227,7 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
       }).join('')
 
       pages.push(`
-        <div style="width:${KMB_W}mm;height:${KMB_H}mm;box-sizing:border-box;padding:${KMB_M}mm;page-break-after:always;display:flex;flex-direction:column">
+        <div style="width:${kmbW}mm;height:${kmbH}mm;box-sizing:border-box;padding:${KMB_M}mm;page-break-after:always;display:flex;flex-direction:column">
           ${titleHTML}
           <table style="border-collapse:collapse;width:100%;flex:1;table-layout:fixed">
             <colgroup><col style="width:${KMB_NO_W}mm"/><col/></colgroup>
@@ -292,7 +300,7 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
         pdf.addPage('a4', 'portrait')
         const batch = kambingFlat.slice(i, i + kambingPerHal)
         const mx    = KMB_M, my = KMB_M
-        const cw    = KMB_CW
+        const cw    = kmbCW
         const nw    = KMB_NO_W
         let   curY  = my
 
@@ -303,7 +311,7 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
           curY += 14
         }
 
-        const rh = (KMB_H - my - curY) / kambingPerHal
+        const rh = (kmbH - my - curY) / kambingPerHal
 
         batch.forEach((e, bi) => {
           const no = i + bi + 1
@@ -369,9 +377,20 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Kambing</p>
                 <div className="space-y-2">
                   <div className="bg-gray-50 rounded-lg p-3 space-y-1 text-xs text-gray-600">
-                    <p><span className="font-medium">Format:</span> A4 Portrait</p>
+                    <p><span className="font-medium">Format:</span> A4 {kambingOrientation === 'portrait' ? 'Potret' : 'Landscape'}</p>
                     <p><span className="font-medium">Margin:</span> 8.8 mm</p>
                     <p><span className="font-medium">Font:</span> 50pt bold</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600 mb-2 block">Orientasi</label>
+                    <div className="flex gap-2">
+                      {(['portrait', 'landscape'] as const).map(o => (
+                        <button key={o} onClick={() => setKambingOrientation(o)}
+                          className={`flex-1 py-2 text-xs rounded-lg border font-medium transition ${kambingOrientation === o ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                          {o === 'portrait' ? 'Potret' : 'Landscape'}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   <label className="text-xs text-gray-600 block mt-2">Kambing per halaman</label>
                   <select value={kambingPerHal} onChange={e => setKambingPerHal(+e.target.value)}
@@ -436,7 +455,7 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
                   {previewType === 'sapi' && sapiData[0] ? (
                     <SapiSheet hewan={sapiData[0].hewan} jamaah={sapiData[0].jamaah} />
                   ) : previewType === 'kambing' && previewKmb.length > 0 ? (
-                    <KambingSheet entries={previewKmb} kambingPerHal={kambingPerHal} showTitle />
+                    <KambingSheet entries={previewKmb} kambingPerHal={kambingPerHal} showTitle paperW={kmbW} paperH={kmbH} />
                   ) : (
                     <div className="flex items-center justify-center h-full text-sm text-gray-400">Tidak ada data</div>
                   )}
@@ -447,7 +466,7 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
             <p className="text-xs text-gray-400 mt-3 text-center flex-shrink-0">
               {previewType === 'sapi'
                 ? `Preview sapi pertama dari ${sapiPages} hal • A4 Landscape`
-                : `Preview hal. 1 kambing (${kambingFlat.length} entri, ${kambingPerHal}/hal) • A4 Portrait`}
+                : `Preview hal. 1 kambing (${kambingFlat.length} entri, ${kambingPerHal}/hal) • A4 ${kambingOrientation === 'portrait' ? 'Potret' : 'Landscape'}`}
             </p>
           </div>
         </div>
