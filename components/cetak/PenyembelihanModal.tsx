@@ -166,10 +166,15 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
     try {
       const { default: jsPDF } = await import('jspdf')
       const dims = [paperW, paperH] as [number, number]  // landscape=[297,210], portrait=[210,297]
-      const pdf  = new jsPDF({ unit: 'mm', format: dims })
+      const orient = orientation === 'landscape' ? 'l' : 'p'
+      // PENTING: tanpa `orientation` eksplisit, jsPDF selalu default ke portrait
+      // dan diam-diam menukar balik array [297,210] jadi [210,297] — itu sebabnya
+      // hasil download selama ini "ngebug" (kepotong & ada blank besar), padahal
+      // preview (CSS, bukan jsPDF) render landscape dengan benar.
+      const pdf  = new jsPDF({ unit: 'mm', format: dims, orientation: orient })
 
       sapiData.forEach(({ hewan, jamaah }, idx) => {
-        if (idx > 0) pdf.addPage(dims)
+        if (idx > 0) pdf.addPage(dims, orient)
 
         const mx  = SAPI_M, my = SAPI_M
         const cw  = paperW - 2 * SAPI_M
@@ -214,13 +219,14 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
     try {
       const { default: jsPDF } = await import('jspdf')
       const dims    = [paperW, paperH] as [number, number]
-      const pdf     = new jsPDF({ unit: 'mm', format: dims })
+      const orient  = orientation === 'landscape' ? 'l' : 'p'
+      const pdf     = new jsPDF({ unit: 'mm', format: dims, orientation: orient })
       const cw      = paperW - 2 * KMB_M
       const nw      = KMB_NO_W
       let   isFirst = true
 
       for (let i = 0; i < kambingFlat.length; i += kambingPerHal) {
-        if (!isFirst) pdf.addPage(dims)
+        if (!isFirst) pdf.addPage(dims, orient)
         isFirst = false
 
         const isFirstPage = i === 0
