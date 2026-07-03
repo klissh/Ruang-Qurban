@@ -34,73 +34,122 @@ export default function MarbotModal({ data, namaWorkspace, onClose, onBack }: Pr
   const [zoomFactor, setZoomFactor] = useState(1.0)
   const effectiveScale = previewScale * zoomFactor
 
-  const mid = Math.ceil(data.length / 2)
-  const left = data.slice(0, mid)
-  const right = data.slice(mid)
+  // Sapi tetap per-kelompok (per hewan), diberi label kode_resi (SAPI-A01, SAPI-B01, dst).
+  // Kambing digabung jadi satu tabel tunggal berjudul "KAMBING".
+  const sapiGroups = data
+    .filter(k => k.hewan.jenis_hewan === 'SAPI')
+    .sort((a, b) => (a.hewan.kode_resi || '').localeCompare(b.hewan.kode_resi || ''))
 
-  // Preview kelompok component — renders at actual paper pixel density
-  const KelompokBlock = ({ k, idx }: { k: KelompokData; idx: number }) => {
-    const rowHpx = 18  // px per row at paper scale
-    return (
-      <div style={{ marginBottom: 12, breakInside: 'avoid' }}>
-        <p style={{ fontWeight: 700, fontSize: 9, marginBottom: 4, color: '#374151' }}>KELOMPOK {idx + 1}</p>
-        <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 8 }}>
-          <thead>
-            <tr>
-              <th style={{ border: '1px solid #9ca3af', padding: '2px 4px', background: '#f3f4f6', width: 22, textAlign: 'center', color: '#374151' }}>NO.</th>
-              <th style={{ border: '1px solid #9ca3af', padding: '2px 4px', background: '#f3f4f6', textAlign: 'left', color: '#374151' }}>NAMA</th>
-            </tr>
-          </thead>
-          <tbody>
-            {k.jamaah.map((j, i) => (
-              <tr key={j.id}>
-                <td style={{ border: '1px solid #9ca3af', padding: '2px 4px', textAlign: 'center', color: '#1f2937' }}>{i + 1}</td>
-                <td style={{ border: '1px solid #9ca3af', padding: '2px 4px', color: '#1f2937' }}>
-                  {j.nama_lengkap}
-                  {j.atas_nama && <span style={{ display: 'block', fontSize: 7, color: '#6b7280' }}>({j.atas_nama})</span>}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    )
-  }
+  const kambingJamaah = data
+    .filter(k => k.hewan.jenis_hewan === 'KAMBING')
+    .sort((a, b) => (a.hewan.kode_resi || '').localeCompare(b.hewan.kode_resi || ''))
+    .flatMap(k => k.jamaah)
+
+  const totalJamaah = data.reduce((a, k) => a + k.jamaah.length, 0)
+
+  const midSapi = Math.ceil(sapiGroups.length / 2)
+  const sapiLeft = sapiGroups.slice(0, midSapi)
+  const sapiRight = sapiGroups.slice(midSapi)
+
+  // ---------- Preview blocks (approximate; PDF/print punya logic pagination sendiri) ----------
+  const TableHead = () => (
+    <thead>
+      <tr>
+        <th style={{ border: '1px solid #9ca3af', padding: '3px 5px', background: '#f3f4f6', width: 24, textAlign: 'center', color: '#374151' }}>NO.</th>
+        <th style={{ border: '1px solid #9ca3af', padding: '3px 5px', background: '#f3f4f6', textAlign: 'left', color: '#374151' }}>NAMA</th>
+      </tr>
+    </thead>
+  )
+
+  const RowsOf = ({ list }: { list: Jamaah[] }) => (
+    <tbody>
+      {list.map((j, i) => (
+        <tr key={j.id}>
+          <td style={{ border: '1px solid #9ca3af', padding: '3px 5px', textAlign: 'center', color: '#1f2937' }}>{i + 1}</td>
+          <td style={{ border: '1px solid #9ca3af', padding: '3px 5px', color: '#1f2937' }}>
+            {j.nama_lengkap}
+            {j.atas_nama && <span style={{ display: 'block', fontSize: 8, color: '#6b7280' }}>({j.atas_nama})</span>}
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  )
+
+  const SapiBlock = ({ k }: { k: KelompokData }) => (
+    <div style={{ marginBottom: 12, breakInside: 'avoid' }}>
+      <p style={{ fontWeight: 700, fontSize: 10, marginBottom: 4, color: '#374151' }}>{k.hewan.kode_resi}</p>
+      <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 9 }}>
+        <TableHead />
+        <RowsOf list={k.jamaah} />
+      </table>
+    </div>
+  )
+
+  const KambingBlock = ({ list }: { list: Jamaah[] }) => (
+    <div style={{ marginBottom: 12 }}>
+      <p style={{ fontWeight: 700, fontSize: 10, marginBottom: 4, color: '#374151' }}>KAMBING</p>
+      <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 9 }}>
+        <TableHead />
+        <RowsOf list={list} />
+      </table>
+    </div>
+  )
 
   function buildPrintHTML() {
-    function renderKelompok(k: KelompokData, idx: number) {
+    function renderSapi(k: KelompokData) {
       const rows = k.jamaah.map((j, i) => `
         <tr>
-          <td style="border:1px solid #999;padding:3px 5px;font-size:9px;width:28px;text-align:center">${i + 1}</td>
-          <td style="border:1px solid #999;padding:3px 5px;font-size:9px">
-            ${j.nama_lengkap}${j.atas_nama ? `<br><span style="font-size:8px;color:#555">(${j.atas_nama})</span>` : ''}
+          <td style="border:1px solid #999;padding:4px 5px;font-size:10px;width:28px;text-align:center">${i + 1}</td>
+          <td style="border:1px solid #999;padding:4px 5px;font-size:10px">
+            ${j.nama_lengkap}${j.atas_nama ? `<br><span style="font-size:9px;color:#555">(${j.atas_nama})</span>` : ''}
           </td>
         </tr>`).join('')
       return `<div style="margin-bottom:12px;break-inside:avoid">
-        <p style="font-weight:bold;font-size:9px;margin:0 0 3px">KELOMPOK ${idx + 1}</p>
+        <p style="font-weight:bold;font-size:10px;margin:0 0 3px">${k.hewan.kode_resi}</p>
         <table style="border-collapse:collapse;width:100%">
           <thead><tr>
-            <th style="border:1px solid #999;padding:3px 5px;font-size:9px;background:#f0f0f0;text-align:center;width:28px">NO.</th>
-            <th style="border:1px solid #999;padding:3px 5px;font-size:9px;background:#f0f0f0;text-align:left">NAMA</th>
+            <th style="border:1px solid #999;padding:4px 5px;font-size:10px;background:#f0f0f0;text-align:center;width:28px">NO.</th>
+            <th style="border:1px solid #999;padding:4px 5px;font-size:10px;background:#f0f0f0;text-align:left">NAMA</th>
           </tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>`
     }
-    const midH = Math.ceil(data.length / 2)
-    const leftH = data.slice(0, midH).map((k, i) => renderKelompok(k, i)).join('')
-    const rightH = data.slice(midH).map((k, i) => renderKelompok(k, i + midH)).join('')
+
+    const kambingRows = kambingJamaah.map((j, i) => `
+      <tr>
+        <td style="border:1px solid #999;padding:4px 5px;font-size:10px;width:28px;text-align:center">${i + 1}</td>
+        <td style="border:1px solid #999;padding:4px 5px;font-size:10px">
+          ${j.nama_lengkap}${j.atas_nama ? `<br><span style="font-size:9px;color:#555">(${j.atas_nama})</span>` : ''}
+        </td>
+      </tr>`).join('')
+
+    const kambingH = kambingJamaah.length > 0 ? `<div style="margin-bottom:12px">
+        <p style="font-weight:bold;font-size:10px;margin:0 0 3px">KAMBING</p>
+        <table style="border-collapse:collapse;width:100%">
+          <thead><tr>
+            <th style="border:1px solid #999;padding:4px 5px;font-size:10px;background:#f0f0f0;text-align:center;width:28px">NO.</th>
+            <th style="border:1px solid #999;padding:4px 5px;font-size:10px;background:#f0f0f0;text-align:left">NAMA</th>
+          </tr></thead>
+          <tbody>${kambingRows}</tbody>
+        </table>
+      </div>` : ''
+
+    const sapiH = sapiGroups.map(k => renderSapi(k)).join('')
+
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
       @page{size:${paperW}mm ${paperH}mm;margin:${marginMm}mm}
       body{font-family:Arial,sans-serif;margin:0}
       .header{text-align:center;margin-bottom:14px;border-bottom:2px solid black;padding-bottom:8px}
-      .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+      .cols{column-count:2;column-gap:18px}
+      table{break-inside:auto}
+      tr{break-inside:avoid}
     </style></head><body>
       <div class="header">
-        <p style="font-size:13px;font-weight:bold;margin:0">DAFTAR NAMA PENGURBAN</p>
-        <p style="font-size:10px;margin:3px 0 0">${judulAtas} — ${tahun} H</p>
+        <p style="font-size:14px;font-weight:bold;margin:0">DAFTAR NAMA PENGURBAN</p>
+        <p style="font-size:11px;margin:3px 0 0">${judulAtas} — ${tahun} H</p>
       </div>
-      <div class="grid"><div>${leftH}</div><div>${rightH}</div></div>
+      <div class="cols">${kambingH}${sapiH}</div>
     </body></html>`
   }
 
@@ -123,9 +172,12 @@ export default function MarbotModal({ data, namaWorkspace, onClose, onBack }: Pr
       const colGap = 10
       const colW = (paperW - 2 * mx - colGap) / 2
       const maxY = paperH - my
-      const headerH = 18  // mm
+      const headerH = 18   // mm, ruang header halaman
+      const labelH = 5     // mm, tinggi label judul kelompok/tabel
+      const tblHeaderH = 5.5 // mm, tinggi baris header NO/NAMA
+      const rowH = 5.5     // mm, tinggi tiap baris data (diperbesar dari 5mm)
 
-      function drawPageHeader(pdf: InstanceType<typeof jsPDF>) {
+      function drawPageHeader() {
         pdf.setFont('helvetica', 'bold'); pdf.setFontSize(13); pdf.setTextColor(0)
         pdf.text('DAFTAR NAMA PENGURBAN', paperW / 2, my + 6, { align: 'center' })
         pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10)
@@ -133,65 +185,95 @@ export default function MarbotModal({ data, namaWorkspace, onClose, onBack }: Pr
         pdf.setLineWidth(0.5); pdf.line(mx, my + 15, paperW - mx, my + 15)
       }
 
-      function groupHeight(k: KelompokData): number {
-        return 4 + 5 + k.jamaah.length * 5 + 4  // label + header + rows + gap
+      // Cursor posisi dua kolom, pindah kolom/halaman otomatis saat penuh
+      let leftY = my + headerH, rightY = my + headerH
+      let onLeft = true
+      drawPageHeader()
+
+      const colX = () => (onLeft ? mx : mx + colW + colGap)
+      const colY = () => (onLeft ? leftY : rightY)
+      const advance = (h: number) => { if (onLeft) leftY += h; else rightY += h }
+
+      // Pastikan ada ruang sebesar `need`; pindah kolom/halaman bila perlu.
+      // Return true jika baru saja pindah ke halaman baru (dipakai kambing untuk redraw header "lanjutan").
+      function ensureSpace(need: number): boolean {
+        if (colY() + need <= maxY) return false
+        if (onLeft) {
+          onLeft = false
+          if (colY() + need <= maxY) return false
+        }
+        pdf.addPage()
+        drawPageHeader()
+        leftY = my + headerH; rightY = my + headerH; onLeft = true
+        return true
       }
 
-      function drawGroup(pdf: InstanceType<typeof jsPDF>, k: KelompokData, gIdx: number, x: number, y: number) {
-        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7.5); pdf.setTextColor(0)
-        pdf.text(`KELOMPOK ${gIdx + 1}`, x, y + 3.5)
-        let cy = y + 4
-        // Table header
-        pdf.setFillColor(240, 240, 240); pdf.rect(x, cy, 10, 5, 'F')
-        pdf.rect(x + 10, cy, colW - 10, 5, 'F')
+      function drawTableHeaderRow(x: number, y: number) {
+        pdf.setFillColor(240, 240, 240)
+        pdf.rect(x, y, 11, tblHeaderH, 'F')
+        pdf.rect(x + 11, y, colW - 11, tblHeaderH, 'F')
         pdf.setDrawColor(150); pdf.setLineWidth(0.2)
-        pdf.rect(x, cy, 10, 5); pdf.rect(x + 10, cy, colW - 10, 5)
-        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7)
-        pdf.text('NO.', x + 5, cy + 3.5, { align: 'center' })
-        pdf.text('NAMA', x + 12, cy + 3.5)
-        cy += 5
-        // Rows
-        pdf.setFont('helvetica', 'normal')
-        k.jamaah.forEach((j, i) => {
-          pdf.setDrawColor(150); pdf.rect(x, cy, 10, 5); pdf.rect(x + 10, cy, colW - 10, 5)
-          pdf.setFontSize(7); pdf.setTextColor(0)
-          pdf.text(String(i + 1), x + 5, cy + 3.5, { align: 'center' })
-          const nm = (j.atas_nama ? `${j.nama_lengkap} (${j.atas_nama})` : j.nama_lengkap).slice(0, 35)
-          pdf.text(nm, x + 12, cy + 3.5)
-          cy += 5
+        pdf.rect(x, y, 11, tblHeaderH); pdf.rect(x + 11, y, colW - 11, tblHeaderH)
+        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7.5); pdf.setTextColor(0)
+        pdf.text('NO.', x + 5.5, y + tblHeaderH - 1.8, { align: 'center' })
+        pdf.text('NAMA', x + 13, y + tblHeaderH - 1.8)
+      }
+
+      function drawDataRow(x: number, y: number, no: number, j: Jamaah) {
+        pdf.setDrawColor(150)
+        pdf.rect(x, y, 11, rowH); pdf.rect(x + 11, y, colW - 11, rowH)
+        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(0)
+        pdf.text(String(no), x + 5.5, y + rowH - 1.9, { align: 'center' })
+        const nm = (j.atas_nama ? `${j.nama_lengkap} (${j.atas_nama})` : j.nama_lengkap).slice(0, 36)
+        pdf.text(nm, x + 13, y + rowH - 1.9)
+      }
+
+      // -------- KAMBING: satu tabel gabungan, boleh nyambung lintas kolom/halaman --------
+      if (kambingJamaah.length > 0) {
+        ensureSpace(labelH + tblHeaderH + rowH)
+        let x = colX(), y = colY()
+        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9); pdf.setTextColor(0)
+        pdf.text('KAMBING', x, y + 3.5)
+        advance(labelH); y = colY()
+        drawTableHeaderRow(x, y)
+        advance(tblHeaderH); y = colY()
+
+        kambingJamaah.forEach((j, i) => {
+          if (ensureSpace(rowH)) {
+            x = colX(); y = colY()
+            pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9); pdf.setTextColor(0)
+            pdf.text('KAMBING (lanjutan)', x, y + 3.5)
+            advance(labelH); y = colY()
+            drawTableHeaderRow(x, y)
+            advance(tblHeaderH); y = colY()
+          } else {
+            x = colX(); y = colY()
+          }
+          drawDataRow(x, y, i + 1, j)
+          advance(rowH)
         })
         pdf.setDrawColor(0)
       }
 
-      // Layout: fill left col, then right col, paginate
-      drawPageHeader(pdf)
-      let isFirstPage = true
-      let leftY = my + headerH, rightY = my + headerH
-      let onLeft = true
+      // -------- SAPI: tiap kelompok tetap satu blok utuh, label = kode_resi --------
+      function sapiGroupHeight(k: KelompokData): number {
+        return labelH + tblHeaderH + k.jamaah.length * rowH + 4
+      }
 
-      data.forEach((k, gIdx) => {
-        const gh = groupHeight(k)
-        if (onLeft) {
-          if (leftY + gh > maxY) {
-            if (rightY + gh > maxY) {
-              pdf.addPage(); drawPageHeader(pdf)
-              leftY = my + headerH; rightY = my + headerH; onLeft = true
-            } else { onLeft = false }
-          }
-          if (onLeft) {
-            drawGroup(pdf, k, gIdx, mx, leftY); leftY += gh
-          } else {
-            drawGroup(pdf, k, gIdx, mx + colW + colGap, rightY); rightY += gh
-          }
-        } else {
-          if (rightY + gh > maxY) {
-            pdf.addPage(); drawPageHeader(pdf)
-            leftY = my + headerH; rightY = my + headerH; onLeft = true
-            drawGroup(pdf, k, gIdx, mx, leftY); leftY += gh
-          } else {
-            drawGroup(pdf, k, gIdx, mx + colW + colGap, rightY); rightY += gh
-          }
-        }
+      sapiGroups.forEach((k) => {
+        const gh = sapiGroupHeight(k)
+        ensureSpace(gh)
+        let x = colX(), y = colY()
+        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9); pdf.setTextColor(0)
+        pdf.text(k.hewan.kode_resi, x, y + 3.5)
+        y += labelH
+        drawTableHeaderRow(x, y)
+        y += tblHeaderH
+        k.jamaah.forEach((j, i) => {
+          drawDataRow(x, y, i + 1, j)
+          y += rowH
+        })
+        advance(gh)
       })
 
       pdf.save('daftar-nama.pdf')
@@ -258,7 +340,7 @@ export default function MarbotModal({ data, namaWorkspace, onClose, onBack }: Pr
             </div>
 
             <div className="text-xs text-gray-400 space-y-0.5 pt-1 border-t border-gray-100">
-              <p>{data.length} kelompok • {data.reduce((a, k) => a + k.jamaah.length, 0)} jamaah</p>
+              <p>{sapiGroups.length} sapi • {kambingJamaah.length} kambing • {totalJamaah} jamaah</p>
               <p>{paperW.toFixed(0)} × {paperH.toFixed(0)} mm</p>
             </div>
           </div>
@@ -302,13 +384,18 @@ export default function MarbotModal({ data, namaWorkspace, onClose, onBack }: Pr
                   <div style={{ padding: `${marginMm * MM_TO_PX}px` }}>
                     {/* Header */}
                     <div style={{ textAlign: 'center', borderBottom: '2px solid black', paddingBottom: 8, marginBottom: 12 }}>
-                      <p style={{ fontWeight: 700, fontSize: 13, margin: 0, color: '#111' }}>DAFTAR NAMA PENGURBAN</p>
-                      <p style={{ fontSize: 10, margin: '3px 0 0', color: '#374151' }}>{judulAtas} — {tahun} H</p>
+                      <p style={{ fontWeight: 700, fontSize: 14, margin: 0, color: '#111' }}>DAFTAR NAMA PENGURBAN</p>
+                      <p style={{ fontSize: 11, margin: '3px 0 0', color: '#374151' }}>{judulAtas} — {tahun} H</p>
                     </div>
-                    {/* Two columns */}
+                    {/* Two columns: kiri kambing (gabungan) + sebagian sapi, kanan sisa sapi */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, alignItems: 'start' }}>
-                      <div>{left.map((k, i) => <KelompokBlock key={k.hewan.id} k={k} idx={i} />)}</div>
-                      <div>{right.map((k, i) => <KelompokBlock key={k.hewan.id} k={k} idx={i + mid} />)}</div>
+                      <div>
+                        {kambingJamaah.length > 0 && <KambingBlock list={kambingJamaah} />}
+                        {sapiLeft.map((k) => <SapiBlock key={k.hewan.id} k={k} />)}
+                      </div>
+                      <div>
+                        {sapiRight.map((k) => <SapiBlock key={k.hewan.id} k={k} />)}
+                      </div>
                     </div>
                   </div>
                 </div>
