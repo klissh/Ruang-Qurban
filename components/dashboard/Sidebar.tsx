@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Role } from '@/types'
 import {
-  LayoutDashboard, Beef, Activity, ScrollText, Users, LogOut, Menu, X, Moon, Truck
+  LayoutDashboard, Beef, Activity, ScrollText, Users, LogOut, Menu, X, Moon, Truck, Archive
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -52,6 +52,12 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Manajemen Panitia',
     icon: <Users size={16} />,
     roles: ['SUPER_ADMIN'],
+  },
+  {
+    href: '/arsip',
+    label: 'Arsip Periode',
+    icon: <Archive size={16} />,
+    roles: ['SUPER_ADMIN', 'ADMIN_PENDAFTARAN'],
   },
 ]
 
