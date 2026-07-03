@@ -21,6 +21,7 @@ export default function MarbotModal({ data, namaWorkspace, onClose, onBack }: Pr
   const [judulAtas, setJudulAtas] = useState(namaWorkspace)
   const [paperKey, setPaperKey] = useState<PaperKey>('A4')
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait')
+  const [urutan, setUrutan] = useState<'kambing' | 'sapi'>('kambing')
   const [isGenerating, setIsGenerating] = useState(false)
 
   const paperW = orientation === 'portrait' ? PAPER_SIZES[paperKey].w : PAPER_SIZES[paperKey].h
@@ -47,9 +48,16 @@ export default function MarbotModal({ data, namaWorkspace, onClose, onBack }: Pr
 
   const totalJamaah = data.reduce((a, k) => a + k.jamaah.length, 0)
 
-  const midSapi = Math.ceil(sapiGroups.length / 2)
-  const sapiLeft = sapiGroups.slice(0, midSapi)
-  const sapiRight = sapiGroups.slice(midSapi)
+  // Susun blok sesuai urutan yang dipilih user (kambing dulu, atau sapi dulu)
+  type PreviewBlock = { type: 'kambing' } | { type: 'sapi'; k: KelompokData }
+  const orderedBlocks: PreviewBlock[] = (() => {
+    const kambingBlock: PreviewBlock[] = kambingJamaah.length > 0 ? [{ type: 'kambing' }] : []
+    const sapiBlocks: PreviewBlock[] = sapiGroups.map(k => ({ type: 'sapi', k }))
+    return urutan === 'kambing' ? [...kambingBlock, ...sapiBlocks] : [...sapiBlocks, ...kambingBlock]
+  })()
+  const midBlocks = Math.ceil(orderedBlocks.length / 2)
+  const blocksLeft = orderedBlocks.slice(0, midBlocks)
+  const blocksRight = orderedBlocks.slice(midBlocks)
 
   // ---------- Preview blocks (approximate; PDF/print punya logic pagination sendiri) ----------
   const TableHead = () => (
@@ -136,6 +144,7 @@ export default function MarbotModal({ data, namaWorkspace, onClose, onBack }: Pr
       </div>` : ''
 
     const sapiH = sapiGroups.map(k => renderSapi(k)).join('')
+    const bodyH = urutan === 'kambing' ? `${kambingH}${sapiH}` : `${sapiH}${kambingH}`
 
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
       @page{size:${paperW}mm ${paperH}mm;margin:${marginMm}mm}
@@ -149,7 +158,7 @@ export default function MarbotModal({ data, namaWorkspace, onClose, onBack }: Pr
         <p style="font-size:14px;font-weight:bold;margin:0">DAFTAR NAMA PENGURBAN</p>
         <p style="font-size:11px;margin:3px 0 0">${judulAtas} — ${tahun} H</p>
       </div>
-      <div class="cols">${kambingH}${sapiH}</div>
+      <div class="cols">${bodyH}</div>
     </body></html>`
   }
 
@@ -258,12 +267,13 @@ export default function MarbotModal({ data, namaWorkspace, onClose, onBack }: Pr
       }
 
       // -------- KAMBING: satu tabel gabungan, boleh nyambung lintas kolom/halaman --------
-      const kambingRows = kambingJamaah.map(j => {
-        const lines = wrapJamaahLines(j)
-        return { lines, h: rowHeightFor(lines) }
-      })
+      function drawKambingSection() {
+        const kambingRows = kambingJamaah.map(j => {
+          const lines = wrapJamaahLines(j)
+          return { lines, h: rowHeightFor(lines) }
+        })
+        if (kambingRows.length === 0) return
 
-      if (kambingRows.length > 0) {
         ensureSpace(labelH + tblHeaderH + kambingRows[0].h)
         let x = colX(), y = colY()
         pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9); pdf.setTextColor(0)
@@ -299,21 +309,32 @@ export default function MarbotModal({ data, namaWorkspace, onClose, onBack }: Pr
         return { rows, totalH }
       }
 
-      sapiGroups.forEach((k) => {
-        const { rows, totalH } = sapiGroupLayout(k)
-        ensureSpace(totalH)
-        let x = colX(), y = colY()
-        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9); pdf.setTextColor(0)
-        pdf.text(k.hewan.kode_resi, x, y + 3.5)
-        y += labelH
-        drawTableHeaderRow(x, y)
-        y += tblHeaderH
-        rows.forEach((r, i) => {
-          drawDataRow(x, y, i + 1, r.lines, r.h)
-          y += r.h
+      function drawSapiSection() {
+        sapiGroups.forEach((k) => {
+          const { rows, totalH } = sapiGroupLayout(k)
+          ensureSpace(totalH)
+          let x = colX(), y = colY()
+          pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9); pdf.setTextColor(0)
+          pdf.text(k.hewan.kode_resi, x, y + 3.5)
+          y += labelH
+          drawTableHeaderRow(x, y)
+          y += tblHeaderH
+          rows.forEach((r, i) => {
+            drawDataRow(x, y, i + 1, r.lines, r.h)
+            y += r.h
+          })
+          advance(totalH)
         })
-        advance(totalH)
-      })
+      }
+
+      // Urutan tampil sesuai pilihan user (kambing dulu, atau sapi dulu)
+      if (urutan === 'kambing') {
+        drawKambingSection()
+        drawSapiSection()
+      } else {
+        drawSapiSection()
+        drawKambingSection()
+      }
 
       pdf.save('daftar-nama.pdf')
     } finally { setIsGenerating(false) }
@@ -365,6 +386,17 @@ export default function MarbotModal({ data, namaWorkspace, onClose, onBack }: Pr
             <div>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Pengaturan</p>
               <div className="space-y-3">
+                <div>
+                  <label className="text-xs text-gray-600 mb-2 block">Urutan</label>
+                  <div className="flex gap-2">
+                    {(['kambing','sapi'] as const).map(u => (
+                      <button key={u} onClick={() => setUrutan(u)}
+                        className={`flex-1 py-2 text-xs rounded-lg border font-medium transition ${urutan === u ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                        {u === 'kambing' ? 'Kambing dulu' : 'Sapi dulu'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div>
                   <label className="text-xs text-gray-600 mb-1 block">Judul / Nama Masjid</label>
                   <input value={judulAtas} onChange={e => setJudulAtas(e.target.value)}
@@ -426,14 +458,19 @@ export default function MarbotModal({ data, namaWorkspace, onClose, onBack }: Pr
                       <p style={{ fontWeight: 700, fontSize: 14, margin: 0, color: '#111' }}>DAFTAR NAMA PENGURBAN</p>
                       <p style={{ fontSize: 11, margin: '3px 0 0', color: '#374151' }}>{judulAtas} — {tahun} H</p>
                     </div>
-                    {/* Two columns: kiri kambing (gabungan) + sebagian sapi, kanan sisa sapi */}
+                    {/* Two columns, urutan blok mengikuti pilihan "Kambing dulu" / "Sapi dulu" */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, alignItems: 'start' }}>
                       <div>
-                        {kambingJamaah.length > 0 && <KambingBlock list={kambingJamaah} />}
-                        {sapiLeft.map((k) => <SapiBlock key={k.hewan.id} k={k} />)}
+                        {blocksLeft.map((b, i) => b.type === 'kambing'
+                          ? <KambingBlock key="kambing" list={kambingJamaah} />
+                          : <SapiBlock key={b.k.hewan.id} k={b.k} />
+                        )}
                       </div>
                       <div>
-                        {sapiRight.map((k) => <SapiBlock key={k.hewan.id} k={k} />)}
+                        {blocksRight.map((b, i) => b.type === 'kambing'
+                          ? <KambingBlock key="kambing" list={kambingJamaah} />
+                          : <SapiBlock key={b.k.hewan.id} k={b.k} />
+                        )}
                       </div>
                     </div>
                   </div>
