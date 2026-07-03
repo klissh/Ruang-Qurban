@@ -4,11 +4,13 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { STATUS_CONFIG, STATUS_ORDER } from '@/types'
+// STATUS_ORDER dipakai untuk counts & grid pilihan status
 import type { StatusHewan, JenisHewan } from '@/types'
 import { isValidGDriveUrl, convertGDriveToPreview } from '@/lib/utils'
 import {
-  Beef, PawPrint, Check, Video, X, Activity,
-  Clock, Flame, Package, CheckCircle2, ChevronRight, Search,
+  Beef, PawPrint, Video, X, Activity,
+  Clock, Flame, CheckCircle2, ChevronRight, Search,
+  ClipboardList, Truck, CheckCheck, Scissors, PackageCheck,
 } from 'lucide-react'
 
 interface HewanItem {
@@ -26,16 +28,24 @@ interface ModalState {
 }
 
 const SG: Record<StatusHewan, { color: string; bg: string; border: string; dot: string; label: string }> = {
-  BELUM_DISEMBELIH:  { color: '#94a3b8', bg: 'rgba(100,116,139,0.14)', border: 'rgba(148,163,184,0.22)', dot: '#64748b', label: 'Persiapan' },
+  TERDAFTAR:         { color: '#94a3b8', bg: 'rgba(100,116,139,0.14)', border: 'rgba(148,163,184,0.22)', dot: '#64748b', label: 'Terdaftar' },
+  SAMPAI_MASJID:     { color: '#38bdf8', bg: 'rgba(14,165,233,0.14)',  border: 'rgba(56,189,248,0.22)',  dot: '#0ea5e9', label: 'Sampai Masjid' },
+  MENUNGGU_SEMBELIH: { color: '#94a3b8', bg: 'rgba(100,116,139,0.14)', border: 'rgba(148,163,184,0.22)', dot: '#64748b', label: 'Menunggu' },
   SEDANG_DISEMBELIH: { color: '#fbbf24', bg: 'rgba(245,158,11,0.14)',  border: 'rgba(251,191,36,0.22)',  dot: '#f59e0b', label: 'Disembelih' },
+  SUDAH_DISEMBELIH:  { color: '#fb923c', bg: 'rgba(249,115,22,0.14)',  border: 'rgba(251,146,60,0.22)',  dot: '#f97316', label: 'Sudah Disembelih' },
   PENCACAHAN:        { color: '#60a5fa', bg: 'rgba(59,130,246,0.14)',   border: 'rgba(96,165,250,0.22)',  dot: '#3b82f6', label: 'Pencacahan' },
+  PACKING:           { color: '#818cf8', bg: 'rgba(99,102,241,0.14)',   border: 'rgba(129,140,248,0.22)', dot: '#6366f1', label: 'Packing' },
   SELESAI:           { color: '#34d399', bg: 'rgba(16,185,129,0.14)',   border: 'rgba(52,211,153,0.22)',  dot: '#10b981', label: 'Selesai' },
 }
 
 const STATUS_ICON: Record<StatusHewan, React.ReactNode> = {
-  BELUM_DISEMBELIH:  <Clock size={12} />,
+  TERDAFTAR:         <ClipboardList size={12} />,
+  SAMPAI_MASJID:     <Truck size={12} />,
+  MENUNGGU_SEMBELIH: <Clock size={12} />,
   SEDANG_DISEMBELIH: <Flame size={12} />,
-  PENCACAHAN:        <Package size={12} />,
+  SUDAH_DISEMBELIH:  <CheckCheck size={12} />,
+  PENCACAHAN:        <Scissors size={12} />,
+  PACKING:           <PackageCheck size={12} />,
   SELESAI:           <CheckCircle2 size={12} />,
 }
 
@@ -47,15 +57,15 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
   const [search, setSearch] = useState('')
 
   // ── Counts untuk filter badges ──
-  const counts = {
-    SEMUA:             list.length,
-    'SAPI-A':          list.filter((h) => h.kode_resi.startsWith('SAPI-A')).length,
-    'SAPI-B':          list.filter((h) => h.kode_resi.startsWith('SAPI-B')).length,
-    KAMBING:           list.filter((h) => h.jenis_hewan === 'KAMBING').length,
-    BELUM_DISEMBELIH:  list.filter((h) => h.status === 'BELUM_DISEMBELIH').length,
-    SEDANG_DISEMBELIH: list.filter((h) => h.status === 'SEDANG_DISEMBELIH').length,
-    PENCACAHAN:        list.filter((h) => h.status === 'PENCACAHAN').length,
-    SELESAI:           list.filter((h) => h.status === 'SELESAI').length,
+  const counts: Record<string, number> = {
+    SEMUA:    list.length,
+    'SAPI-A': list.filter((h) => h.kode_resi.startsWith('SAPI-A')).length,
+    'SAPI-B': list.filter((h) => h.kode_resi.startsWith('SAPI-B')).length,
+    KAMBING:  list.filter((h) => h.jenis_hewan === 'KAMBING').length,
+    ...STATUS_ORDER.reduce((acc, s) => {
+      acc[s] = list.filter((h) => h.status === s).length
+      return acc
+    }, {} as Record<string, number>),
   }
 
   const filtered = list.filter((h) => {
@@ -128,12 +138,12 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
     { key: 'SAPI-B',  label: 'Sapi B',  icon: <Beef size={11} /> },
     { key: 'KAMBING', label: 'Kambing', icon: <PawPrint size={11} /> },
   ]
-  const statusFilters = [
-    { key: 'BELUM_DISEMBELIH',  label: 'Persiapan',  icon: <Clock size={11} />,        color: SG.BELUM_DISEMBELIH },
-    { key: 'SEDANG_DISEMBELIH', label: 'Disembelih', icon: <Flame size={11} />,         color: SG.SEDANG_DISEMBELIH },
-    { key: 'PENCACAHAN',        label: 'Pencacahan', icon: <Package size={11} />,       color: SG.PENCACAHAN },
-    { key: 'SELESAI',           label: 'Selesai',    icon: <CheckCircle2 size={11} />,  color: SG.SELESAI },
-  ]
+  const statusFilters = STATUS_ORDER.map((s) => ({
+    key: s,
+    label: SG[s].label,
+    icon: STATUS_ICON[s],
+    color: SG[s],
+  }))
 
   function FilterBtn({ fkey, label, icon, activeColor, activeBg, activeBorder }:
     { fkey: string; label: string; icon: React.ReactNode; activeColor?: string; activeBg?: string; activeBorder?: string }) {
@@ -196,7 +206,7 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
               <Flame size={11} color="#fbbf24" />
               <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 500 }}>Proses</span>
               <span style={{ fontSize: 16, fontWeight: 800, color: '#fbbf24', lineHeight: 1 }}>
-                {counts.SEDANG_DISEMBELIH + counts.PENCACAHAN}
+                {counts.SEMUA - counts.TERDAFTAR - counts.SELESAI}
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(52,211,153,0.18)', borderRadius: 10 }}>

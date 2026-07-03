@@ -19,15 +19,23 @@ const G = {
 }
 
 const STATUS_DOT: Record<StatusHewan, string> = {
-  BELUM_DISEMBELIH: '#64748b',
+  TERDAFTAR: '#64748b',
+  SAMPAI_MASJID: '#0ea5e9',
+  MENUNGGU_SEMBELIH: '#64748b',
   SEDANG_DISEMBELIH: '#f59e0b',
+  SUDAH_DISEMBELIH: '#f97316',
   PENCACAHAN: '#3b82f6',
+  PACKING: '#6366f1',
   SELESAI: '#10b981',
 }
 const STATUS_COLOR: Record<StatusHewan, string> = {
-  BELUM_DISEMBELIH: '#94a3b8',
+  TERDAFTAR: '#94a3b8',
+  SAMPAI_MASJID: '#38bdf8',
+  MENUNGGU_SEMBELIH: '#94a3b8',
   SEDANG_DISEMBELIH: '#fbbf24',
+  SUDAH_DISEMBELIH: '#fb923c',
   PENCACAHAN: '#60a5fa',
+  PACKING: '#818cf8',
   SELESAI: '#34d399',
 }
 

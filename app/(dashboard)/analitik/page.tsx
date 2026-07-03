@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { STATUS_CONFIG } from '@/types'
+import { STATUS_CONFIG, STATUS_ORDER } from '@/types'
 import { Layers, Users, Beef, PawPrint, PieChart } from 'lucide-react'
 import type { StatusHewan } from '@/types'
 
@@ -17,9 +17,13 @@ const G = {
 }
 
 const STAT_ACCENT: Record<StatusHewan, { dot: string; bar: string; color: string }> = {
-  BELUM_DISEMBELIH: { dot: '#64748b', bar: '#64748b', color: '#94a3b8' },
+  TERDAFTAR: { dot: '#64748b', bar: '#64748b', color: '#94a3b8' },
+  SAMPAI_MASJID: { dot: '#0ea5e9', bar: '#38bdf8', color: '#38bdf8' },
+  MENUNGGU_SEMBELIH: { dot: '#64748b', bar: '#94a3b8', color: '#94a3b8' },
   SEDANG_DISEMBELIH: { dot: '#f59e0b', bar: '#f59e0b', color: '#fbbf24' },
+  SUDAH_DISEMBELIH: { dot: '#f97316', bar: '#fb923c', color: '#fb923c' },
   PENCACAHAN: { dot: '#3b82f6', bar: '#60a5fa', color: '#60a5fa' },
+  PACKING: { dot: '#6366f1', bar: '#818cf8', color: '#818cf8' },
   SELESAI: { dot: '#10b981', bar: '#34d399', color: '#34d399' },
 }
 
@@ -52,12 +56,10 @@ export default async function AnalitikPage() {
   const totalKambing = hewan.filter((h) => h.jenis_hewan === 'KAMBING').length
   const totalHewan   = hewan.length
 
-  const perStatus = {
-    BELUM_DISEMBELIH:  hewan.filter((h) => h.status === 'BELUM_DISEMBELIH').length,
-    SEDANG_DISEMBELIH: hewan.filter((h) => h.status === 'SEDANG_DISEMBELIH').length,
-    PENCACAHAN:        hewan.filter((h) => h.status === 'PENCACAHAN').length,
-    SELESAI:           hewan.filter((h) => h.status === 'SELESAI').length,
-  }
+  const perStatus = STATUS_ORDER.reduce((acc, status) => {
+    acc[status] = hewan.filter((h) => h.status === status).length
+    return acc
+  }, {} as Record<StatusHewan, number>)
   const persenSelesai = totalHewan > 0 ? Math.round((perStatus.SELESAI / totalHewan) * 100) : 0
 
   const statCards = [

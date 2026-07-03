@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Role } from '@/types'
 import {
-  LayoutDashboard, Beef, Activity, ScrollText, Users, LogOut, Menu, X, Moon
+  LayoutDashboard, Beef, Activity, ScrollText, Users, LogOut, Menu, X, Moon, Truck
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -33,6 +33,12 @@ const NAV_ITEMS: NavItem[] = [
     href: '/status',
     label: 'Status',
     icon: <Activity size={16} />,
+    roles: ['SUPER_ADMIN', 'PETUGAS_LAPANGAN'],
+  },
+  {
+    href: '/pengantaran',
+    label: 'Pengantaran',
+    icon: <Truck size={16} />,
     roles: ['SUPER_ADMIN', 'PETUGAS_LAPANGAN'],
   },
   {

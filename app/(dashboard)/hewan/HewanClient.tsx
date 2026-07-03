@@ -8,9 +8,9 @@ import {
   Plus, Upload, Printer, Search, ChevronDown, ChevronUp,
   Copy, Beef, PawPrint, Phone, MapPin, X, Pencil, Trash2,
   ArrowRightLeft, AlertTriangle, Clock, Flame, Package, CheckCircle2,
-  ShieldAlert,
+  ShieldAlert, ClipboardList, Truck, CheckCheck, Scissors, PackageCheck,
 } from 'lucide-react'
-import { STATUS_CONFIG } from '@/types'
+import { STATUS_CONFIG, STATUS_ORDER } from '@/types'
 import type { StatusHewan, JenisHewan, Hewan, Jamaah, JamaahFormData } from '@/types'
 import { generateKodeResi } from '@/lib/utils'
 import CetakPickerModal from '@/components/cetak/CetakPickerModal'
@@ -39,16 +39,24 @@ type ModalType =
   | null
 
 const STATUS_GLASS: Record<StatusHewan, { color: string; bg: string; border: string; dot: string; topBorder: string }> = {
-  BELUM_DISEMBELIH:  { color: '#94a3b8', bg: 'rgba(100,116,139,0.14)', border: 'rgba(148,163,184,0.22)', dot: '#64748b', topBorder: 'rgba(148,163,184,0.35)' },
+  TERDAFTAR:         { color: '#94a3b8', bg: 'rgba(100,116,139,0.14)', border: 'rgba(148,163,184,0.22)', dot: '#64748b', topBorder: 'rgba(148,163,184,0.35)' },
+  SAMPAI_MASJID:     { color: '#38bdf8', bg: 'rgba(14,165,233,0.14)',  border: 'rgba(56,189,248,0.22)',  dot: '#0ea5e9', topBorder: 'rgba(56,189,248,0.35)' },
+  MENUNGGU_SEMBELIH: { color: '#94a3b8', bg: 'rgba(100,116,139,0.14)', border: 'rgba(148,163,184,0.22)', dot: '#64748b', topBorder: 'rgba(148,163,184,0.35)' },
   SEDANG_DISEMBELIH: { color: '#fbbf24', bg: 'rgba(245,158,11,0.14)',  border: 'rgba(251,191,36,0.22)',  dot: '#f59e0b', topBorder: 'rgba(251,191,36,0.35)' },
+  SUDAH_DISEMBELIH:  { color: '#fb923c', bg: 'rgba(249,115,22,0.14)',  border: 'rgba(251,146,60,0.22)',  dot: '#f97316', topBorder: 'rgba(251,146,60,0.35)' },
   PENCACAHAN:        { color: '#60a5fa', bg: 'rgba(59,130,246,0.14)',   border: 'rgba(96,165,250,0.22)',  dot: '#3b82f6', topBorder: 'rgba(96,165,250,0.35)' },
+  PACKING:           { color: '#818cf8', bg: 'rgba(99,102,241,0.14)',   border: 'rgba(129,140,248,0.22)', dot: '#6366f1', topBorder: 'rgba(129,140,248,0.35)' },
   SELESAI:           { color: '#34d399', bg: 'rgba(16,185,129,0.14)',   border: 'rgba(52,211,153,0.22)',  dot: '#10b981', topBorder: 'rgba(52,211,153,0.35)' },
 }
 
 const STAT_ICON: Record<StatusHewan, React.ReactNode> = {
-  BELUM_DISEMBELIH:  <Clock size={15} />,
+  TERDAFTAR:         <ClipboardList size={15} />,
+  SAMPAI_MASJID:     <Truck size={15} />,
+  MENUNGGU_SEMBELIH: <Clock size={15} />,
   SEDANG_DISEMBELIH: <Flame size={15} />,
-  PENCACAHAN:        <Package size={15} />,
+  SUDAH_DISEMBELIH:  <CheckCheck size={15} />,
+  PENCACAHAN:        <Scissors size={15} />,
+  PACKING:           <PackageCheck size={15} />,
   SELESAI:           <CheckCircle2 size={15} />,
 }
 
@@ -363,7 +371,7 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
     toast.success('Kode tracking disalin!')
   }
 
-  const STAT_STATUSES: StatusHewan[] = ['BELUM_DISEMBELIH', 'SEDANG_DISEMBELIH', 'PENCACAHAN', 'SELESAI']
+  const STAT_STATUSES: StatusHewan[] = STATUS_ORDER
 
   // ══════════════════════════════════════════════════════
   // RENDER
@@ -400,7 +408,7 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
       </div>
 
       {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 10, marginBottom: 20 }}>
         {STAT_STATUSES.map((s) => {
           const sg = STATUS_GLASS[s]
           const cfg = STATUS_CONFIG[s]

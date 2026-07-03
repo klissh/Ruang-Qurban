@@ -40,7 +40,7 @@ function LabelCard({ hewan, jamaah, nomorUrut, lw, lh }: {
       {/* Kode hewan + nomor urut pengurban — putih, no ink fill */}
       <div className="flex items-baseline justify-between px-[6px] pt-[4px] pb-[2px] border-b-2 border-gray-800 flex-shrink-0">
         <span className="font-extrabold text-[18px] tracking-[0.5px] font-sans leading-none text-black">
-          {hewan.kode_resi}
+          {jamaah.kode_jamaah ?? hewan.kode_resi}
         </span>
         <span className="text-[9px] font-bold font-sans uppercase tracking-wider leading-none text-gray-500">
           NO. {nomorUrut}
@@ -123,7 +123,7 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
     const labelHTMLs = labels.map(({ hewan, jamaah, nomorUrut }) => `
       <div style="width:${lw}mm;height:${lh}mm;border:1px solid #1f2937;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;break-inside:avoid;font-family:Arial,Helvetica,sans-serif;background:white">
         <div style="display:flex;align-items:baseline;justify-content:space-between;padding:3px 6px 2px;border-bottom:2px solid #1f2937;flex-shrink:0">
-          <span style="font-weight:800;font-size:17px;letter-spacing:0.5px;color:#000;line-height:1">${hewan.kode_resi}</span>
+          <span style="font-weight:800;font-size:17px;letter-spacing:0.5px;color:#000;line-height:1">${jamaah.kode_jamaah ?? hewan.kode_resi}</span>
           <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#6b7280;line-height:1">NO. ${nomorUrut}</span>
         </div>
         <div style="padding:3px 6px 2px;border-bottom:1px solid #d1d5db;flex-shrink:0">
@@ -175,7 +175,7 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
         // ── Kode hewan + nomor urut pengurban (putih, no fill) ────────────
         const headerH = 8.5
         pdf.setFont('helvetica', 'bold'); pdf.setFontSize(15); pdf.setTextColor(0)
-        pdf.text(hewan.kode_resi, x + 2.5, y + 5, { charSpace: 0.25 })
+        pdf.text(jamaah.kode_jamaah ?? hewan.kode_resi, x + 2.5, y + 5, { charSpace: 0.25 })
         pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8); pdf.setTextColor(100)
         pdf.text(`NO. ${nomorUrut}`, x + lw - 2.5, y + 5, { align: 'right' })
 

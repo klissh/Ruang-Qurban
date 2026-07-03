@@ -7,10 +7,19 @@ export type Role = 'SUPER_ADMIN' | 'ADMIN_PENDAFTARAN' | 'PETUGAS_LAPANGAN'
 export type JenisHewan = 'SAPI' | 'KAMBING'
 
 export type StatusHewan =
-  | 'BELUM_DISEMBELIH'
+  | 'TERDAFTAR'
+  | 'SAMPAI_MASJID'
+  | 'MENUNGGU_SEMBELIH'
   | 'SEDANG_DISEMBELIH'
+  | 'SUDAH_DISEMBELIH'
   | 'PENCACAHAN'
+  | 'PACKING'
   | 'SELESAI'
+
+export type StatusAntar =
+  | 'BELUM_DIANTAR'
+  | 'SEDANG_DIANTAR'
+  | 'SUDAH_DIANTAR'
 
 // ============================================================
 // Database Row Types
@@ -55,6 +64,10 @@ export interface Jamaah {
   atas_nama: string | null   // nama keluarga jika mewakili
   no_hp: string | null
   alamat_lengkap: string | null
+  kode_jamaah: string | null   // kode resi per-orang, auto-generate via trigger DB
+  status_antar: StatusAntar
+  waktu_antar: string | null
+  diantar_oleh: string | null
   created_at: string
   updated_at: string
   deleted_at: string | null
@@ -93,42 +106,108 @@ export const STATUS_CONFIG: Record<StatusHewan, {
   color: string
   bgColor: string
 }> = {
-  BELUM_DISEMBELIH: {
-    label: 'Persiapan',
-    labelShort: 'Persiapan',
+  TERDAFTAR: {
+    label: 'Terdaftar',
+    labelShort: 'Terdaftar',
     step: 1,
     color: 'text-slate-600',
     bgColor: 'bg-slate-100',
   },
+  SAMPAI_MASJID: {
+    label: 'Hewan Sampai Masjid',
+    labelShort: 'Sampai Masjid',
+    step: 2,
+    color: 'text-sky-700',
+    bgColor: 'bg-sky-100',
+  },
+  MENUNGGU_SEMBELIH: {
+    label: 'Menunggu Penyembelihan',
+    labelShort: 'Menunggu',
+    step: 3,
+    color: 'text-slate-700',
+    bgColor: 'bg-slate-200',
+  },
   SEDANG_DISEMBELIH: {
     label: 'Sedang Disembelih',
     labelShort: 'Disembelih',
-    step: 2,
+    step: 4,
     color: 'text-amber-700',
     bgColor: 'bg-amber-100',
   },
+  SUDAH_DISEMBELIH: {
+    label: 'Sudah Disembelih',
+    labelShort: 'Sudah Disembelih',
+    step: 5,
+    color: 'text-orange-700',
+    bgColor: 'bg-orange-100',
+  },
   PENCACAHAN: {
-    label: 'Pencacahan & Pengemasan',
+    label: 'Proses Pencacahan',
     labelShort: 'Pencacahan',
-    step: 3,
+    step: 6,
     color: 'text-blue-700',
     bgColor: 'bg-blue-100',
+  },
+  PACKING: {
+    label: 'Proses Packing',
+    labelShort: 'Packing',
+    step: 7,
+    color: 'text-indigo-700',
+    bgColor: 'bg-indigo-100',
   },
   SELESAI: {
     label: 'Selesai / Siap Distribusi',
     labelShort: 'Selesai',
-    step: 4,
+    step: 8,
     color: 'text-emerald-700',
     bgColor: 'bg-emerald-100',
   },
 }
 
 export const STATUS_ORDER: StatusHewan[] = [
-  'BELUM_DISEMBELIH',
+  'TERDAFTAR',
+  'SAMPAI_MASJID',
+  'MENUNGGU_SEMBELIH',
   'SEDANG_DISEMBELIH',
+  'SUDAH_DISEMBELIH',
   'PENCACAHAN',
+  'PACKING',
   'SELESAI',
 ]
+
+// ============================================================
+// Status Antar Config (label, warna) — monitoring pengantaran
+// ============================================================
+
+export const STATUS_ANTAR_CONFIG: Record<StatusAntar, {
+  label: string
+  color: string
+  bg: string
+  border: string
+  dot: string
+}> = {
+  BELUM_DIANTAR: {
+    label: 'Belum Diantar',
+    color: '#94a3b8',
+    bg: 'rgba(100,116,139,0.14)',
+    border: 'rgba(148,163,184,0.22)',
+    dot: '#64748b',
+  },
+  SEDANG_DIANTAR: {
+    label: 'Sedang Diantar',
+    color: '#fbbf24',
+    bg: 'rgba(245,158,11,0.14)',
+    border: 'rgba(251,191,36,0.22)',
+    dot: '#f59e0b',
+  },
+  SUDAH_DIANTAR: {
+    label: 'Sudah Diantar',
+    color: '#34d399',
+    bg: 'rgba(16,185,129,0.14)',
+    border: 'rgba(52,211,153,0.22)',
+    dot: '#10b981',
+  },
+}
 
 // ============================================================
 // PDF / Print Config
