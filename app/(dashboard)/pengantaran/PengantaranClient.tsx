@@ -97,6 +97,15 @@ export default function PengantaranClient({ jamaahList }: { jamaahList: JamaahIt
     })
   }
 
+  function toggleCollapse(groupKey: string) {
+    setCollapsed((prev) => {
+      const next = new Set(prev)
+      if (next.has(groupKey)) next.delete(groupKey)
+      else next.add(groupKey)
+      return next
+    })
+  }
+
   function toggleGroupSelect(items: JamaahItem[]) {
     const ids = items.map((i) => i.id)
     const allSelected = ids.every((id) => selected.has(id))
@@ -241,43 +250,45 @@ export default function PengantaranClient({ jamaahList }: { jamaahList: JamaahIt
 
           return (
             <div key={groupKey} style={G.card}>
-              {/* Group header */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: isCollapsed ? 'none' : '1px solid rgba(255,255,255,0.06)' }}>
-                <Checkbox checked={allSelected} indeterminate={someSelected && !allSelected} onClick={() => toggleGroupSelect(items)} />
+              {/* Group header — seluruh bar bisa dipencet untuk collapse/expand */}
+              <div
+                onClick={() => toggleCollapse(groupKey)}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: isCollapsed ? 'none' : '1px solid rgba(255,255,255,0.06)', cursor: 'pointer' }}
+              >
+                <div onClick={(e) => e.stopPropagation()}>
+                  <Checkbox checked={allSelected} indeterminate={someSelected && !allSelected} onClick={() => toggleGroupSelect(items)} />
+                </div>
                 {hewan?.jenis_hewan === 'SAPI' ? <Beef size={13} color="rgba(255,255,255,0.4)" /> : <PawPrint size={13} color="rgba(255,255,255,0.4)" />}
                 <span style={{ fontFamily: 'ui-monospace,monospace', fontWeight: 700, fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>
                   {hewan?.kode_resi ?? 'Tanpa Kelompok'}
                 </span>
                 <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>({items.length} orang)</span>
                 <div style={{ flex: 1 }} />
-                <button
-                  onClick={() => setCollapsed((prev) => {
-                    const n = new Set(prev)
-                    if (n.has(groupKey)) n.delete(groupKey)
-                    else n.add(groupKey)
-                    return n
-                  })}
-                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', display: 'flex' }}
-                >
+                <div style={{ color: 'rgba(255,255,255,0.3)', display: 'flex' }}>
                   {isCollapsed ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
-                </button>
+                </div>
               </div>
 
-              {/* Rows */}
+              {/* Rows — seluruh bar bisa dipencet untuk buka popup update status,
+                  checkbox terpisah khusus untuk multi-select (bisa lintas kelompok sapi) */}
               {!isCollapsed && items.map((j) => {
                 const cfg = STATUS_ANTAR_CONFIG[j.status_antar]
                 const isSelected = selected.has(j.id)
                 return (
                   <div
                     key={j.id}
+                    onClick={() => setModal({ ids: [j.id], statusAntar: j.status_antar, diantarOleh: j.diantar_oleh ?? '' })}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 10,
                       padding: '10px 16px', borderLeft: `3px solid ${cfg.dot}`,
                       borderBottom: '1px solid rgba(255,255,255,0.04)',
                       background: isSelected ? 'rgba(16,185,129,0.05)' : 'transparent',
+                      cursor: 'pointer',
                     }}
                   >
-                    <Checkbox checked={isSelected} onClick={() => toggleSelect(j.id)} />
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Checkbox checked={isSelected} onClick={() => toggleSelect(j.id)} />
+                    </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
                         <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>{j.nama_lengkap}</span>
@@ -298,16 +309,15 @@ export default function PengantaranClient({ jamaahList }: { jamaahList: JamaahIt
                         </div>
                       )}
                     </div>
-                    <button
-                      onClick={() => setModal({ ids: [j.id], statusAntar: j.status_antar, diantarOleh: j.diantar_oleh ?? '' })}
+                    <span
                       style={{
                         display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
                         padding: '5px 11px', borderRadius: 8, fontSize: 11.5, fontWeight: 700,
-                        cursor: 'pointer', background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.color,
+                        background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.color,
                       }}
                     >
                       {cfg.label}
-                    </button>
+                    </span>
                   </div>
                 )
               })}
