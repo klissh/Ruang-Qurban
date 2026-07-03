@@ -32,6 +32,19 @@ const KMB_NAME_PAD_R  = 2
 const ptToPx = (pt: number) => pt * 4 / 3
 const ptToMm = (pt: number) => pt * 25.4 / 72
 
+// ── Sanitasi nama ────────────────────────────────────────────────────────
+// Nama yang di-copas dari PDF/dokumen lain kadang bawa karakter invisible
+// (zero-width space, BOM, soft hyphen, dll). Browser render-nya nol-lebar
+// jadi kelihatan normal, tapi jsPDF (font standar) salah hitung lebarnya
+// jadi BERKALI-LIPAT lebih lebar → teks jadi renggang & kepotong di halaman.
+// Makanya nama harus disaring dulu sebelum diukur/dirender, di preview & PDF.
+function sanitizeName(raw: string): string {
+  return (raw ?? '')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\u200B-\u200F\u2028-\u202F\u2060\uFEFF\u00AD]/g, '')
+    .replace(/[\s\u00A0]+/g, ' ')
+    .trim()
+}
+
 // ── Auto-shrink text-to-fit (browser, pakai canvas measureText) ───────────
 let _measureCtx: CanvasRenderingContext2D | null | undefined
 function getMeasureCtx() {
@@ -103,11 +116,12 @@ function SapiSheet({ hewan, jamaah, orientation }: {
       </div>
       {/* Baris nama */}
       {jamaah.map((j, i) => {
+        const cleanName = sanitizeName(j.nama_lengkap)
         const padLpx = SAPI_NAME_PAD_L * MM_TO_PX
         const padRpx = SAPI_NAME_PAD_R * MM_TO_PX
         const nameMaxWpx = cwPx - nwPx - padLpx - padRpx
         const { size: fitPx, fits } = fitFontPx(
-          j.nama_lengkap, nameMaxWpx, ptToPx(SAPI_FONT_NAME), ptToPx(SAPI_FONT_NAME_MIN)
+          cleanName, nameMaxWpx, ptToPx(SAPI_FONT_NAME), ptToPx(SAPI_FONT_NAME_MIN)
         )
         return (
           <div key={j.id} style={{ display: 'flex', width: cwPx, height: rh }}>
@@ -125,7 +139,7 @@ function SapiSheet({ hewan, jamaah, orientation }: {
                 fontSize: fitPx, color: '#000', lineHeight: 1.2,
                 whiteSpace: fits ? 'nowrap' : 'normal', display: '-webkit-box',
                 WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                {j.nama_lengkap}
+                {cleanName}
               </span>
             </div>
           </div>
@@ -159,11 +173,12 @@ function KambingSheet({ entries, kambingPerHal, showTitle, orientation }: {
         </div>
       )}
       {entries.map(({ jamaah, globalNo }, bi) => {
+        const cleanName = sanitizeName(jamaah.nama_lengkap)
         const padLpx = KMB_NAME_PAD_L * MM_TO_PX
         const padRpx = KMB_NAME_PAD_R * MM_TO_PX
         const nameMaxWpx = cwPx - nwPx - padLpx - padRpx
         const { size: fitPx, fits } = fitFontPx(
-          jamaah.nama_lengkap, nameMaxWpx, ptToPx(KMB_FONT), ptToPx(KMB_FONT_MIN)
+          cleanName, nameMaxWpx, ptToPx(KMB_FONT), ptToPx(KMB_FONT_MIN)
         )
         return (
           <div key={globalNo} style={{ display: 'flex', width: cwPx, height: rowHpx, marginTop: bi > 0 ? -1 : 0 }}>
@@ -180,7 +195,7 @@ function KambingSheet({ entries, kambingPerHal, showTitle, orientation }: {
                 fontSize: fitPx, color: '#000', lineHeight: 1.2,
                 whiteSpace: fits ? 'nowrap' : 'normal', display: '-webkit-box',
                 WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                {jamaah.nama_lengkap}
+                {cleanName}
               </span>
             </div>
           </div>
@@ -264,15 +279,16 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
           pdf.setFontSize(SAPI_FONT_NO)
           textVCenter(pdf, String(i + 1), mx + nw / 2, ry, rh, SAPI_FONT_NO, { align: 'center' })
 
+          const cleanName = sanitizeName(j.nama_lengkap)
           const maxW = cw - nw - SAPI_NAME_PAD_L - SAPI_NAME_PAD_R
-          const { size: fitSize, fits } = fitFontPt(pdf, j.nama_lengkap, maxW, SAPI_FONT_NAME, SAPI_FONT_NAME_MIN)
+          const { size: fitSize, fits } = fitFontPt(pdf, cleanName, maxW, SAPI_FONT_NAME, SAPI_FONT_NAME_MIN)
           const tx = mx + nw + SAPI_NAME_PAD_L
 
           if (fits) {
-            textVCenter(pdf, j.nama_lengkap, tx, ry, rh, fitSize)
+            textVCenter(pdf, cleanName, tx, ry, rh, fitSize)
           } else {
             // Fallback ekstrem: nama masih kepanjangan walau sudah di font minimum → wrap
-            const nl = pdf.splitTextToSize(j.nama_lengkap, maxW)
+            const nl = pdf.splitTextToSize(cleanName, maxW)
             const lh = ptToMm(fitSize) * 1.3
             const th = nl.length * lh
             const sy = ry + (rh - th) / 2 + ptToMm(fitSize) * 0.75
@@ -326,14 +342,15 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
           pdf.setFont('helvetica', 'bold'); pdf.setFontSize(KMB_FONT); pdf.setTextColor(0)
           textVCenter(pdf, String(no), mx + nw / 2, ry, rh, KMB_FONT, { align: 'center' })
 
+          const cleanName = sanitizeName(e.jamaah.nama_lengkap)
           const maxW = cw - nw - KMB_NAME_PAD_L - KMB_NAME_PAD_R
-          const { size: fitSize, fits } = fitFontPt(pdf, e.jamaah.nama_lengkap, maxW, KMB_FONT, KMB_FONT_MIN)
+          const { size: fitSize, fits } = fitFontPt(pdf, cleanName, maxW, KMB_FONT, KMB_FONT_MIN)
           const tx = mx + nw + KMB_NAME_PAD_L
 
           if (fits) {
-            textVCenter(pdf, e.jamaah.nama_lengkap, tx, ry, rh, fitSize)
+            textVCenter(pdf, cleanName, tx, ry, rh, fitSize)
           } else {
-            const nl = pdf.splitTextToSize(e.jamaah.nama_lengkap, maxW)
+            const nl = pdf.splitTextToSize(cleanName, maxW)
             const lh = ptToMm(fitSize) * 1.3
             const th = nl.length * lh
             const sy = ry + (rh - th) / 2 + ptToMm(fitSize) * 0.75
