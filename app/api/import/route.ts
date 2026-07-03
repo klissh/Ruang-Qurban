@@ -6,7 +6,6 @@ import type { ImportedKelompok } from '@/lib/importParser'
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
 
-  // ── Auth ──────────────────────────────────────────────────────────────
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -20,7 +19,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Akses ditolak' }, { status: 403 })
   }
 
-  // ── Payload ───────────────────────────────────────────────────────────
   const body = await request.json() as { kelompokList: ImportedKelompok[] }
   const { kelompokList } = body
 
@@ -28,7 +26,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Tidak ada data untuk diimport' }, { status: 400 })
   }
 
-  // Tolak kelompok kosong sebelum mulai (defensive)
   const validList = kelompokList.filter((k) => k.jamaahList.length > 0)
   if (validList.length === 0) {
     return NextResponse.json({ error: 'Semua kelompok kosong' }, { status: 400 })
@@ -36,15 +33,30 @@ export async function POST(request: NextRequest) {
 
   const workspaceId = profile.id_workspace!
 
-  // ── Hitung nomor terakhir yang sudah ada (berdasarkan MAX kode, bukan COUNT)
-  // Strategi ini tahan terhadap soft-delete, gap, dan import parsial sebelumnya.
+  // ── Ambil periode aktif — wajib ada ──────────────────────────────────────
+  const { data: periodeAktif } = await supabase
+    .from('periode_qurban')
+    .select('id')
+    .eq('id_workspace', workspaceId)
+    .eq('status', 'aktif')
+    .single()
+
+  if (!periodeAktif) {
+    return NextResponse.json({
+      error: 'Tidak ada periode aktif. Buat periode baru terlebih dahulu sebelum import.'
+    }, { status: 409 })
+  }
+
+  const periodeId = periodeAktif.id
+
+  // ── Hitung nomor terakhir yang sudah ada — scope ke periode aktif saja ───
+  // Ini memastikan tiap periode baru mulai dari SAPI-A01, KMB-001, dst.
   const [{ data: sapiARows }, { data: sapiBRows }, { data: kambingRows }] = await Promise.all([
-    supabase.from('hewan').select('kode_resi').eq('id_workspace', workspaceId).like('kode_resi', 'SAPI-A%'),
-    supabase.from('hewan').select('kode_resi').eq('id_workspace', workspaceId).like('kode_resi', 'SAPI-B%'),
-    supabase.from('hewan').select('kode_resi').eq('id_workspace', workspaceId).like('kode_resi', 'KMB-%'),
+    supabase.from('hewan').select('kode_resi').eq('id_workspace', workspaceId).eq('periode_id', periodeId).like('kode_resi', 'SAPI-A%'),
+    supabase.from('hewan').select('kode_resi').eq('id_workspace', workspaceId).eq('periode_id', periodeId).like('kode_resi', 'SAPI-B%'),
+    supabase.from('hewan').select('kode_resi').eq('id_workspace', workspaceId).eq('periode_id', periodeId).like('kode_resi', 'KMB-%'),
   ])
 
-  /** Ambil angka paling akhir dari kode_resi, misal 'SAPI-A11' → 11, 'KMB-048' → 48 */
   function maxKodeNum(rows: { kode_resi: string }[] | null): number {
     if (!rows || rows.length === 0) return 0
     return Math.max(0, ...rows.map((r) => {
@@ -53,7 +65,6 @@ export async function POST(request: NextRequest) {
     }))
   }
 
-  // Counter dimulai dari nomor tertinggi yang sudah ada
   let sapiACount   = maxKodeNum(sapiARows)
   let sapiBCount   = maxKodeNum(sapiBRows)
   let kambingCount = maxKodeNum(kambingRows)
@@ -61,7 +72,6 @@ export async function POST(request: NextRequest) {
   const imported : string[] = []
   const errors   : string[] = []
 
-  // ── Insert satu per satu (sequential agar kode tidak bentrok) ─────────
   for (const kelompok of validList) {
     let kode_resi   : string
     let jenis_hewan : 'SAPI' | 'KAMBING'
@@ -80,11 +90,11 @@ export async function POST(request: NextRequest) {
       jenis_hewan = 'KAMBING'
     }
 
-    // Insert hewan (kode_publik diisi oleh trigger DB)
     const { data: hewan, error: hewanErr } = await supabase
       .from('hewan')
       .insert({
         id_workspace: workspaceId,
+        periode_id:   periodeId,
         kode_resi,
         kode_publik: '',
         jenis_hewan,
@@ -94,19 +104,14 @@ export async function POST(request: NextRequest) {
 
     if (hewanErr || !hewan) {
       errors.push(`Gagal membuat ${kode_resi}: ${hewanErr?.message ?? 'unknown error'}`)
-      // Jangan rollback counter — kode ini mungkin sudah ada di DB,
-      // rollback hanya akan menyebabkan percobaan berulang dengan kode yang sama.
       continue
     }
 
-    // ── Insert jamaah satu per satu dengan created_at eksplisit ──────────
-    // Setiap jamaah mendapat created_at = baseTime + (idx * 100ms) agar
-    // ORDER BY created_at di page.tsx selalu mengembalikan urutan Excel.
-    // (Sequential await saja berisiko jika network sangat cepat → sama ms)
     const jamaahRows = kelompok.jamaahList
       .filter((j) => j.nama_lengkap?.trim())
       .map((j) => ({
         id_workspace:   workspaceId,
+        periode_id:     periodeId,
         id_hewan:       hewan.id,
         nama_lengkap:   j.nama_lengkap.trim(),
         no_hp:          j.no_hp?.trim()          || null,
@@ -125,8 +130,6 @@ export async function POST(request: NextRequest) {
     for (let idx = 0; idx < jamaahRows.length; idx++) {
       const { error: jamaahErr } = await supabase.from('jamaah').insert({
         ...jamaahRows[idx],
-        // Offset 200ms per slot: slot #1 = baseTime, #2 = baseTime+200ms, dst.
-        // Ini menjamin urutan lexicographic created_at = urutan Excel.
         created_at: new Date(baseTime + idx * 200).toISOString(),
       })
 
