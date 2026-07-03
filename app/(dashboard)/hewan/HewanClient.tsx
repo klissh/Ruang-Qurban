@@ -11,7 +11,7 @@ import {
   ShieldAlert, ClipboardList, Truck, CheckCheck, Scissors, PackageCheck,
 } from 'lucide-react'
 import { STATUS_CONFIG, STATUS_ORDER } from '@/types'
-import type { StatusHewan, JenisHewan, Hewan, Jamaah, JamaahFormData } from '@/types'
+import type { StatusHewan, JenisHewan, Hewan, Jamaah, JamaahFormData, Periode, Role } from '@/types'
 import { generateKodeResi } from '@/lib/utils'
 import CetakPickerModal from '@/components/cetak/CetakPickerModal'
 import LabelPVCModal from '@/components/cetak/LabelPVCModal'
@@ -36,6 +36,8 @@ type ModalType =
   | 'penyembelihan'
   | 'import'
   | 'hapusSemua'
+  | 'arsipkanPeriode'
+  | 'buatPeriode'
   | null
 
 const STATUS_GLASS: Record<StatusHewan, { color: string; bg: string; border: string; dot: string; topBorder: string }> = {
@@ -105,9 +107,11 @@ interface Props {
   kambingCount: number
   workspaceId: string
   namaWorkspace: string
+  periode: Periode
+  userRole: Role
 }
 
-export default function HewanClient({ hewanList, jamaahList, kambingCount, workspaceId, namaWorkspace }: Props) {
+export default function HewanClient({ hewanList, jamaahList, kambingCount, workspaceId, namaWorkspace, periode, userRole }: Props) {
   const router = useRouter()
   const [hewan, setHewan] = useState<Hewan[]>(hewanList)
   const [jamaah, setJamaah] = useState<Jamaah[]>(jamaahList)
@@ -347,6 +351,9 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
 
   // ── Hapus Semua ────────────────────────────────────────────────────────
   const [hapusSemua_confirm, setHapusSemua_confirm] = useState('')
+  const [arsipkanConfirm, setArsipkanConfirm] = useState('')
+  const [buatPeriodeTahun, setBuatPeriodeTahun] = useState(new Date().getFullYear() + 1)
+  const [buatPeriodeNama, setBuatPeriodeNama] = useState('')
 
   async function handleHapusSemua() {
     setSaving(true)
@@ -361,6 +368,43 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
       setHapusSemua_confirm('')
     } catch (e: any) {
       toast.error(e.message ?? 'Gagal menghapus data')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleArsipkanPeriode() {
+    if (arsipkanConfirm !== 'ARSIPKAN') { toast.error('Ketik ARSIPKAN untuk konfirmasi'); return }
+    setSaving(true)
+    try {
+      const res = await fetch('/api/periode/arsipkan', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      toast.success('Periode berhasil diarsipkan')
+      setModal(null)
+      router.refresh()
+    } catch (e: any) {
+      toast.error(e.message ?? 'Gagal mengarsipkan periode')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleBuatPeriode() {
+    setSaving(true)
+    try {
+      const res = await fetch('/api/periode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tahun: buatPeriodeTahun, nama_event: buatPeriodeNama || undefined }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      toast.success(`Periode ${buatPeriodeTahun} berhasil dibuat`)
+      setModal(null)
+      router.refresh()
+    } catch (e: any) {
+      toast.error(e.message ?? 'Gagal membuat periode baru')
     } finally {
       setSaving(false)
     }
@@ -405,6 +449,31 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
             <Plus size={14} /> Tambah Kelompok
           </button>
         </div>
+      </div>
+
+      {/* Periode banner */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 18,
+        padding: '10px 16px', borderRadius: 12,
+        background: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.15)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 0 3px rgba(16,185,129,0.2)' }} />
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>
+            Periode Aktif:
+          </span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#34d399' }}>
+            {periode.nama_event ?? `Qurban ${periode.tahun}`}
+          </span>
+        </div>
+        {userRole === 'SUPER_ADMIN' && (
+          <button
+            onClick={() => { setArsipkanConfirm(''); setModal('arsipkanPeriode') }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px',
+              background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)',
+              borderRadius: 8, color: 'rgba(251,191,36,0.85)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+          >
+            Tutup & Arsipkan Periode
+          </button>
+        )}
       </div>
 
       {/* Stats */}
@@ -1089,6 +1158,44 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
           </div>
         </div>
       , document.body)}
+
+      {/* ── Modal Arsipkan Periode ─────────────────────────────── */}
+      {modal === 'arsipkanPeriode' && createPortal(
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
+          <div style={{ ...G.modal, maxWidth: 440 }}>
+            <div style={{ padding: '28px 28px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+              <h3 style={{ fontSize: 17, fontWeight: 800, color: 'rgba(255,255,255,0.93)', margin: 0 }}>Tutup & Arsipkan Periode</h3>
+              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 6, lineHeight: 1.5 }}>
+                Periode <strong style={{ color: '#fbbf24' }}>{periode.nama_event ?? `Qurban ${periode.tahun}`}</strong> akan dikunci read-only dan dipindahkan ke halaman Arsip. Data tetap bisa dilihat kapan saja.
+              </p>
+            </div>
+            <div style={{ padding: '20px 28px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginBottom: 8 }}>
+                  Ketik <strong style={{ color: '#fbbf24' }}>ARSIPKAN</strong> untuk konfirmasi
+                </p>
+                <input
+                  value={arsipkanConfirm}
+                  onChange={(e) => setArsipkanConfirm(e.target.value)}
+                  placeholder="ARSIPKAN"
+                  style={{ ...G.input, fontWeight: 700, letterSpacing: '0.5px' }}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => setModal(null)} style={{ flex: 1, padding: '10px 0', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Batal</button>
+                <button
+                  onClick={handleArsipkanPeriode}
+                  disabled={saving || arsipkanConfirm !== 'ARSIPKAN'}
+                  style={{ flex: 1, padding: '10px 0', background: arsipkanConfirm === 'ARSIPKAN' ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.04)', border: `1px solid ${arsipkanConfirm === 'ARSIPKAN' ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 10, color: arsipkanConfirm === 'ARSIPKAN' ? '#fbbf24' : 'rgba(255,255,255,0.2)', fontSize: 13, fontWeight: 700, cursor: arsipkanConfirm === 'ARSIPKAN' ? 'pointer' : 'not-allowed', transition: 'all 0.15s' }}
+                >
+                  {saving ? 'Mengarsipkan...' : 'Arsipkan Periode'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* Cetak Modals */}
       {modal === 'cetakPicker' && createPortal(<CetakPickerModal onPilih={(t) => setModal(t as ModalType)} onClose={() => setModal(null)} />, document.body)}
