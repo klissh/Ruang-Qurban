@@ -249,7 +249,7 @@ export default function MarbotModal({ data, namaWorkspace, onClose, onBack }: Pr
 
       function rowHeightFor(lines: LineInfo[]): number {
         const h = lines.reduce((sum, l) => sum + (l.small ? LINE_H_SMALL : LINE_H), 0)
-        return Math.max(rowHMin, h + 1.6)
+        return Math.max(rowHMin, h + 2.4) // padding lebih lega, biar huruf turunan (j/g/y) tidak mepet border
       }
 
       function drawDataRow(x: number, y: number, no: number, lines: LineInfo[], h: number) {
@@ -257,7 +257,11 @@ export default function MarbotModal({ data, namaWorkspace, onClose, onBack }: Pr
         pdf.rect(x, y, noColW, h); pdf.rect(x + noColW, y, colW - noColW, h)
         pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(0)
         pdf.text(String(no), x + noColW / 2, y + h / 2 + 1.1, { align: 'center' })
-        let ly = y + 3.6
+        // Pusatkan blok teks (bisa 1+ baris) secara vertikal di dalam tinggi baris,
+        // supaya selalu ada jarak aman dari border atas maupun bawah.
+        const textBlockH = lines.reduce((s, l) => s + (l.small ? LINE_H_SMALL : LINE_H), 0)
+        const topPad = Math.max(1.2, (h - textBlockH) / 2)
+        let ly = y + topPad + 2.6
         lines.forEach(l => {
           if (l.small) { pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7); pdf.setTextColor(110) }
           else { pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(0) }
