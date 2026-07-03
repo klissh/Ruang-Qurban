@@ -17,6 +17,15 @@ interface JamaahRow {
   hewan: { id: string; kode_resi: string; jenis_hewan: JenisHewan; status: string } | { id: string; kode_resi: string; jenis_hewan: JenisHewan; status: string }[] | null
 }
 
+function NoPeriodeState() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', gap: 12, textAlign: 'center', padding: 24 }}>
+      <p style={{ fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.6)', margin: 0 }}>Tidak Ada Periode Aktif</p>
+      <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.28)', margin: 0 }}>Data akan muncul setelah periode aktif tersedia.</p>
+    </div>
+  )
+}
+
 export default async function PengantaranPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -32,7 +41,15 @@ export default async function PengantaranPage() {
     redirect('/analitik')
   }
 
-  // Hanya jamaah yang hewannya sudah SELESAI (siap distribusi) yang muncul di sini
+  const { data: periodeAktif } = await supabase
+    .from('periode_qurban')
+    .select('id')
+    .eq('id_workspace', profile.id_workspace)
+    .eq('status', 'aktif')
+    .single()
+
+  if (!periodeAktif) return <NoPeriodeState />
+
   const { data: jamaah } = await supabase
     .from('jamaah')
     .select(`
@@ -41,6 +58,7 @@ export default async function PengantaranPage() {
       id_hewan, hewan!inner ( id, kode_resi, jenis_hewan, status )
     `)
     .eq('id_workspace', profile.id_workspace)
+    .eq('periode_id', periodeAktif.id)
     .is('deleted_at', null)
     .eq('hewan.status', 'SELESAI')
     .order('kode_jamaah')
