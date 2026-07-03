@@ -126,6 +126,7 @@ export default function TrackingPage() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<TrackingData | null>(null)
   const [error, setError] = useState('')
+  const [activeCode, setActiveCode] = useState('')
 
   const handleSearch = useCallback(async (searchKode?: string) => {
     const q = (searchKode ?? kode).trim().toUpperCase()
@@ -136,10 +137,11 @@ export default function TrackingPage() {
     try {
       const res = await fetch(`/api/tracking?kode=${encodeURIComponent(q)}`)
       const json = await res.json()
-      if (!res.ok) setError(json.error ?? 'Terjadi kesalahan. Coba lagi.')
-      else setResult(json.data)
+      if (!res.ok) { setError(json.error ?? 'Terjadi kesalahan. Coba lagi.'); setActiveCode('') }
+      else { setResult(json.data); setActiveCode(q) }
     } catch {
       setError('Koneksi gagal. Periksa internet Anda.')
+      setActiveCode('')
     } finally {
       setLoading(false)
     }
@@ -149,6 +151,25 @@ export default function TrackingPage() {
     const paramKode = searchParams.get('kode')
     if (paramKode) { setKode(paramKode); handleSearch(paramKode) }
   }, []) // eslint-disable-line
+
+  // Auto-refresh diam-diam tiap 30 detik selagi ada hasil aktif, supaya
+  // perubahan status pengantaran dari panitia langsung kelihatan tanpa
+  // jamaah harus pencet "Cek" ulang
+  useEffect(() => {
+    if (!activeCode) return
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/tracking?kode=${encodeURIComponent(activeCode)}`)
+        if (res.ok) {
+          const json = await res.json()
+          setResult(json.data)
+        }
+      } catch {
+        // diamkan — biarkan data lama tetap tampil, coba lagi 30 detik berikutnya
+      }
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [activeCode])
 
   const statusPengantaran = result ? computeStatusPengantaran(result.jamaah) : null
   const steps = result && statusPengantaran ? buildSteps(result, statusPengantaran) : []

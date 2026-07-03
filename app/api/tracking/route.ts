@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 
+// Pastikan route ini selalu dieksekusi fresh (tidak di-cache), karena
+// status pengantaran & status hewan berubah real-time dan halaman publik
+// bergantung pada auto-refresh polling tiap 30 detik
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function GET(request: NextRequest) {
   const kode = request.nextUrl.searchParams.get('kode')?.trim().toUpperCase()
 
