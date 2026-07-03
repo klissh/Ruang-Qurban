@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { STATUS_CONFIG, STATUS_ORDER, STATUS_ANTAR_CONFIG } from '@/types'
 import type { StatusHewan, JenisHewan, StatusAntar } from '@/types'
-import { Moon, Search, Beef, PawPrint, Check, Video, AlertCircle, Loader2, Truck, Clock } from 'lucide-react'
+import { Moon, Search, Beef, PawPrint, Check, Video, AlertCircle, Loader2, Truck, Clock, Download } from 'lucide-react'
 
 interface TrackingData {
   kode_resi: string
@@ -195,7 +195,7 @@ export default function TrackingPage() {
       <div style={{ maxWidth: 780, margin: '0 auto', padding: '24px 20px 48px', position: 'relative', zIndex: 1 }}>
 
         {/* Search card */}
-        <div style={{ ...G.card, padding: 24, marginBottom: 20, maxWidth: 560 }}>
+        <div style={{ ...G.card, padding: 24, marginBottom: 20, maxWidth: 560, margin: '0 auto 20px' }}>
           <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: 12 }}>
             Masukkan Kode Resi Qurban Anda
           </label>
@@ -281,6 +281,37 @@ export default function TrackingPage() {
                 </div>
               </div>
             </div>
+
+            {/* Dokumentasi video — ditaruh di sini biar kelihatan lebih awal */}
+            {result.url_dokumentasi && (() => {
+              const driveFileId = result.url_dokumentasi.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)?.[1]
+              return (
+                <div style={{ ...G.card, padding: 24 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+                    <h3 style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', margin: 0, display: 'flex', alignItems: 'center', gap: 7, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                      <Video size={14} color="#34d399" /> Dokumentasi Penyembelihan
+                    </h3>
+                    {driveFileId && (
+                      <a
+                        href={`https://drive.google.com/file/d/${driveFileId}/view`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px',
+                          background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(52,211,153,0.25)',
+                          borderRadius: 8, color: '#34d399', fontSize: 12, fontWeight: 700, textDecoration: 'none',
+                        }}
+                      >
+                        <Download size={13} /> Download
+                      </a>
+                    )}
+                  </div>
+                  <div style={{ borderRadius: 12, overflow: 'hidden', background: 'rgba(0,0,0,0.3)', aspectRatio: '16/9' }}>
+                    <iframe src={result.url_dokumentasi} style={{ width: '100%', height: '100%', border: 'none' }} allow="autoplay" title="Dokumentasi" />
+                  </div>
+                </div>
+              )
+            })()}
 
             {/* Stepper + Daftar Pengqurban — berdampingan biar video dokumentasi nggak kejauhan ke bawah */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16 }}>
@@ -384,18 +415,6 @@ export default function TrackingPage() {
                 </div>
               </div>
             </div>
-
-            {/* Dokumentasi video */}
-            {result.url_dokumentasi && (
-              <div style={{ ...G.card, padding: 24 }}>
-                <h3 style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 7, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-                  <Video size={14} color="#34d399" /> Dokumentasi Penyembelihan
-                </h3>
-                <div style={{ borderRadius: 12, overflow: 'hidden', background: 'rgba(0,0,0,0.3)', aspectRatio: '16/9' }}>
-                  <iframe src={result.url_dokumentasi} style={{ width: '100%', height: '100%', border: 'none' }} allow="autoplay" title="Dokumentasi" />
-                </div>
-              </div>
-            )}
 
             <p style={{ textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.24)' }}>
               Halaman ini otomatis diperbarui setiap 30 detik
