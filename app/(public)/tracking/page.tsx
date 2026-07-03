@@ -22,6 +22,17 @@ interface TrackingData {
   }>
 }
 
+const STATUS_GLASS: Record<StatusHewan, { color: string; bg: string; border: string; dot: string }> = {
+  TERDAFTAR:         { color: '#94a3b8', bg: 'rgba(100,116,139,0.14)', border: 'rgba(148,163,184,0.22)', dot: '#64748b' },
+  SAMPAI_MASJID:     { color: '#38bdf8', bg: 'rgba(14,165,233,0.14)',  border: 'rgba(56,189,248,0.22)',  dot: '#0ea5e9' },
+  MENUNGGU_SEMBELIH: { color: '#94a3b8', bg: 'rgba(100,116,139,0.14)', border: 'rgba(148,163,184,0.22)', dot: '#64748b' },
+  SEDANG_DISEMBELIH: { color: '#fbbf24', bg: 'rgba(245,158,11,0.14)',  border: 'rgba(251,191,36,0.22)',  dot: '#f59e0b' },
+  SUDAH_DISEMBELIH:  { color: '#fb923c', bg: 'rgba(249,115,22,0.14)',  border: 'rgba(251,146,60,0.22)',  dot: '#f97316' },
+  PENCACAHAN:        { color: '#60a5fa', bg: 'rgba(59,130,246,0.14)',   border: 'rgba(96,165,250,0.22)',  dot: '#3b82f6' },
+  PACKING:           { color: '#818cf8', bg: 'rgba(99,102,241,0.14)',   border: 'rgba(129,140,248,0.22)', dot: '#6366f1' },
+  SELESAI:           { color: '#34d399', bg: 'rgba(16,185,129,0.14)',   border: 'rgba(52,211,153,0.22)',  dot: '#10b981' },
+}
+
 // Agregat status pengantaran satu kelompok (sapi bisa beda-beda per orang)
 function computeStatusPengantaran(jamaah: TrackingData['jamaah']): { status: StatusAntar; namaPengantar: string[] } {
   if (jamaah.length === 0) return { status: 'BELUM_DIANTAR', namaPengantar: [] }
@@ -35,6 +46,68 @@ function computeStatusPengantaran(jamaah: TrackingData['jamaah']): { status: Sta
   return { status: 'BELUM_DIANTAR', namaPengantar: [] }
 }
 
+interface Palette { color: string; bg: string; border: string; dot: string }
+interface StepItem {
+  key: string
+  label: string
+  subLabel?: string
+  state: 'done' | 'active' | 'upcoming'
+  palette: Palette
+  icon?: React.ReactNode
+}
+
+const DONE_PALETTE: Palette = STATUS_GLASS.SELESAI
+const UPCOMING_PALETTE: Palette = { color: 'rgba(255,255,255,0.2)', bg: 'rgba(255,255,255,0.05)', border: 'rgba(255,255,255,0.12)', dot: 'rgba(255,255,255,0.12)' }
+
+// Susun 10 langkah: 8 tahap proses hewan + 1 langkah Pengantaran (dinamis
+// belum/sedang/sudah diantar) + 1 langkah penutup "Selesai".
+// Aturan warna: sudah lewat -> selalu hijau, sedang berlangsung -> warna kategorinya,
+// belum sampai -> abu-abu.
+function buildSteps(result: TrackingData, statusPengantaran: { status: StatusAntar; namaPengantar: string[] }): StepItem[] {
+  const currentHewanStep = STATUS_CONFIG[result.status].step
+  const steps: StepItem[] = STATUS_ORDER.map((status) => {
+    const cfg = STATUS_CONFIG[status]
+    const sg = STATUS_GLASS[status]
+    const isSelesaiHewan = status === 'SELESAI'
+    let state: StepItem['state']
+    if (cfg.step < currentHewanStep) state = 'done'
+    else if (cfg.step === currentHewanStep) state = isSelesaiHewan ? 'done' : 'active'
+    else state = 'upcoming'
+    return { key: status, label: cfg.label, state, palette: sg }
+  })
+
+  const pengantaranReached = currentHewanStep >= STATUS_CONFIG.SELESAI.step
+  const da = STATUS_ANTAR_CONFIG[statusPengantaran.status]
+  let pengantaranState: StepItem['state'] = 'upcoming'
+  let pengantaranSub: string | undefined
+  if (pengantaranReached) {
+    pengantaranState = statusPengantaran.status === 'SUDAH_DIANTAR' ? 'done' : 'active'
+    if (statusPengantaran.status === 'SEDANG_DIANTAR') {
+      pengantaranSub = statusPengantaran.namaPengantar.length > 0
+        ? `Diantar oleh: ${statusPengantaran.namaPengantar.join(', ')}`
+        : 'Sedang dalam perjalanan'
+    } else if (statusPengantaran.status === 'BELUM_DIANTAR') {
+      pengantaranSub = 'Menunggu diantar ke alamat Anda'
+    }
+  }
+  steps.push({
+    key: 'PENGANTARAN', label: da.label, subLabel: pengantaranSub, state: pengantaranState,
+    palette: da, icon: pengantaranState === 'active'
+      ? (statusPengantaran.status === 'SEDANG_DIANTAR' ? <Truck size={14} /> : <Clock size={14} />)
+      : undefined,
+  })
+
+  const finalDone = pengantaranReached && statusPengantaran.status === 'SUDAH_DIANTAR'
+  steps.push({
+    key: 'FINAL_SELESAI', label: 'Selesai',
+    subLabel: finalDone ? 'Selamat menikmati daging qurban' : undefined,
+    state: finalDone ? 'done' : 'upcoming',
+    palette: DONE_PALETTE,
+  })
+
+  return steps
+}
+
 const G = {
   card: {
     background: 'rgba(255,255,255,0.06)',
@@ -45,17 +118,6 @@ const G = {
     borderRadius: '1.125rem',
     boxShadow: '0 4px 24px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.07)',
   } as React.CSSProperties,
-}
-
-const STATUS_GLASS: Record<StatusHewan, { color: string; bg: string; border: string; dot: string }> = {
-  TERDAFTAR:         { color: '#94a3b8', bg: 'rgba(100,116,139,0.14)', border: 'rgba(148,163,184,0.22)', dot: '#64748b' },
-  SAMPAI_MASJID:     { color: '#38bdf8', bg: 'rgba(14,165,233,0.14)',  border: 'rgba(56,189,248,0.22)',  dot: '#0ea5e9' },
-  MENUNGGU_SEMBELIH: { color: '#94a3b8', bg: 'rgba(100,116,139,0.14)', border: 'rgba(148,163,184,0.22)', dot: '#64748b' },
-  SEDANG_DISEMBELIH: { color: '#fbbf24', bg: 'rgba(245,158,11,0.14)',  border: 'rgba(251,191,36,0.22)',  dot: '#f59e0b' },
-  SUDAH_DISEMBELIH:  { color: '#fb923c', bg: 'rgba(249,115,22,0.14)',  border: 'rgba(251,146,60,0.22)',  dot: '#f97316' },
-  PENCACAHAN:        { color: '#60a5fa', bg: 'rgba(59,130,246,0.14)',   border: 'rgba(96,165,250,0.22)',  dot: '#3b82f6' },
-  PACKING:           { color: '#818cf8', bg: 'rgba(99,102,241,0.14)',   border: 'rgba(129,140,248,0.22)', dot: '#6366f1' },
-  SELESAI:           { color: '#34d399', bg: 'rgba(16,185,129,0.14)',   border: 'rgba(52,211,153,0.22)',  dot: '#10b981' },
 }
 
 export default function TrackingPage() {
@@ -88,8 +150,8 @@ export default function TrackingPage() {
     if (paramKode) { setKode(paramKode); handleSearch(paramKode) }
   }, []) // eslint-disable-line
 
-  const currentStep = result ? STATUS_CONFIG[result.status].step : 0
   const statusPengantaran = result ? computeStatusPengantaran(result.jamaah) : null
+  const steps = result && statusPengantaran ? buildSteps(result, statusPengantaran) : []
 
   return (
     <div
@@ -191,7 +253,7 @@ export default function TrackingPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
             {/* Info hewan */}
-            <div style={{ ...G.card, padding: 24 }}>
+            <div style={{ ...G.card, padding: 24, maxWidth: 560, margin: '0 auto', width: '100%' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
                 <div>
                   <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase', letterSpacing: '0.8px', margin: 0 }}>Kode Hewan</p>
@@ -228,61 +290,30 @@ export default function TrackingPage() {
                 <h3 style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', margin: '0 0 20px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
                   Status Penyembelihan
                 </h3>
-                {STATUS_ORDER.map((status, idx) => {
-                  const cfg = STATUS_CONFIG[status]
-                  const sg = STATUS_GLASS[status]
-                  const isCompleted = currentStep > cfg.step
-                  const isActive = currentStep === cfg.step
-                  const isLast = idx === STATUS_ORDER.length - 1
-
-                  // Step terakhir ("Selesai/Siap Distribusi") begitu tercapai berubah
-                  // jadi status pengantaran real-time, terintegrasi dgn halaman Pengantaran
-                  const isFinalDelivery = isLast && isActive && statusPengantaran
-
-                  let label = cfg.label
-                  let subLabel: React.ReactNode = null
-                  let circleColor = sg
-                  let circleIcon: React.ReactNode = isCompleted ? <Check size={14} /> : cfg.step
-
-                  if (isFinalDelivery) {
-                    const da = STATUS_ANTAR_CONFIG[statusPengantaran.status]
-                    circleColor = da
-                    if (statusPengantaran.status === 'SUDAH_DIANTAR') {
-                      label = 'Selesai'
-                      subLabel = 'Selamat menikmati daging qurban'
-                      circleIcon = <Check size={14} />
-                    } else if (statusPengantaran.status === 'SEDANG_DIANTAR') {
-                      label = 'Sedang Diantar'
-                      subLabel = statusPengantaran.namaPengantar.length > 0
-                        ? `Diantar oleh: ${statusPengantaran.namaPengantar.join(', ')}`
-                        : 'Sedang dalam perjalanan'
-                      circleIcon = <Truck size={14} />
-                    } else {
-                      label = 'Belum Diantar'
-                      subLabel = 'Menunggu diantar ke alamat Anda'
-                      circleIcon = <Clock size={14} />
-                    }
-                  }
+                {steps.map((step, idx) => {
+                  const isLast = idx === steps.length - 1
+                  const palette = step.state === 'done' ? DONE_PALETTE : step.state === 'active' ? step.palette : UPCOMING_PALETTE
+                  const isDoneOrActive = step.state === 'done' || step.state === 'active'
 
                   return (
-                    <div key={status} style={{ display: 'flex', gap: 16 }}>
+                    <div key={step.key} style={{ display: 'flex', gap: 16 }}>
                       {/* Dot + Line */}
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                         <div style={{
                           width: 32, height: 32, borderRadius: '50%',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           fontSize: 13, fontWeight: 700, flexShrink: 0,
-                          background: isCompleted ? circleColor.bg : isActive ? circleColor.bg : 'rgba(255,255,255,0.05)',
-                          border: `2px solid ${isCompleted || isActive ? circleColor.dot : 'rgba(255,255,255,0.12)'}`,
-                          color: isCompleted || isActive ? circleColor.color : 'rgba(255,255,255,0.2)',
-                          boxShadow: isActive ? `0 0 12px ${circleColor.dot}55` : 'none',
+                          background: isDoneOrActive ? palette.bg : 'rgba(255,255,255,0.05)',
+                          border: `2px solid ${isDoneOrActive ? palette.dot : 'rgba(255,255,255,0.12)'}`,
+                          color: isDoneOrActive ? palette.color : 'rgba(255,255,255,0.2)',
+                          boxShadow: step.state === 'active' ? `0 0 12px ${palette.dot}55` : 'none',
                         }}>
-                          {circleIcon}
+                          {step.state === 'done' ? <Check size={14} /> : step.icon ?? (idx + 1)}
                         </div>
                         {!isLast && (
                           <div style={{
                             width: 2, flex: 1, margin: '4px 0', minHeight: 20,
-                            background: isCompleted ? sg.dot : 'rgba(255,255,255,0.07)',
+                            background: step.state === 'done' ? DONE_PALETTE.dot : 'rgba(255,255,255,0.07)',
                           }} />
                         )}
                       </div>
@@ -290,23 +321,20 @@ export default function TrackingPage() {
                       {/* Label */}
                       <div style={{ paddingBottom: isLast ? 0 : 20 }}>
                         <p style={{
-                          fontSize: 14, fontWeight: isActive ? 700 : 500, lineHeight: '32px', margin: 0,
-                          color: isActive ? circleColor.color : isCompleted ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.22)',
+                          fontSize: 14, fontWeight: step.state === 'active' ? 700 : 500, lineHeight: '32px', margin: 0,
+                          color: isDoneOrActive ? palette.color : 'rgba(255,255,255,0.22)',
                         }}>
-                          {label}
+                          {step.label}
                         </p>
-                        {isFinalDelivery && subLabel && (
-                          <p style={{ fontSize: 11.5, color: circleColor.color, fontWeight: 600, margin: '2px 0 0', opacity: 0.85 }}>
-                            {subLabel}
+                        {step.state === 'active' && (
+                          <p style={{ fontSize: 11.5, color: palette.color, fontWeight: 600, margin: '2px 0 0', opacity: 0.85 }}>
+                            {step.subLabel ?? 'Sedang berlangsung'}
                           </p>
                         )}
-                        {!isFinalDelivery && isActive && (
-                          <p style={{ fontSize: 11.5, color: sg.color, fontWeight: 600, margin: '2px 0 0', opacity: 0.8 }}>
-                            Sedang berlangsung
+                        {step.state === 'done' && (
+                          <p style={{ fontSize: 11.5, color: step.subLabel ? DONE_PALETTE.color : 'rgba(255,255,255,0.3)', fontWeight: step.subLabel ? 600 : 400, margin: '2px 0 0', opacity: step.subLabel ? 0.85 : 1 }}>
+                            {step.subLabel ?? 'Selesai'}
                           </p>
-                        )}
-                        {!isFinalDelivery && isCompleted && (
-                          <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.3)', margin: '2px 0 0' }}>Selesai</p>
                         )}
                       </div>
                     </div>
