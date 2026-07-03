@@ -34,16 +34,14 @@ const STATUS_GLASS: Record<StatusHewan, { color: string; bg: string; border: str
 }
 
 // Agregat status pengantaran satu kelompok (sapi bisa beda-beda per orang)
-function computeStatusPengantaran(jamaah: TrackingData['jamaah']): { status: StatusAntar; namaPengantar: string[] } {
-  if (jamaah.length === 0) return { status: 'BELUM_DIANTAR', namaPengantar: [] }
-  const sudahSemua = jamaah.every((j) => j.status_antar === 'SUDAH_DIANTAR')
-  if (sudahSemua) return { status: 'SUDAH_DIANTAR', namaPengantar: [] }
+function computeStatusPengantaran(jamaah: TrackingData['jamaah']): { status: StatusAntar; sudah: number; total: number } {
+  const total = jamaah.length
+  if (total === 0) return { status: 'BELUM_DIANTAR', sudah: 0, total: 0 }
+  const sudah = jamaah.filter((j) => j.status_antar === 'SUDAH_DIANTAR').length
+  if (sudah === total) return { status: 'SUDAH_DIANTAR', sudah, total }
   const sedangProses = jamaah.some((j) => j.status_antar !== 'BELUM_DIANTAR')
-  if (sedangProses) {
-    const namaPengantar = Array.from(new Set(jamaah.map((j) => j.diantar_oleh).filter(Boolean))) as string[]
-    return { status: 'SEDANG_DIANTAR', namaPengantar }
-  }
-  return { status: 'BELUM_DIANTAR', namaPengantar: [] }
+  if (sedangProses) return { status: 'SEDANG_DIANTAR', sudah, total }
+  return { status: 'BELUM_DIANTAR', sudah, total }
 }
 
 interface Palette { color: string; bg: string; border: string; dot: string }
@@ -63,7 +61,7 @@ const UPCOMING_PALETTE: Palette = { color: 'rgba(255,255,255,0.2)', bg: 'rgba(25
 // belum/sedang/sudah diantar) + 1 langkah penutup "Selesai".
 // Aturan warna: sudah lewat -> selalu hijau, sedang berlangsung -> warna kategorinya,
 // belum sampai -> abu-abu.
-function buildSteps(result: TrackingData, statusPengantaran: { status: StatusAntar; namaPengantar: string[] }): StepItem[] {
+function buildSteps(result: TrackingData, statusPengantaran: { status: StatusAntar; sudah: number; total: number }): StepItem[] {
   const currentHewanStep = STATUS_CONFIG[result.status].step
   const steps: StepItem[] = STATUS_ORDER.map((status) => {
     const cfg = STATUS_CONFIG[status]
@@ -78,13 +76,16 @@ function buildSteps(result: TrackingData, statusPengantaran: { status: StatusAnt
 
   const pengantaranReached = currentHewanStep >= STATUS_CONFIG.SELESAI.step
   const da = STATUS_ANTAR_CONFIG[statusPengantaran.status]
+  const { sudah, total } = statusPengantaran
   let pengantaranState: StepItem['state'] = 'upcoming'
   let pengantaranSub: string | undefined
   if (pengantaranReached) {
     pengantaranState = statusPengantaran.status === 'SUDAH_DIANTAR' ? 'done' : 'active'
     if (statusPengantaran.status === 'SEDANG_DIANTAR') {
-      pengantaranSub = statusPengantaran.namaPengantar.length > 0
-        ? `Diantar oleh: ${statusPengantaran.namaPengantar.join(', ')}`
+      // Kurirnya bisa beda-beda per orang (terutama kelompok sapi) — detail siapa
+      // mengantar siapa dilihat di Daftar Pengqurban, di sini cukup progress-nya
+      pengantaranSub = total > 1
+        ? (sudah > 0 ? `${sudah} dari ${total} orang sudah diterima` : 'Sedang diantar ke alamat jamaah')
         : 'Sedang dalam perjalanan'
     } else if (statusPengantaran.status === 'BELUM_DIANTAR') {
       pengantaranSub = 'Menunggu diantar ke alamat Anda'
@@ -421,6 +422,11 @@ export default function TrackingPage() {
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={{ fontSize: 13.5, fontWeight: 600, color: 'rgba(255,255,255,0.88)', margin: 0 }}>{j.nama_lengkap}</p>
                           {j.atas_nama && <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.38)', margin: '3px 0 0' }}>({j.atas_nama})</p>}
+                          {j.status_antar === 'SEDANG_DIANTAR' && j.diantar_oleh && (
+                            <p style={{ fontSize: 11, color: STATUS_ANTAR_CONFIG.SEDANG_DIANTAR.color, fontWeight: 600, margin: '3px 0 0', display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <Truck size={10} /> Diantar oleh: {j.diantar_oleh}
+                            </p>
+                          )}
                         </div>
                         {result.status === 'SELESAI' && (
                           <span style={{
