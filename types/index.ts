@@ -21,9 +21,24 @@ export type StatusAntar =
   | 'SEDANG_DIANTAR'
   | 'SUDAH_DIANTAR'
 
+export type StatusPeriode = 'aktif' | 'arsip'
+
 // ============================================================
 // Database Row Types
 // ============================================================
+
+export interface Periode {
+  id: string
+  id_workspace: string
+  tahun: number
+  nama_event: string | null
+  tanggal_penyembelihan: string | null
+  status: StatusPeriode
+  diarsipkan_oleh: string | null
+  diarsipkan_pada: string | null
+  created_at: string
+  updated_at: string
+}
 
 export interface Workspace {
   id: string
@@ -46,6 +61,7 @@ export interface Profile {
 export interface Hewan {
   id: string
   id_workspace: string
+  periode_id: string
   kode_resi: string        // SAPI-A01 (internal, untuk panitia)
   kode_publik: string      // X7KQ-2M9R (acak, untuk jamaah)
   jenis_hewan: JenisHewan
@@ -59,6 +75,7 @@ export interface Hewan {
 export interface Jamaah {
   id: string
   id_workspace: string
+  periode_id: string
   id_hewan: string | null
   nama_lengkap: string
   atas_nama: string | null   // nama keluarga jika mewakili
