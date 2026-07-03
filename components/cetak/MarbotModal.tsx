@@ -175,7 +175,12 @@ export default function MarbotModal({ data, namaWorkspace, onClose, onBack }: Pr
       const headerH = 18   // mm, ruang header halaman
       const labelH = 5     // mm, tinggi label judul kelompok/tabel
       const tblHeaderH = 5.5 // mm, tinggi baris header NO/NAMA
-      const rowH = 5.5     // mm, tinggi tiap baris data (diperbesar dari 5mm)
+      const rowHMin = 5.5  // mm, tinggi minimum satu baris data (nama pendek, 1 baris)
+      const noColW = 11    // mm, lebar kolom NO.
+      const textPadX = 13  // mm, offset teks nama dari x kolom
+      const nameColW = colW - textPadX - 2 // mm, lebar teks nama yang tersedia untuk wrap
+      const LINE_H = 3.6       // mm, tinggi baris nama (8pt)
+      const LINE_H_SMALL = 3.2 // mm, tinggi baris atas_nama (7pt, abu-abu)
 
       function drawPageHeader() {
         pdf.setFont('helvetica', 'bold'); pdf.setFontSize(13); pdf.setTextColor(0)
@@ -210,27 +215,56 @@ export default function MarbotModal({ data, namaWorkspace, onClose, onBack }: Pr
 
       function drawTableHeaderRow(x: number, y: number) {
         pdf.setFillColor(240, 240, 240)
-        pdf.rect(x, y, 11, tblHeaderH, 'F')
-        pdf.rect(x + 11, y, colW - 11, tblHeaderH, 'F')
+        pdf.rect(x, y, noColW, tblHeaderH, 'F')
+        pdf.rect(x + noColW, y, colW - noColW, tblHeaderH, 'F')
         pdf.setDrawColor(150); pdf.setLineWidth(0.2)
-        pdf.rect(x, y, 11, tblHeaderH); pdf.rect(x + 11, y, colW - 11, tblHeaderH)
+        pdf.rect(x, y, noColW, tblHeaderH); pdf.rect(x + noColW, y, colW - noColW, tblHeaderH)
         pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7.5); pdf.setTextColor(0)
-        pdf.text('NO.', x + 5.5, y + tblHeaderH - 1.8, { align: 'center' })
-        pdf.text('NAMA', x + 13, y + tblHeaderH - 1.8)
+        pdf.text('NO.', x + noColW / 2, y + tblHeaderH - 1.8, { align: 'center' })
+        pdf.text('NAMA', x + textPadX, y + tblHeaderH - 1.8)
       }
 
-      function drawDataRow(x: number, y: number, no: number, j: Jamaah) {
+      // Bungkus nama (dan atas_nama, jika ada) jadi beberapa baris agar tidak pernah terpotong.
+      type LineInfo = { text: string; small?: boolean }
+      function wrapJamaahLines(j: Jamaah): LineInfo[] {
+        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8)
+        const nameLines: string[] = pdf.splitTextToSize(j.nama_lengkap || '', nameColW)
+        const lines: LineInfo[] = nameLines.map((t: string) => ({ text: t }))
+        if (j.atas_nama) {
+          pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7)
+          const atasLines: string[] = pdf.splitTextToSize(`(${j.atas_nama})`, nameColW)
+          atasLines.forEach((t: string) => lines.push({ text: t, small: true }))
+        }
+        return lines
+      }
+
+      function rowHeightFor(lines: LineInfo[]): number {
+        const h = lines.reduce((sum, l) => sum + (l.small ? LINE_H_SMALL : LINE_H), 0)
+        return Math.max(rowHMin, h + 1.6)
+      }
+
+      function drawDataRow(x: number, y: number, no: number, lines: LineInfo[], h: number) {
         pdf.setDrawColor(150)
-        pdf.rect(x, y, 11, rowH); pdf.rect(x + 11, y, colW - 11, rowH)
+        pdf.rect(x, y, noColW, h); pdf.rect(x + noColW, y, colW - noColW, h)
         pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(0)
-        pdf.text(String(no), x + 5.5, y + rowH - 1.9, { align: 'center' })
-        const nm = (j.atas_nama ? `${j.nama_lengkap} (${j.atas_nama})` : j.nama_lengkap).slice(0, 36)
-        pdf.text(nm, x + 13, y + rowH - 1.9)
+        pdf.text(String(no), x + noColW / 2, y + h / 2 + 1.1, { align: 'center' })
+        let ly = y + 3.6
+        lines.forEach(l => {
+          if (l.small) { pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7); pdf.setTextColor(110) }
+          else { pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(0) }
+          pdf.text(l.text, x + textPadX, ly)
+          ly += l.small ? LINE_H_SMALL : LINE_H
+        })
       }
 
       // -------- KAMBING: satu tabel gabungan, boleh nyambung lintas kolom/halaman --------
-      if (kambingJamaah.length > 0) {
-        ensureSpace(labelH + tblHeaderH + rowH)
+      const kambingRows = kambingJamaah.map(j => {
+        const lines = wrapJamaahLines(j)
+        return { lines, h: rowHeightFor(lines) }
+      })
+
+      if (kambingRows.length > 0) {
+        ensureSpace(labelH + tblHeaderH + kambingRows[0].h)
         let x = colX(), y = colY()
         pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9); pdf.setTextColor(0)
         pdf.text('KAMBING', x, y + 3.5)
@@ -238,8 +272,8 @@ export default function MarbotModal({ data, namaWorkspace, onClose, onBack }: Pr
         drawTableHeaderRow(x, y)
         advance(tblHeaderH); y = colY()
 
-        kambingJamaah.forEach((j, i) => {
-          if (ensureSpace(rowH)) {
+        kambingRows.forEach((r, i) => {
+          if (ensureSpace(r.h)) {
             x = colX(); y = colY()
             pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9); pdf.setTextColor(0)
             pdf.text('KAMBING (lanjutan)', x, y + 3.5)
@@ -249,31 +283,36 @@ export default function MarbotModal({ data, namaWorkspace, onClose, onBack }: Pr
           } else {
             x = colX(); y = colY()
           }
-          drawDataRow(x, y, i + 1, j)
-          advance(rowH)
+          drawDataRow(x, y, i + 1, r.lines, r.h)
+          advance(r.h)
         })
         pdf.setDrawColor(0)
       }
 
       // -------- SAPI: tiap kelompok tetap satu blok utuh, label = kode_resi --------
-      function sapiGroupHeight(k: KelompokData): number {
-        return labelH + tblHeaderH + k.jamaah.length * rowH + 4
+      function sapiGroupLayout(k: KelompokData) {
+        const rows = k.jamaah.map(j => {
+          const lines = wrapJamaahLines(j)
+          return { lines, h: rowHeightFor(lines) }
+        })
+        const totalH = labelH + tblHeaderH + rows.reduce((s, r) => s + r.h, 0) + 4
+        return { rows, totalH }
       }
 
       sapiGroups.forEach((k) => {
-        const gh = sapiGroupHeight(k)
-        ensureSpace(gh)
+        const { rows, totalH } = sapiGroupLayout(k)
+        ensureSpace(totalH)
         let x = colX(), y = colY()
         pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9); pdf.setTextColor(0)
         pdf.text(k.hewan.kode_resi, x, y + 3.5)
         y += labelH
         drawTableHeaderRow(x, y)
         y += tblHeaderH
-        k.jamaah.forEach((j, i) => {
-          drawDataRow(x, y, i + 1, j)
-          y += rowH
+        rows.forEach((r, i) => {
+          drawDataRow(x, y, i + 1, r.lines, r.h)
+          y += r.h
         })
-        advance(gh)
+        advance(totalH)
       })
 
       pdf.save('daftar-nama.pdf')
