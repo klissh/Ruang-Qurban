@@ -5,7 +5,13 @@ import { X, Printer, Download, ArrowLeft } from 'lucide-react'
 import type { Jamaah, Hewan } from '@/types'
 
 interface LabelData { hewan: Hewan; jamaah: Jamaah[] }
-interface LabelItem { hewan: Hewan; jamaah: Jamaah }
+interface LabelItem { hewan: Hewan; jamaah: Jamaah; nomorUrut: number }
+
+// Ambil angka dari kode_resi, mis. "KMB-014" -> 14
+function extractKodeNumber(kode: string): number {
+  const match = kode.match(/(\d+)$/)
+  return match ? parseInt(match[1], 10) : 0
+}
 interface Config { lebarMm: number; tinggiMm: number; kolomPerBaris: number }
 interface Props { data: LabelData[]; onClose: () => void; onBack?: () => void }
 
@@ -20,8 +26,8 @@ const PAPER_SIZES = {
 type PaperKey = keyof typeof PAPER_SIZES
 
 // ─── Label Card — putih bersih, teks mengisi ruang ───────────────────────────
-function LabelCard({ hewan, jamaah, lw, lh }: {
-  hewan: Hewan; jamaah: Jamaah; lw: number; lh: number
+function LabelCard({ hewan, jamaah, nomorUrut, lw, lh }: {
+  hewan: Hewan; jamaah: Jamaah; nomorUrut: number; lw: number; lh: number
 }) {
   const wpx = lw * MM_TO_PX
   const hpx = lh * MM_TO_PX
@@ -31,13 +37,13 @@ function LabelCard({ hewan, jamaah, lw, lh }: {
       style={{ width: wpx, height: hpx, flexShrink: 0, boxSizing: 'border-box' }}
       className="border border-gray-800 bg-white flex flex-col overflow-hidden"
     >
-      {/* Kode hewan + jenis — putih, no ink fill */}
+      {/* Kode hewan + nomor urut pengurban — putih, no ink fill */}
       <div className="flex items-baseline justify-between px-[6px] pt-[4px] pb-[2px] border-b-2 border-gray-800 flex-shrink-0">
         <span className="font-black text-[17px] tracking-[1px] font-mono leading-none text-black">
           {hewan.kode_resi}
         </span>
         <span className="text-[9px] font-bold font-sans uppercase tracking-wider leading-none text-gray-500">
-          {hewan.jenis_hewan}
+          NO. {nomorUrut}
         </span>
       </div>
 
@@ -81,8 +87,14 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
   const [zoomFactor, setZoomFactor] = useState(1.0)
 
   // 1 label per jamaah (flatMap)
+  // Kambing: nomor urut = angka dari kode_resi (KMB-014 -> 14)
+  // Sapi: nomor urut = posisi jamaah dalam kelompok sapinya (1-7)
   const labels: LabelItem[] = data.flatMap(({ hewan, jamaah }) =>
-    jamaah.map(j => ({ hewan, jamaah: j }))
+    jamaah.map((j, idx) => ({
+      hewan,
+      jamaah: j,
+      nomorUrut: hewan.jenis_hewan === 'SAPI' ? idx + 1 : extractKodeNumber(hewan.kode_resi),
+    }))
   )
 
   const paperW = orientation === 'portrait' ? PAPER_SIZES[paperKey].w : PAPER_SIZES[paperKey].h
@@ -108,11 +120,11 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
 
   // ── Print HTML ────────────────────────────────────────────────────────────
   function buildPrintHTML() {
-    const labelHTMLs = labels.map(({ hewan, jamaah }) => `
+    const labelHTMLs = labels.map(({ hewan, jamaah, nomorUrut }) => `
       <div style="width:${lw}mm;height:${lh}mm;border:1px solid #1f2937;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;break-inside:avoid;font-family:Arial,sans-serif;background:white">
         <div style="display:flex;align-items:baseline;justify-content:space-between;padding:3px 6px 2px;border-bottom:2px solid #1f2937;flex-shrink:0">
           <span style="font-weight:900;font-size:16px;letter-spacing:1px;font-family:monospace;color:#000;line-height:1">${hewan.kode_resi}</span>
-          <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#6b7280;line-height:1">${hewan.jenis_hewan}</span>
+          <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#6b7280;line-height:1">NO. ${nomorUrut}</span>
         </div>
         <div style="padding:3px 6px 2px;border-bottom:1px solid #d1d5db;flex-shrink:0">
           <p style="font-weight:700;font-size:13.5px;line-height:1.2;margin:0;color:#111;word-break:break-word">${jamaah.nama_lengkap}</p>
@@ -148,7 +160,7 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
         : [PAPER_SIZES[paperKey].w, PAPER_SIZES[paperKey].h] as [number, number]
       const pdf = new jsPDF({ orientation, unit: 'mm', format: fmt })
 
-      labels.forEach(({ hewan, jamaah }, idx) => {
+      labels.forEach(({ hewan, jamaah, nomorUrut }, idx) => {
         if (idx > 0 && idx % labelsPerPage === 0) pdf.addPage()
         const pos = idx % labelsPerPage
         const col = pos % cols
@@ -160,12 +172,12 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
         pdf.setDrawColor(31, 41, 55); pdf.setLineWidth(0.3)
         pdf.rect(x, y, lw, lh)
 
-        // ── Kode hewan + jenis (putih, no fill) ───────────────────────────
+        // ── Kode hewan + nomor urut pengurban (putih, no fill) ────────────
         const headerH = 8.5
         pdf.setFont('courier', 'bold'); pdf.setFontSize(14); pdf.setTextColor(0)
         pdf.text(hewan.kode_resi, x + 2.5, y + 5)
         pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8); pdf.setTextColor(100)
-        pdf.text(hewan.jenis_hewan.toUpperCase(), x + lw - 2.5, y + 5, { align: 'right' })
+        pdf.text(`NO. ${nomorUrut}`, x + lw - 2.5, y + 5, { align: 'right' })
 
         // Garis tebal di bawah header
         pdf.setDrawColor(31, 41, 55); pdf.setLineWidth(0.5)
@@ -355,8 +367,8 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
                       gridTemplateColumns: `repeat(${cols}, ${lw * MM_TO_PX}px)`,
                       gap: 0,
                     }}>
-                      {firstPageLabels.map(({ hewan, jamaah }, idx) => (
-                        <LabelCard key={idx} hewan={hewan} jamaah={jamaah} lw={lw} lh={lh} />
+                      {firstPageLabels.map(({ hewan, jamaah, nomorUrut }, idx) => (
+                        <LabelCard key={idx} hewan={hewan} jamaah={jamaah} nomorUrut={nomorUrut} lw={lw} lh={lh} />
                       ))}
                     </div>
                   </div>
@@ -387,3 +399,4 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
     </div>
   )
 }
+
