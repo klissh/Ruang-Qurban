@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Search, ChevronDown, ChevronUp, ArrowLeft, Archive, Phone, MapPin, Lock } from 'lucide-react'
@@ -196,22 +197,23 @@ export default function ArsipDetailClient({ periode, hewanList, jamaahList, user
         })}
       </div>
 
-      {/* Modal Buka Kembali */}
-      {showBukaKembali && (
+      {/* Modal Buka Kembali — pakai createPortal agar tidak terjebak layout overflow */}
+      {showBukaKembali && createPortal(
         <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
-          <div style={{ background: 'rgba(7,18,11,0.97)', backdropFilter: 'blur(36px)', border: '1px solid rgba(255,255,255,0.11)', borderTop: '1px solid rgba(255,255,255,0.2)', borderRadius: 20, padding: 28, maxWidth: 420, width: '100%', boxShadow: '0 32px 80px rgba(0,0,0,0.52)' }}>
+          <div style={{ background: 'rgba(7,18,11,0.97)', backdropFilter: 'blur(36px)', WebkitBackdropFilter: 'blur(36px)', border: '1px solid rgba(255,255,255,0.11)', borderTop: '1px solid rgba(255,255,255,0.2)', borderRadius: 20, padding: 28, maxWidth: 420, width: '100%', boxShadow: '0 32px 80px rgba(0,0,0,0.52)' }}>
             <h3 style={{ fontSize: 16, fontWeight: 800, color: 'rgba(255,255,255,0.93)', margin: '0 0 12px' }}>Buka Kembali Arsip?</h3>
             <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6, marginBottom: 20 }}>
               Periode <strong style={{ color: '#fbbf24' }}>{periode.nama_event ?? `Qurban ${periode.tahun}`}</strong> akan dijadikan periode aktif kembali. Semua data akan bisa diedit lagi.
             </p>
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={() => setShowBukaKembali(false)} style={{ flex: 1, padding: '10px 0', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Batal</button>
-              <button onClick={handleBukaKembali} disabled={saving} style={{ flex: 1, padding: '10px 0', background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 10, color: '#fbbf24', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+              <button onClick={handleBukaKembali} disabled={saving} style={{ flex: 1, padding: '10px 0', background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 10, color: '#fbbf24', fontSize: 13, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer' }}>
                 {saving ? 'Membuka...' : 'Ya, Buka Kembali'}
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
