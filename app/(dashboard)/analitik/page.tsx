@@ -17,14 +17,31 @@ const G = {
 }
 
 const STAT_ACCENT: Record<StatusHewan, { dot: string; bar: string; color: string }> = {
-  TERDAFTAR: { dot: '#64748b', bar: '#64748b', color: '#94a3b8' },
-  SAMPAI_MASJID: { dot: '#0ea5e9', bar: '#38bdf8', color: '#38bdf8' },
+  TERDAFTAR:         { dot: '#64748b', bar: '#64748b', color: '#94a3b8' },
+  SAMPAI_MASJID:     { dot: '#0ea5e9', bar: '#38bdf8', color: '#38bdf8' },
   MENUNGGU_SEMBELIH: { dot: '#64748b', bar: '#94a3b8', color: '#94a3b8' },
   SEDANG_DISEMBELIH: { dot: '#f59e0b', bar: '#f59e0b', color: '#fbbf24' },
-  SUDAH_DISEMBELIH: { dot: '#f97316', bar: '#fb923c', color: '#fb923c' },
-  PENCACAHAN: { dot: '#3b82f6', bar: '#60a5fa', color: '#60a5fa' },
-  PACKING: { dot: '#6366f1', bar: '#818cf8', color: '#818cf8' },
-  SELESAI: { dot: '#10b981', bar: '#34d399', color: '#34d399' },
+  SUDAH_DISEMBELIH:  { dot: '#f97316', bar: '#fb923c', color: '#fb923c' },
+  PENCACAHAN:        { dot: '#3b82f6', bar: '#60a5fa', color: '#60a5fa' },
+  PACKING:           { dot: '#6366f1', bar: '#818cf8', color: '#818cf8' },
+  SELESAI:           { dot: '#10b981', bar: '#34d399', color: '#34d399' },
+}
+
+function NoPeriodeState({ namaWorkspace }: { namaWorkspace: string }) {
+  return (
+    <div className="p-6 md:p-8 max-w-4xl mx-auto animate-slide-up">
+      <div className="mb-2">
+        <h1 style={{ fontSize: 26, fontWeight: 800, color: 'rgba(255,255,255,0.97)', letterSpacing: '-0.5px', margin: 0 }}>
+          Dashboard Analitik
+        </h1>
+        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.36)', marginTop: 6 }}>{namaWorkspace}</p>
+      </div>
+      <div style={{ ...G.card, padding: 40, textAlign: 'center', marginTop: 32 }}>
+        <p style={{ fontSize: 16, fontWeight: 700, color: 'rgba(255,255,255,0.5)', margin: 0 }}>Tidak Ada Periode Aktif</p>
+        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)', marginTop: 8 }}>Data analitik akan muncul setelah periode aktif tersedia.</p>
+      </div>
+    </div>
+  )
 }
 
 export default async function AnalitikPage() {
@@ -43,13 +60,30 @@ export default async function AnalitikPage() {
   }
 
   const wid = profile.id_workspace!
+  const namaWorkspace = (profile.workspaces as any)?.nama ?? ''
+
+  const { data: periodeAktif } = await supabase
+    .from('periode_qurban')
+    .select('id, tahun, nama_event')
+    .eq('id_workspace', wid)
+    .eq('status', 'aktif')
+    .single()
+
+  if (!periodeAktif) return <NoPeriodeState namaWorkspace={namaWorkspace} />
+
   const { data: hewanData } = await supabase
-    .from('hewan').select('jenis_hewan, status')
-    .eq('id_workspace', wid).is('deleted_at', null)
+    .from('hewan')
+    .select('jenis_hewan, status')
+    .eq('id_workspace', wid)
+    .eq('periode_id', periodeAktif.id)
+    .is('deleted_at', null)
 
   const { count: totalJamaah } = await supabase
-    .from('jamaah').select('id', { count: 'exact', head: true })
-    .eq('id_workspace', wid).is('deleted_at', null)
+    .from('jamaah')
+    .select('id', { count: 'exact', head: true })
+    .eq('id_workspace', wid)
+    .eq('periode_id', periodeAktif.id)
+    .is('deleted_at', null)
 
   const hewan = hewanData ?? []
   const totalSapi    = hewan.filter((h) => h.jenis_hewan === 'SAPI').length
@@ -62,11 +96,13 @@ export default async function AnalitikPage() {
   }, {} as Record<StatusHewan, number>)
   const persenSelesai = totalHewan > 0 ? Math.round((perStatus.SELESAI / totalHewan) * 100) : 0
 
+  const labelPeriode = periodeAktif.nama_event ?? `Qurban ${periodeAktif.tahun}`
+
   const statCards = [
-    { label: 'Total Hewan', value: totalHewan,        icon: <Layers size={18} color="#34d399" />, accent: 'rgba(52,211,153,0.35)', iconBg: 'rgba(16,185,129,0.14)' },
-    { label: 'Total Jamaah', value: totalJamaah ?? 0, icon: <Users size={18} color="#60a5fa" />, accent: 'rgba(96,165,250,0.35)', iconBg: 'rgba(96,165,250,0.14)' },
-    { label: 'Sapi',         value: totalSapi,         icon: <Beef size={18} color="#fbbf24" />, accent: 'rgba(251,191,36,0.35)', iconBg: 'rgba(251,191,36,0.14)' },
-    { label: 'Kambing',      value: totalKambing,      icon: <PawPrint size={18} color="#c4b5fd" />, accent: 'rgba(167,139,250,0.35)', iconBg: 'rgba(167,139,250,0.14)' },
+    { label: 'Total Hewan',  value: totalHewan,        icon: <Layers size={18} color="#34d399" />, accent: 'rgba(52,211,153,0.35)',  iconBg: 'rgba(16,185,129,0.14)' },
+    { label: 'Total Jamaah', value: totalJamaah ?? 0,  icon: <Users size={18} color="#60a5fa" />,  accent: 'rgba(96,165,250,0.35)',  iconBg: 'rgba(96,165,250,0.14)' },
+    { label: 'Sapi',         value: totalSapi,          icon: <Beef size={18} color="#fbbf24" />,   accent: 'rgba(251,191,36,0.35)', iconBg: 'rgba(251,191,36,0.14)' },
+    { label: 'Kambing',      value: totalKambing,       icon: <PawPrint size={18} color="#c4b5fd" />, accent: 'rgba(167,139,250,0.35)', iconBg: 'rgba(167,139,250,0.14)' },
   ]
 
   return (
@@ -78,17 +114,13 @@ export default async function AnalitikPage() {
           Dashboard Analitik
         </h1>
         <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.36)', marginTop: 6 }}>
-          {(profile.workspaces as any)?.nama} · Idul Adha 1446 H
+          {namaWorkspace} · {labelPeriode}
         </p>
       </div>
 
       {/* Progress */}
       <div style={{ ...G.card, padding: 28, position: 'relative', overflow: 'hidden' }}>
-        <div style={{
-          position: 'absolute', bottom: -50, left: '5%', right: '5%', height: 100,
-          background: 'radial-gradient(ellipse, rgba(16,185,129,0.07), transparent 70%)',
-          pointerEvents: 'none',
-        }} />
+        <div style={{ position: 'absolute', bottom: -50, left: '5%', right: '5%', height: 100, background: 'radial-gradient(ellipse, rgba(16,185,129,0.07), transparent 70%)', pointerEvents: 'none' }} />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
             <p style={{ fontWeight: 700, fontSize: 15, color: 'rgba(255,255,255,0.88)', margin: 0 }}>Progress Penyembelihan</p>
@@ -101,32 +133,18 @@ export default async function AnalitikPage() {
           </p>
         </div>
         <div style={{ height: 10, background: 'rgba(255,255,255,0.06)', borderRadius: 99, overflow: 'hidden' }}>
-          <div style={{
-            height: '100%', width: `${persenSelesai}%`,
-            background: 'linear-gradient(90deg,#10b981,#34d399)', borderRadius: 99,
-            boxShadow: '0 0 14px rgba(16,185,129,0.55)',
-            transition: 'width 0.8s ease',
-          }} />
+          <div style={{ height: '100%', width: `${persenSelesai}%`, background: 'linear-gradient(90deg,#10b981,#34d399)', borderRadius: 99, boxShadow: '0 0 14px rgba(16,185,129,0.55)', transition: 'width 0.8s ease' }} />
         </div>
       </div>
 
       {/* Stat cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
         {statCards.map((s) => (
-          <div key={s.label} style={{
-            ...G.card,
-            borderTop: `2px solid ${s.accent}`,
-            padding: 20,
-          }}>
-            <div style={{
-              width: 38, height: 38, borderRadius: 11, background: s.iconBg,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14,
-            }}>
+          <div key={s.label} style={{ ...G.card, borderTop: `2px solid ${s.accent}`, padding: 20 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, background: s.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
               {s.icon}
             </div>
-            <p style={{ fontSize: 32, fontWeight: 800, color: 'rgba(255,255,255,0.97)', margin: '0 0 6px', lineHeight: 1, letterSpacing: -1 }}>
-              {s.value}
-            </p>
+            <p style={{ fontSize: 32, fontWeight: 800, color: 'rgba(255,255,255,0.97)', margin: '0 0 6px', lineHeight: 1, letterSpacing: -1 }}>{s.value}</p>
             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', margin: 0, fontWeight: 500 }}>{s.label}</p>
           </div>
         ))}
@@ -136,16 +154,11 @@ export default async function AnalitikPage() {
       <div style={{ ...G.card, padding: 26 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
           <h2 style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.86)', margin: 0 }}>Breakdown Per Status</h2>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '4px 10px', background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.09)', borderRadius: 20,
-          }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 20 }}>
             <PieChart size={12} color="rgba(255,255,255,0.38)" />
             <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.38)' }}>{totalHewan} hewan</span>
           </div>
         </div>
-
         {(Object.keys(perStatus) as StatusHewan[]).map((status) => {
           const count = perStatus[status]
           const persen = totalHewan > 0 ? Math.round((count / totalHewan) * 100) : 0
@@ -164,10 +177,7 @@ export default async function AnalitikPage() {
                 </div>
               </div>
               <div style={{ height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 99, overflow: 'hidden' }}>
-                <div style={{
-                  height: '100%', width: `${persen}%`, background: acc.bar, borderRadius: 99,
-                  boxShadow: `0 0 8px ${acc.bar}66`, transition: 'width 0.8s ease',
-                }} />
+                <div style={{ height: '100%', width: `${persen}%`, background: acc.bar, borderRadius: 99, boxShadow: `0 0 8px ${acc.bar}66`, transition: 'width 0.8s ease' }} />
               </div>
             </div>
           )
