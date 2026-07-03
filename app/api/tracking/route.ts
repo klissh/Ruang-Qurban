@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
   // Ambil daftar jamaah — tampilkan nama tanpa sensor untuk transparansi
   const { data: jamaah } = await supabase
     .from('jamaah')
-    .select('id, nama_lengkap, atas_nama')
+    .select('id, nama_lengkap, atas_nama, kode_jamaah, status_antar, diantar_oleh')
     .eq('id_hewan', hewan.id)
     .is('deleted_at', null)
     .order('created_at', { ascending: true })

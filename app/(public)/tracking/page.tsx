@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { STATUS_CONFIG, STATUS_ORDER } from '@/types'
-import type { StatusHewan, JenisHewan } from '@/types'
-import { Moon, Search, Beef, PawPrint, Check, Video, AlertCircle, Loader2 } from 'lucide-react'
+import { STATUS_CONFIG, STATUS_ORDER, STATUS_ANTAR_CONFIG } from '@/types'
+import type { StatusHewan, JenisHewan, StatusAntar } from '@/types'
+import { Moon, Search, Beef, PawPrint, Check, Video, AlertCircle, Loader2, Truck, Clock } from 'lucide-react'
 
 interface TrackingData {
   kode_resi: string
@@ -12,7 +12,27 @@ interface TrackingData {
   status: StatusHewan
   url_dokumentasi: string | null
   nama_workspace: string
-  jamaah: Array<{ id: string; nama_lengkap: string; atas_nama: string | null }>
+  jamaah: Array<{
+    id: string
+    nama_lengkap: string
+    atas_nama: string | null
+    kode_jamaah: string | null
+    status_antar: StatusAntar
+    diantar_oleh: string | null
+  }>
+}
+
+// Agregat status pengantaran satu kelompok (sapi bisa beda-beda per orang)
+function computeStatusPengantaran(jamaah: TrackingData['jamaah']): { status: StatusAntar; namaPengantar: string[] } {
+  if (jamaah.length === 0) return { status: 'BELUM_DIANTAR', namaPengantar: [] }
+  const sudahSemua = jamaah.every((j) => j.status_antar === 'SUDAH_DIANTAR')
+  if (sudahSemua) return { status: 'SUDAH_DIANTAR', namaPengantar: [] }
+  const sedangProses = jamaah.some((j) => j.status_antar !== 'BELUM_DIANTAR')
+  if (sedangProses) {
+    const namaPengantar = Array.from(new Set(jamaah.map((j) => j.diantar_oleh).filter(Boolean))) as string[]
+    return { status: 'SEDANG_DIANTAR', namaPengantar }
+  }
+  return { status: 'BELUM_DIANTAR', namaPengantar: [] }
 }
 
 const G = {
@@ -69,6 +89,7 @@ export default function TrackingPage() {
   }, []) // eslint-disable-line
 
   const currentStep = result ? STATUS_CONFIG[result.status].step : 0
+  const statusPengantaran = result ? computeStatusPengantaran(result.jamaah) : null
 
   return (
     <div
@@ -91,7 +112,7 @@ export default function TrackingPage() {
         WebkitBackdropFilter: 'blur(24px)',
         borderBottom: '1px solid rgba(255,255,255,0.07)',
       }}>
-        <div style={{ maxWidth: 560, margin: '0 auto', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ maxWidth: 780, margin: '0 auto', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
             width: 38, height: 38, borderRadius: 12,
             background: 'linear-gradient(145deg,#12c98d,#059669)',
@@ -109,10 +130,10 @@ export default function TrackingPage() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 560, margin: '0 auto', padding: '24px 20px 48px', position: 'relative', zIndex: 1 }}>
+      <div style={{ maxWidth: 780, margin: '0 auto', padding: '24px 20px 48px', position: 'relative', zIndex: 1 }}>
 
         {/* Search card */}
-        <div style={{ ...G.card, padding: 24, marginBottom: 20 }}>
+        <div style={{ ...G.card, padding: 24, marginBottom: 20, maxWidth: 560 }}>
           <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: 12 }}>
             Masukkan Kode Resi Qurban Anda
           </label>
@@ -199,91 +220,140 @@ export default function TrackingPage() {
               </div>
             </div>
 
-            {/* Stepper */}
-            <div style={{ ...G.card, padding: 24 }}>
-              <h3 style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', margin: '0 0 20px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-                Status Penyembelihan
-              </h3>
-              {STATUS_ORDER.map((status, idx) => {
-                const cfg = STATUS_CONFIG[status]
-                const sg = STATUS_GLASS[status]
-                const isCompleted = currentStep > cfg.step
-                const isActive = currentStep === cfg.step
-                const isLast = idx === STATUS_ORDER.length - 1
+            {/* Stepper + Daftar Pengqurban — berdampingan biar video dokumentasi nggak kejauhan ke bawah */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16 }}>
 
-                return (
-                  <div key={status} style={{ display: 'flex', gap: 16 }}>
-                    {/* Dot + Line */}
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                      <div style={{
-                        width: 32, height: 32, borderRadius: '50%',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 13, fontWeight: 700, flexShrink: 0,
-                        background: isCompleted ? sg.bg : isActive ? sg.bg : 'rgba(255,255,255,0.05)',
-                        border: `2px solid ${isCompleted || isActive ? sg.dot : 'rgba(255,255,255,0.12)'}`,
-                        color: isCompleted || isActive ? sg.color : 'rgba(255,255,255,0.2)',
-                        boxShadow: isActive ? `0 0 12px ${sg.dot}55` : 'none',
-                      }}>
-                        {isCompleted ? <Check size={14} /> : cfg.step}
-                      </div>
-                      {!isLast && (
+              {/* Stepper */}
+              <div style={{ ...G.card, padding: 24 }}>
+                <h3 style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', margin: '0 0 20px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                  Status Penyembelihan
+                </h3>
+                {STATUS_ORDER.map((status, idx) => {
+                  const cfg = STATUS_CONFIG[status]
+                  const sg = STATUS_GLASS[status]
+                  const isCompleted = currentStep > cfg.step
+                  const isActive = currentStep === cfg.step
+                  const isLast = idx === STATUS_ORDER.length - 1
+
+                  // Step terakhir ("Selesai/Siap Distribusi") begitu tercapai berubah
+                  // jadi status pengantaran real-time, terintegrasi dgn halaman Pengantaran
+                  const isFinalDelivery = isLast && isActive && statusPengantaran
+
+                  let label = cfg.label
+                  let subLabel: React.ReactNode = null
+                  let circleColor = sg
+                  let circleIcon: React.ReactNode = isCompleted ? <Check size={14} /> : cfg.step
+
+                  if (isFinalDelivery) {
+                    const da = STATUS_ANTAR_CONFIG[statusPengantaran.status]
+                    circleColor = da
+                    if (statusPengantaran.status === 'SUDAH_DIANTAR') {
+                      label = 'Selesai'
+                      subLabel = 'Selamat menikmati daging qurban'
+                      circleIcon = <Check size={14} />
+                    } else if (statusPengantaran.status === 'SEDANG_DIANTAR') {
+                      label = 'Sedang Diantar'
+                      subLabel = statusPengantaran.namaPengantar.length > 0
+                        ? `Diantar oleh: ${statusPengantaran.namaPengantar.join(', ')}`
+                        : 'Sedang dalam perjalanan'
+                      circleIcon = <Truck size={14} />
+                    } else {
+                      label = 'Belum Diantar'
+                      subLabel = 'Menunggu diantar ke alamat Anda'
+                      circleIcon = <Clock size={14} />
+                    }
+                  }
+
+                  return (
+                    <div key={status} style={{ display: 'flex', gap: 16 }}>
+                      {/* Dot + Line */}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                         <div style={{
-                          width: 2, flex: 1, margin: '4px 0', minHeight: 20,
-                          background: isCompleted ? sg.dot : 'rgba(255,255,255,0.07)',
-                        }} />
-                      )}
-                    </div>
+                          width: 32, height: 32, borderRadius: '50%',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 13, fontWeight: 700, flexShrink: 0,
+                          background: isCompleted ? circleColor.bg : isActive ? circleColor.bg : 'rgba(255,255,255,0.05)',
+                          border: `2px solid ${isCompleted || isActive ? circleColor.dot : 'rgba(255,255,255,0.12)'}`,
+                          color: isCompleted || isActive ? circleColor.color : 'rgba(255,255,255,0.2)',
+                          boxShadow: isActive ? `0 0 12px ${circleColor.dot}55` : 'none',
+                        }}>
+                          {circleIcon}
+                        </div>
+                        {!isLast && (
+                          <div style={{
+                            width: 2, flex: 1, margin: '4px 0', minHeight: 20,
+                            background: isCompleted ? sg.dot : 'rgba(255,255,255,0.07)',
+                          }} />
+                        )}
+                      </div>
 
-                    {/* Label */}
-                    <div style={{ paddingBottom: isLast ? 0 : 20 }}>
-                      <p style={{
-                        fontSize: 14, fontWeight: isActive ? 700 : 500, lineHeight: '32px', margin: 0,
-                        color: isActive ? sg.color : isCompleted ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.22)',
-                      }}>
-                        {cfg.label}
-                      </p>
-                      {isActive && (
-                        <p style={{ fontSize: 11.5, color: sg.color, fontWeight: 600, margin: '2px 0 0', opacity: 0.8 }}>
-                          Sedang berlangsung
+                      {/* Label */}
+                      <div style={{ paddingBottom: isLast ? 0 : 20 }}>
+                        <p style={{
+                          fontSize: 14, fontWeight: isActive ? 700 : 500, lineHeight: '32px', margin: 0,
+                          color: isActive ? circleColor.color : isCompleted ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.22)',
+                        }}>
+                          {label}
                         </p>
-                      )}
-                      {isCompleted && (
-                        <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.3)', margin: '2px 0 0' }}>Selesai</p>
-                      )}
+                        {isFinalDelivery && subLabel && (
+                          <p style={{ fontSize: 11.5, color: circleColor.color, fontWeight: 600, margin: '2px 0 0', opacity: 0.85 }}>
+                            {subLabel}
+                          </p>
+                        )}
+                        {!isFinalDelivery && isActive && (
+                          <p style={{ fontSize: 11.5, color: sg.color, fontWeight: 600, margin: '2px 0 0', opacity: 0.8 }}>
+                            Sedang berlangsung
+                          </p>
+                        )}
+                        {!isFinalDelivery && isCompleted && (
+                          <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.3)', margin: '2px 0 0' }}>Selesai</p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )
-              })}
-            </div>
+                  )
+                })}
+              </div>
 
-            {/* Jamaah */}
-            <div style={{ ...G.card, padding: 24 }}>
-              <h3 style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', margin: '0 0 16px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-                Daftar Pengqurban ({result.jamaah.length} orang)
-              </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {result.jamaah.map((j, idx) => (
-                  <div key={j.id} style={{
-                    display: 'flex', alignItems: 'flex-start', gap: 10,
-                    padding: '10px 14px',
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.07)',
-                    borderRadius: 10,
-                  }}>
-                    <div style={{
-                      width: 24, height: 24, borderRadius: '50%',
-                      background: 'rgba(16,185,129,0.15)', color: '#34d399',
-                      fontSize: 10, fontWeight: 700,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1,
-                    }}>
-                      {idx + 1}
-                    </div>
-                    <div>
-                      <p style={{ fontSize: 13.5, fontWeight: 600, color: 'rgba(255,255,255,0.88)', margin: 0 }}>{j.nama_lengkap}</p>
-                      {j.atas_nama && <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.38)', margin: '3px 0 0' }}>({j.atas_nama})</p>}
-                    </div>
-                  </div>
-                ))}
+              {/* Jamaah */}
+              <div style={{ ...G.card, padding: 24 }}>
+                <h3 style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', margin: '0 0 16px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                  Daftar Pengqurban ({result.jamaah.length} orang)
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {result.jamaah.map((j, idx) => {
+                    const da = STATUS_ANTAR_CONFIG[j.status_antar]
+                    return (
+                      <div key={j.id} style={{
+                        display: 'flex', alignItems: 'flex-start', gap: 10,
+                        padding: '10px 14px',
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.07)',
+                        borderRadius: 10,
+                      }}>
+                        <div style={{
+                          width: 24, height: 24, borderRadius: '50%',
+                          background: 'rgba(16,185,129,0.15)', color: '#34d399',
+                          fontSize: 10, fontWeight: 700,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1,
+                        }}>
+                          {idx + 1}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 13.5, fontWeight: 600, color: 'rgba(255,255,255,0.88)', margin: 0 }}>{j.nama_lengkap}</p>
+                          {j.atas_nama && <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.38)', margin: '3px 0 0' }}>({j.atas_nama})</p>}
+                        </div>
+                        {result.status === 'SELESAI' && (
+                          <span style={{
+                            flexShrink: 0, fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20,
+                            background: da.bg, color: da.color, border: `1px solid ${da.border}`,
+                          }}>
+                            {j.status_antar === 'SUDAH_DIANTAR' ? 'Diterima' : da.label}
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             </div>
 
