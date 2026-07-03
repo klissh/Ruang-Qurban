@@ -18,13 +18,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Akses ditolak' }, { status: 403 })
   }
 
+  // Ambil periode aktif — wajib ada sebelum insert data apapun
+  const { data: periodeAktif } = await supabase
+    .from('periode_qurban')
+    .select('id')
+    .eq('id_workspace', profile.id_workspace)
+    .eq('status', 'aktif')
+    .single()
+
+  if (!periodeAktif)
+    return NextResponse.json({ error: 'Tidak ada periode aktif. Buat periode baru terlebih dahulu.' }, { status: 409 })
+
+  const periodeId = periodeAktif.id
   const body = await request.json()
 
   // ── Mode B: tambah jamaah ke hewan yang sudah ada ──
   if (body.id_hewan) {
     const { id_hewan, jamaah } = body as { id_hewan: string; jamaah: JamaahFormData[] }
 
-    // Validasi hewan
     const { data: hewan } = await supabase
       .from('hewan')
       .select('id, jenis_hewan, kode_resi')
@@ -35,7 +46,6 @@ export async function POST(request: NextRequest) {
 
     if (!hewan) return NextResponse.json({ error: 'Hewan tidak ditemukan' }, { status: 404 })
 
-    // Cek kapasitas
     const { count: existing } = await supabase
       .from('jamaah')
       .select('id', { count: 'exact', head: true })
@@ -50,6 +60,7 @@ export async function POST(request: NextRequest) {
 
     const rows = valid.map((j) => ({
       id_workspace: profile.id_workspace,
+      periode_id: periodeId,
       id_hewan,
       nama_lengkap: j.nama_lengkap.trim(),
       atas_nama: j.atas_nama?.trim() || null,
@@ -63,64 +74,67 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ hewan, jamaah: inserted })
   }
 
-  // ── Mode A: buat hewan baru + jamaah (existing behavior) ──
+  // ── Mode A: buat hewan baru + jamaah ──
   const { jenis_hewan, tipe_sapi, jamaah } = body as {
     jenis_hewan: JenisHewan
     tipe_sapi: 'A' | 'B' | null
     jamaah: JamaahFormData[]
   }
 
-  // Hitung jumlah hewan untuk generate kode yang tepat
   let nextIndex: number
 
   if (jenis_hewan === 'SAPI' && tipe_sapi) {
-    // Hitung hanya sapi dengan tipe yang sama (berdasarkan prefix kode)
     const tipePrefix = `SAPI-${tipe_sapi}`
     const { data: sapiTipeData } = await supabase
       .from('hewan')
       .select('kode_resi')
       .eq('id_workspace', profile.id_workspace)
-      .eq('jenis_hewan', 'SAPI')
+      .eq('periode_id', periodeId)       // scope ke periode aktif saja
       .like('kode_resi', `${tipePrefix}%`)
-      .is('deleted_at', null)
 
-    const countTipe = sapiTipeData?.length ?? 0
-    // Langsung pakai count tipe itu sendiri — tanpa batas atas
-    nextIndex = countTipe + 1
+    // Gunakan maxKodeNum agar tahan terhadap gap / soft-delete
+    const nums = (sapiTipeData ?? []).map((r) => {
+      const m = r.kode_resi.match(/(\d+)$/)
+      return m ? parseInt(m[1], 10) : 0
+    })
+    nextIndex = (nums.length ? Math.max(...nums) : 0) + 1
   } else {
-    // Kambing: hitung total kambing
-    const { count } = await supabase
+    const { data: kmbData } = await supabase
       .from('hewan')
-      .select('id', { count: 'exact', head: true })
+      .select('kode_resi')
       .eq('id_workspace', profile.id_workspace)
-      .eq('jenis_hewan', jenis_hewan)
-      .is('deleted_at', null)
-    nextIndex = (count ?? 0) + 1
+      .eq('periode_id', periodeId)       // scope ke periode aktif saja
+      .like('kode_resi', 'KMB-%')
+
+    const nums = (kmbData ?? []).map((r) => {
+      const m = r.kode_resi.match(/(\d+)$/)
+      return m ? parseInt(m[1], 10) : 0
+    })
+    nextIndex = (nums.length ? Math.max(...nums) : 0) + 1
   }
 
   const kode_resi = generateKodeResi(jenis_hewan, nextIndex, tipe_sapi ?? 'A')
 
-  // Insert hewan (kode_publik akan di-generate otomatis oleh trigger DB)
   const { data: hewan, error: hewanError } = await supabase
     .from('hewan')
     .insert({
       id_workspace: profile.id_workspace,
+      periode_id: periodeId,
       kode_resi,
-      kode_publik: '',  // trigger DB akan mengisi ini
+      kode_publik: '',
       jenis_hewan,
     })
     .select()
     .single()
 
-  if (hewanError || !hewan) {
+  if (hewanError || !hewan)
     return NextResponse.json({ error: 'Gagal membuat data hewan' }, { status: 500 })
-  }
 
-  // Insert jamaah
   const jamaahRows = jamaah
     .filter((j) => j.nama_lengkap.trim())
     .map((j) => ({
       id_workspace: profile.id_workspace,
+      periode_id: periodeId,
       id_hewan: hewan.id,
       nama_lengkap: j.nama_lengkap.trim(),
       atas_nama: j.atas_nama?.trim() || null,
@@ -128,12 +142,9 @@ export async function POST(request: NextRequest) {
       alamat_lengkap: j.alamat_lengkap?.trim() || null,
     }))
 
-  const { error: jamaahError } = await supabase
-    .from('jamaah')
-    .insert(jamaahRows)
+  const { error: jamaahError } = await supabase.from('jamaah').insert(jamaahRows)
 
   if (jamaahError) {
-    // Rollback hewan jika jamaah gagal
     await supabase.from('hewan').delete().eq('id', hewan.id)
     return NextResponse.json({ error: 'Gagal menyimpan data jamaah' }, { status: 500 })
   }
@@ -227,7 +238,6 @@ export async function PUT(request: NextRequest) {
     id_hewan_baru: string
   }
 
-  // Validasi hewan tujuan: harus ada, milik workspace ini, belum dihapus
   const { data: hewanTujuan } = await supabase
     .from('hewan')
     .select('id, jenis_hewan, kode_resi')
@@ -239,7 +249,6 @@ export async function PUT(request: NextRequest) {
   if (!hewanTujuan)
     return NextResponse.json({ error: 'Hewan tujuan tidak ditemukan' }, { status: 404 })
 
-  // Hitung jumlah jamaah aktif di hewan tujuan
   const { count: jumlahDiTujuan } = await supabase
     .from('jamaah')
     .select('id', { count: 'exact', head: true })
@@ -250,7 +259,6 @@ export async function PUT(request: NextRequest) {
   if ((jumlahDiTujuan ?? 0) >= maxSlot)
     return NextResponse.json({ error: `Slot hewan ${hewanTujuan.kode_resi} sudah penuh (maks. ${maxSlot})` }, { status: 409 })
 
-  // Pindahkan jamaah
   const { data, error } = await supabase
     .from('jamaah')
     .update({ id_hewan: id_hewan_baru })
