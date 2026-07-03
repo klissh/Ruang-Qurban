@@ -15,14 +15,58 @@ const KMB_M  = 8.8    // margin kambing
 const KMB_NO_W = 28   // lebar kolom nomor kambing (mm)
 const SAPI_NO_W = 24  // lebar kolom nomor sapi (mm)
 
-// Font sizes (fixed sesuai docx)
+// Font sizes (fixed sesuai docx, base — akan auto-shrink kalau nama kepanjangan)
 const SAPI_FONT_HEADER = 40
 const SAPI_FONT_NO     = 36
 const SAPI_FONT_NAME   = 26
-const KMB_FONT         = 50
+const SAPI_FONT_NAME_MIN = 13   // batas minimum shrink nama sapi
+const KMB_FONT          = 50
+const KMB_FONT_MIN      = 24    // batas minimum shrink nama kambing
+
+// Padding kolom nama (mm) — dipakai sama persis di preview & PDF biar konsisten
+const SAPI_NAME_PAD_L = 5
+const SAPI_NAME_PAD_R = 3
+const KMB_NAME_PAD_L  = 6
+const KMB_NAME_PAD_R  = 2
 
 const ptToPx = (pt: number) => pt * 4 / 3
 const ptToMm = (pt: number) => pt * 25.4 / 72
+
+// ── Auto-shrink text-to-fit (browser, pakai canvas measureText) ───────────
+let _measureCtx: CanvasRenderingContext2D | null | undefined
+function getMeasureCtx() {
+  if (typeof document === 'undefined') return null
+  if (_measureCtx === undefined) {
+    const c = document.createElement('canvas')
+    _measureCtx = c.getContext('2d')
+  }
+  return _measureCtx
+}
+function fitFontPx(text: string, maxWidthPx: number, baseFontPx: number, minFontPx: number) {
+  const ctx = getMeasureCtx()
+  if (!ctx) return { size: baseFontPx, fits: true }
+  let size = baseFontPx
+  while (size > minFontPx) {
+    ctx.font = `700 ${size}px Arial`
+    if (ctx.measureText(text).width <= maxWidthPx) return { size, fits: true }
+    size -= 1
+  }
+  ctx.font = `700 ${minFontPx}px Arial`
+  return { size: minFontPx, fits: ctx.measureText(text).width <= maxWidthPx }
+}
+
+// ── Auto-shrink text-to-fit (jsPDF, pakai getTextWidth) ────────────────────
+function fitFontPt(pdf: any, text: string, maxWidthMm: number, baseFontPt: number, minFontPt: number) {
+  pdf.setFont('helvetica', 'bold')
+  let size = baseFontPt
+  while (size > minFontPt) {
+    pdf.setFontSize(size)
+    if (pdf.getTextWidth(text) <= maxWidthMm) return { size, fits: true }
+    size -= 0.5
+  }
+  pdf.setFontSize(minFontPt)
+  return { size: minFontPt, fits: pdf.getTextWidth(text) <= maxWidthMm }
+}
 
 function isKambing(h: Hewan) { return h.kode_resi.toUpperCase().startsWith('KMB') }
 
@@ -58,24 +102,35 @@ function SapiSheet({ hewan, jamaah, orientation }: {
         </span>
       </div>
       {/* Baris nama */}
-      {jamaah.map((j, i) => (
-        <div key={j.id} style={{ display: 'flex', width: cwPx, height: rh }}>
-          <div style={{ width: nwPx, height: rh, flexShrink: 0, boxSizing: 'border-box',
-            borderBottom: B, borderLeft: B, borderRight: B,
-            display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ fontFamily: 'Arial', fontWeight: 900,
-              fontSize: ptToPx(SAPI_FONT_NO), color: '#000' }}>{i + 1}</span>
+      {jamaah.map((j, i) => {
+        const padLpx = SAPI_NAME_PAD_L * MM_TO_PX
+        const padRpx = SAPI_NAME_PAD_R * MM_TO_PX
+        const nameMaxWpx = cwPx - nwPx - padLpx - padRpx
+        const { size: fitPx, fits } = fitFontPx(
+          j.nama_lengkap, nameMaxWpx, ptToPx(SAPI_FONT_NAME), ptToPx(SAPI_FONT_NAME_MIN)
+        )
+        return (
+          <div key={j.id} style={{ display: 'flex', width: cwPx, height: rh }}>
+            <div style={{ width: nwPx, height: rh, flexShrink: 0, boxSizing: 'border-box',
+              borderBottom: B, borderLeft: B, borderRight: B,
+              display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontFamily: 'Arial', fontWeight: 900,
+                fontSize: ptToPx(SAPI_FONT_NO), color: '#000' }}>{i + 1}</span>
+            </div>
+            <div style={{ flex: 1, height: rh, boxSizing: 'border-box',
+              borderBottom: B, borderRight: B,
+              display: 'flex', alignItems: 'center', overflow: 'hidden',
+              padding: `0 ${padRpx}px 0 ${padLpx}px` }}>
+              <span style={{ fontFamily: 'Arial', fontWeight: 700,
+                fontSize: fitPx, color: '#000', lineHeight: 1.2,
+                whiteSpace: fits ? 'nowrap' : 'normal', display: '-webkit-box',
+                WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                {j.nama_lengkap}
+              </span>
+            </div>
           </div>
-          <div style={{ flex: 1, height: rh, boxSizing: 'border-box',
-            borderBottom: B, borderRight: B,
-            display: 'flex', alignItems: 'center', padding: `0 ${6 * MM_TO_PX}px` }}>
-            <span style={{ fontFamily: 'Arial', fontWeight: 700,
-              fontSize: ptToPx(SAPI_FONT_NAME), color: '#000', lineHeight: 1.2 }}>
-              {j.nama_lengkap}
-            </span>
-          </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
@@ -103,23 +158,34 @@ function KambingSheet({ entries, kambingPerHal, showTitle, orientation }: {
           </span>
         </div>
       )}
-      {entries.map(({ jamaah, globalNo }, bi) => (
-        <div key={globalNo} style={{ display: 'flex', width: cwPx, height: rowHpx, marginTop: bi > 0 ? -1 : 0 }}>
-          <div style={{ width: nwPx, flexShrink: 0, boxSizing: 'border-box',
-            border: B, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ fontFamily: 'Arial', fontWeight: 900,
-              fontSize: ptToPx(KMB_FONT), color: '#000' }}>{globalNo}</span>
+      {entries.map(({ jamaah, globalNo }, bi) => {
+        const padLpx = KMB_NAME_PAD_L * MM_TO_PX
+        const padRpx = KMB_NAME_PAD_R * MM_TO_PX
+        const nameMaxWpx = cwPx - nwPx - padLpx - padRpx
+        const { size: fitPx, fits } = fitFontPx(
+          jamaah.nama_lengkap, nameMaxWpx, ptToPx(KMB_FONT), ptToPx(KMB_FONT_MIN)
+        )
+        return (
+          <div key={globalNo} style={{ display: 'flex', width: cwPx, height: rowHpx, marginTop: bi > 0 ? -1 : 0 }}>
+            <div style={{ width: nwPx, flexShrink: 0, boxSizing: 'border-box',
+              border: B, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontFamily: 'Arial', fontWeight: 900,
+                fontSize: ptToPx(KMB_FONT), color: '#000' }}>{globalNo}</span>
+            </div>
+            <div style={{ flex: 1, boxSizing: 'border-box',
+              borderTop: B, borderBottom: B, borderRight: B,
+              display: 'flex', alignItems: 'center', overflow: 'hidden',
+              padding: `0 ${padRpx}px 0 ${padLpx}px` }}>
+              <span style={{ fontFamily: 'Arial', fontWeight: 700,
+                fontSize: fitPx, color: '#000', lineHeight: 1.2,
+                whiteSpace: fits ? 'nowrap' : 'normal', display: '-webkit-box',
+                WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                {jamaah.nama_lengkap}
+              </span>
+            </div>
           </div>
-          <div style={{ flex: 1, boxSizing: 'border-box',
-            borderTop: B, borderBottom: B, borderRight: B,
-            display: 'flex', alignItems: 'center', padding: `0 ${5 * MM_TO_PX}px` }}>
-            <span style={{ fontFamily: 'Arial', fontWeight: 700,
-              fontSize: ptToPx(KMB_FONT), color: '#000', lineHeight: 1.2 }}>
-              {jamaah.nama_lengkap}
-            </span>
-          </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
@@ -198,13 +264,20 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
           pdf.setFontSize(SAPI_FONT_NO)
           textVCenter(pdf, String(i + 1), mx + nw / 2, ry, rh, SAPI_FONT_NO, { align: 'center' })
 
-          pdf.setFontSize(SAPI_FONT_NAME)
-          const nl  = pdf.splitTextToSize(j.nama_lengkap, cw - nw - 8)
-          const lh  = ptToMm(SAPI_FONT_NAME) * 1.3
-          const th  = nl.length * lh
-          const sy  = ry + (rh - th) / 2 + ptToMm(SAPI_FONT_NAME) * 0.75
-          nl.slice(0, 2).forEach((line: string, li: number) =>
-            pdf.text(line, mx + nw + 5, sy + li * lh))
+          const maxW = cw - nw - SAPI_NAME_PAD_L - SAPI_NAME_PAD_R
+          const { size: fitSize, fits } = fitFontPt(pdf, j.nama_lengkap, maxW, SAPI_FONT_NAME, SAPI_FONT_NAME_MIN)
+          const tx = mx + nw + SAPI_NAME_PAD_L
+
+          if (fits) {
+            textVCenter(pdf, j.nama_lengkap, tx, ry, rh, fitSize)
+          } else {
+            // Fallback ekstrem: nama masih kepanjangan walau sudah di font minimum → wrap
+            const nl = pdf.splitTextToSize(j.nama_lengkap, maxW)
+            const lh = ptToMm(fitSize) * 1.3
+            const th = nl.length * lh
+            const sy = ry + (rh - th) / 2 + ptToMm(fitSize) * 0.75
+            nl.forEach((line: string, li: number) => pdf.text(line, tx, sy + li * lh))
+          }
         })
       })
 
@@ -253,12 +326,19 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
           pdf.setFont('helvetica', 'bold'); pdf.setFontSize(KMB_FONT); pdf.setTextColor(0)
           textVCenter(pdf, String(no), mx + nw / 2, ry, rh, KMB_FONT, { align: 'center' })
 
-          const nl  = pdf.splitTextToSize(e.jamaah.nama_lengkap, cw - nw - 8)
-          const lh  = ptToMm(KMB_FONT) * 1.3
-          const th  = nl.length * lh
-          const sy  = ry + (rh - th) / 2 + ptToMm(KMB_FONT) * 0.75
-          nl.slice(0, 2).forEach((line: string, li: number) =>
-            pdf.text(line, mx + nw + 6, sy + li * lh))
+          const maxW = cw - nw - KMB_NAME_PAD_L - KMB_NAME_PAD_R
+          const { size: fitSize, fits } = fitFontPt(pdf, e.jamaah.nama_lengkap, maxW, KMB_FONT, KMB_FONT_MIN)
+          const tx = mx + nw + KMB_NAME_PAD_L
+
+          if (fits) {
+            textVCenter(pdf, e.jamaah.nama_lengkap, tx, ry, rh, fitSize)
+          } else {
+            const nl = pdf.splitTextToSize(e.jamaah.nama_lengkap, maxW)
+            const lh = ptToMm(fitSize) * 1.3
+            const th = nl.length * lh
+            const sy = ry + (rh - th) / 2 + ptToMm(fitSize) * 0.75
+            nl.forEach((line: string, li: number) => pdf.text(line, tx, sy + li * lh))
+          }
         })
       }
 
