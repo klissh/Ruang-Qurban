@@ -102,7 +102,7 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
   const paperWpx = paperW * MM_TO_PX
   const paperHpx = paperH * MM_TO_PX
 
-  const marginMm = 10, gapMm = 0
+  const marginMm = 10, gapMm = 2
   const cols = config.kolomPerBaris
   const lw = config.lebarMm, lh = config.tinggiMm
   const usableW = paperW - 2 * marginMm
@@ -139,7 +139,7 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
       @page { size:${paperW}mm ${paperH}mm; margin:${marginMm}mm }
       body { margin:0 }
-      .grid { display:grid; grid-template-columns:repeat(${cols},${lw}mm); gap:0 }
+      .grid { display:grid; grid-template-columns:repeat(${cols},${lw}mm); gap:${gapMm}mm }
     </style></head><body><div class="grid">${labelHTMLs}</div></body></html>`
   }
 
@@ -165,8 +165,8 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
         const pos = idx % labelsPerPage
         const col = pos % cols
         const row = Math.floor(pos / cols)
-        const x = marginMm + col * lw
-        const y = marginMm + row * lh
+        const x = marginMm + col * (lw + gapMm)
+        const y = marginMm + row * (lh + gapMm)
 
         // ── Border luar ───────────────────────────────────────────────────
         pdf.setDrawColor(31, 41, 55); pdf.setLineWidth(0.3)
@@ -366,7 +366,7 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
                     <div style={{
                       display: 'grid',
                       gridTemplateColumns: `repeat(${cols}, ${lw * MM_TO_PX}px)`,
-                      gap: 0,
+                      gap: gapMm * MM_TO_PX,
                     }}>
                       {firstPageLabels.map(({ hewan, jamaah, nomorUrut }, idx) => (
                         <LabelCard key={idx} hewan={hewan} jamaah={jamaah} nomorUrut={nomorUrut} lw={lw} lh={lh} />
