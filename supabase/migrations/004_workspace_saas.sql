@@ -14,7 +14,7 @@ ALTER TABLE workspaces
 -- Backfill slug untuk workspace yang sudah ada
 UPDATE workspaces SET slug = 'default' WHERE slug IS NULL;
 
--- Sekarang enforce NOT NULL & UNIQUE
+-- Enforce NOT NULL & UNIQUE
 ALTER TABLE workspaces ALTER COLUMN slug SET NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS workspaces_slug_unique ON workspaces(slug);
 
@@ -31,16 +31,19 @@ FROM auth.users u
 WHERE p.id = u.id AND p.email IS NULL;
 
 -- ------------------------------------------------------------
--- 3. RLS Policies baru untuk workspaces
+-- 3. RLS Policies untuk workspaces
+--    Gunakan DO block + DROP IF EXISTS agar idempotent
 -- ------------------------------------------------------------
+DO $$ BEGIN
+  DROP POLICY IF EXISTS "workspaces_select_own"       ON workspaces;
+  DROP POLICY IF EXISTS "workspaces_update_super_admin" ON workspaces;
+END $$;
 
--- User bisa lihat workspace mereka sendiri
-CREATE POLICY IF NOT EXISTS "workspaces_select_own"
+CREATE POLICY "workspaces_select_own"
   ON workspaces FOR SELECT
   USING (id = get_my_workspace_id());
 
--- SUPER_ADMIN bisa update workspace mereka
-CREATE POLICY IF NOT EXISTS "workspaces_update_super_admin"
+CREATE POLICY "workspaces_update_super_admin"
   ON workspaces FOR UPDATE
   USING (
     id = get_my_workspace_id()
@@ -48,22 +51,25 @@ CREATE POLICY IF NOT EXISTS "workspaces_update_super_admin"
   );
 
 -- ------------------------------------------------------------
--- 4. Tambah RLS baru untuk profiles
+-- 4. RLS tambahan untuk profiles
 -- ------------------------------------------------------------
-
--- User bisa baca profil sendiri (meski belum assign workspace)
 DO $$ BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE tablename = 'profiles' AND policyname = 'profiles_select_own'
-  ) THEN
-    CREATE POLICY "profiles_select_own"
-      ON profiles FOR SELECT
-      USING (id = auth.uid());
-  END IF;
+  DROP POLICY IF EXISTS "profiles_select_own"         ON profiles;
+  DROP POLICY IF EXISTS "profiles_super_admin_manage" ON profiles;
 END $$;
 
--- UPDATE policy sudah ada: profiles_update_own (id = auth.uid())
+-- User bisa baca profil sendiri (meski belum assign workspace)
+CREATE POLICY "profiles_select_own"
+  ON profiles FOR SELECT
+  USING (id = auth.uid());
+
+-- SUPER_ADMIN bisa update role/workspace anggota di workspace yang sama
+CREATE POLICY "profiles_super_admin_manage"
+  ON profiles FOR UPDATE
+  USING (
+    id_workspace = get_my_workspace_id()
+    AND get_my_role() = 'SUPER_ADMIN'
+  );
 
 -- ------------------------------------------------------------
 -- 5. Helper functions tambahan
@@ -79,25 +85,8 @@ RETURNS TEXT AS $$
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
 
 -- ------------------------------------------------------------
--- 6. RLS: profiles — SUPER_ADMIN bisa update role/workspace anggota
--- ------------------------------------------------------------
-DO $$ BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE tablename = 'profiles' AND policyname = 'profiles_super_admin_manage'
-  ) THEN
-    CREATE POLICY "profiles_super_admin_manage"
-      ON profiles FOR UPDATE
-      USING (
-        id_workspace = get_my_workspace_id()
-        AND get_my_role() = 'SUPER_ADMIN'
-      );
-  END IF;
-END $$;
-
--- ------------------------------------------------------------
--- 7. Catatan untuk operator:
---    Setelah menjalankan migration ini, set slug untuk workspace
---    yang ada via SQL Editor:
---      UPDATE workspaces SET slug = 'nama-masjid-anda' WHERE id = '<uuid>';
+-- Catatan:
+-- Setelah migration ini, set slug yang tepat untuk workspace
+-- yang sudah ada (jika masih 'default'):
+--   UPDATE workspaces SET slug = 'nama-masjid-anda' WHERE slug = 'default';
 -- ------------------------------------------------------------
