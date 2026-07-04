@@ -202,7 +202,7 @@ export default function TrackingPage() {
         WebkitBackdropFilter: 'blur(24px)',
         borderBottom: '1px solid rgba(255,255,255,0.07)',
       }}>
-        <div style={{ maxWidth: 780, margin: '0 auto', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ maxWidth: 780, margin: '0 auto', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <div style={{
             width: 38, height: 38, borderRadius: 12,
             background: '#ffffff',
@@ -212,8 +212,8 @@ export default function TrackingPage() {
           }}>
             <img src="/logo.png" alt="Ruang Qurban" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
-          <div>
-            <h1 style={{ fontWeight: 800, fontSize: 15, color: 'rgba(255,255,255,0.95)', margin: 0, letterSpacing: '-0.2px' }}>
+          <div style={{ minWidth: 0, overflow: 'hidden' }}>
+            <h1 style={{ fontWeight: 800, fontSize: 15, color: 'rgba(255,255,255,0.95)', margin: 0, letterSpacing: '-0.2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               Portal Tracking Qurban
             </h1>
             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.36)', margin: '2px 0 0' }}>Cek status hewan qurban Anda</p>
@@ -223,7 +223,7 @@ export default function TrackingPage() {
           <div style={{ flex: 1 }} />
 
           {/* Auth buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="tracking-auth" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <a
               href="/login"
               style={{
