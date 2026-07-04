@@ -147,7 +147,7 @@ export default function PanitiaClient({ anggotaList, workspaceRoles, currentUser
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-3xl mx-auto animate-slide-up">
+    <div className="p-6 md:p-8 pb-20 md:pb-8 max-w-3xl mx-auto animate-slide-up">
 
       {/* Header */}
       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:16, flexWrap:'wrap', marginBottom:20 }}>
