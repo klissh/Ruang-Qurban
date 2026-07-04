@@ -113,7 +113,7 @@ export default function ArsipDetailClient({ periode, hewanList, jamaahList, user
       </div>
 
       {/* Stats summary */}
-      <div className="rg-1-3" style={{ gap: 12, marginBottom: 22 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 12, marginBottom: 22 }}>
         {[
           { label: 'Sapi', value: sapiCount, color: '#f97316' },
           { label: 'Kambing', value: kambingCount, color: '#34d399' },
