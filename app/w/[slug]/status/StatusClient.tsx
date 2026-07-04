@@ -252,23 +252,28 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
           )}
         </div>
 
-        {/* Filter bar */}
-        <div style={{ display: 'flex', gap: 5, paddingBottom: 14, overflowX: 'auto' }}>
-          {/* Jenis group */}
-          {jenisFilters.map(({ key, label, icon }) => (
-            <FilterBtn key={key} fkey={key} label={label} icon={icon} />
-          ))}
+        {/* Filter bar — mobile: 2 baris simetris | desktop: 1 baris */}
+        <div className="flex flex-col sm:flex-row sm:items-center" style={{ gap: 6, paddingBottom: 14 }}>
 
-          {/* Separator */}
-          <span style={{ width: 1, background: 'rgba(255,255,255,0.1)', margin: '2px 4px', flexShrink: 0 }} />
+          {/* Baris 1 — Jenis: Semua / Sapi A / Sapi B / Kambing (semua tampil, wrap) */}
+          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+            {jenisFilters.map(({ key, label, icon }) => (
+              <FilterBtn key={key} fkey={key} label={label} icon={icon} />
+            ))}
+          </div>
 
-          {/* Status group */}
-          {statusFilters.map(({ key, label, icon, color }) => (
-            <FilterBtn
-              key={key} fkey={key} label={label} icon={icon}
-              activeColor={color.color} activeBg={color.bg} activeBorder={color.border}
-            />
-          ))}
+          {/* Separator — hanya desktop */}
+          <span className="hidden sm:block" style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />
+
+          {/* Baris 2 — Status: 8 pill, scroll horizontal */}
+          <div style={{ display: 'flex', gap: 5, overflowX: 'auto', WebkitOverflowScrolling: 'touch' as any, paddingBottom: 2 }}>
+            {statusFilters.map(({ key, label, icon, color }) => (
+              <FilterBtn
+                key={key} fkey={key} label={label} icon={icon}
+                activeColor={color.color} activeBg={color.bg} activeBorder={color.border}
+              />
+            ))}
+          </div>
         </div>
       </div>
 
@@ -354,11 +359,9 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
 
       {/* ── Pagination ── */}
       {filtered.length > 0 && (
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          flexWrap: 'wrap', gap: 10, padding: '10px 20px 20px',
-        }}>
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>
+        <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between sm:flex-wrap"
+          style={{ padding: '10px 20px 20px' }}>
+          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', flexShrink: 0, textAlign: 'center' }}>
             {perPage === 0
               ? `Menampilkan semua ${filtered.length} hewan`
               : `Menampilkan ${Math.min((page - 1) * perPage + 1, filtered.length)}–${Math.min(page * perPage, filtered.length)} dari ${filtered.length} hewan`}
@@ -378,7 +381,7 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
             </div>
           )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Tampilkan:</span>
+            <span className="hidden sm:inline" style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Tampilkan:</span>
             {[10, 20, 50, 0].map(n => (
               <button key={n} onClick={() => { setPerPage(n); setPage(1) }} style={{ padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 700, border: perPage === n ? '1px solid rgba(16,185,129,0.45)' : '1px solid rgba(255,255,255,0.09)', background: perPage === n ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)', color: perPage === n ? '#34d399' : 'rgba(255,255,255,0.4)', cursor: 'pointer' }}>
                 {n === 0 ? 'Semua' : n}
