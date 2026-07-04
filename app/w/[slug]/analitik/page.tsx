@@ -135,7 +135,7 @@ export default async function AnalitikPage({ params }: { params: Promise<{ slug:
       </div>
 
       {/* ── Progress bar row: Penyembelihan + Pengantaran ── */}
-      <div className="rg-2" style={{ gap: 16 }}>
+      <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 16 }}>
 
         {/* Progress Penyembelihan */}
         <div style={{ ...G.card, padding: 28, position: 'relative', overflow: 'hidden' }}>
@@ -172,7 +172,7 @@ export default async function AnalitikPage({ params }: { params: Promise<{ slug:
         </div>
       </div>
 
-      <div className="rg-4" style={{ gap: 16 }}>
+      <div className="grid grid-cols-2 md:grid-cols-4" style={{ gap: 16 }}>
         {statCards.map((s) => (
           <div key={s.label} style={{ ...G.card, borderTop: `2px solid ${s.accent}`, padding: 20 }}>
             <div style={{ width: 38, height: 38, borderRadius: 11, background: s.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>{s.icon}</div>
@@ -183,7 +183,7 @@ export default async function AnalitikPage({ params }: { params: Promise<{ slug:
       </div>
 
       {/* ── Breakdown row: Status Proses + Status Pengantaran ── */}
-      <div className="rg-2" style={{ gap: 16, alignItems: 'start' }}>
+      <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 16, alignItems: 'start' }}>
 
         {/* Breakdown Per Status Proses */}
         <div style={{ ...G.card, padding: 26 }}>
