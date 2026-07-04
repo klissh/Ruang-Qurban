@@ -123,8 +123,6 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
   const [saving, setSaving] = useState(false)
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(20)
-  const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
 
   // Sync state dengan props baru setelah router.refresh() pasca-import
   useEffect(() => { setHewan(hewanList) }, [hewanList])
