@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Moon, Building2, Mail, Lock, User, Hash } from 'lucide-react'
@@ -23,6 +23,8 @@ export default function RegisterWorkspacePage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [slugManual, setSlugManual] = useState(false)
+  const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle')
+  const slugDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function handleNamaWorkspace(val: string) {
     setForm((f) => ({
@@ -31,6 +33,22 @@ export default function RegisterWorkspacePage() {
       slug: slugManual ? f.slug : slugify(val),
     }))
   }
+
+  // Cek slug secara real-time (debounce 600ms)
+  useEffect(() => {
+    if (!form.slug) { setSlugStatus('idle'); return }
+    setSlugStatus('checking')
+    if (slugDebounce.current) clearTimeout(slugDebounce.current)
+    slugDebounce.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/check-slug?slug=${encodeURIComponent(form.slug)}`)
+        const { available } = await res.json()
+        setSlugStatus(available ? 'available' : 'taken')
+      } catch {
+        setSlugStatus('idle')
+      }
+    }, 600)
+  }, [form.slug])
 
   async function handleDaftar() {
     if (!form.nama || !form.email || !form.password || !form.namaWorkspace || !form.slug) {
@@ -49,6 +67,19 @@ export default function RegisterWorkspacePage() {
     setError('')
     setLoading(true)
 
+    // Cek ketersediaan slug sebelum daftar
+    try {
+      const slugCheck = await fetch(`/api/check-slug?slug=${encodeURIComponent(form.slug)}`)
+      const { available } = await slugCheck.json()
+      if (!available) {
+        setError(`Slug "${form.slug}" sudah dipakai workspace lain. Gunakan nama masjid yang berbeda.`)
+        setLoading(false)
+        return
+      }
+    } catch {
+      // Lanjutkan jika pengecekan gagal — validasi tetap ada di DB
+    }
+
     const { error: signUpError } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
@@ -64,7 +95,23 @@ export default function RegisterWorkspacePage() {
     })
 
     if (signUpError) {
-      setError(signUpError.message)
+      // Terjemahkan error Supabase ke pesan yang ramah
+      const msg = typeof signUpError.message === 'string' ? signUpError.message.toLowerCase() : ''
+      if (msg.includes('already registered') || msg.includes('already exists') || msg.includes('user already')) {
+        setError('Email ini sudah terdaftar. Silakan masuk atau gunakan email lain.')
+      } else if (msg.includes('invalid email') || msg.includes('email')) {
+        setError('Format email tidak valid.')
+      } else if (msg.includes('password') || msg.includes('weak')) {
+        setError('Password terlalu lemah. Gunakan minimal 6 karakter.')
+      } else if (msg.includes('rate limit') || msg.includes('too many')) {
+        setError('Terlalu banyak percobaan. Tunggu beberapa menit lalu coba lagi.')
+      } else if (msg.includes('network') || msg.includes('fetch')) {
+        setError('Koneksi bermasalah. Periksa internet Anda.')
+      } else if (msg && msg !== '{}' && msg !== 'undefined') {
+        setError(signUpError.message)
+      } else {
+        setError('Terjadi kesalahan saat membuat akun. Coba lagi.')
+      }
       setLoading(false)
       return
     }
@@ -139,16 +186,26 @@ export default function RegisterWorkspacePage() {
                 value={form.slug}
                 onChange={(e) => { setSlugManual(true); setForm((f) => ({ ...f, slug: slugify(e.target.value) })) }}
                 placeholder="masjid-al-ikhlas"
-                style={inputStyle}
+                style={{ ...inputStyle, borderColor: slugStatus === 'taken' ? 'rgba(239,68,68,0.5)' : slugStatus === 'available' ? 'rgba(16,185,129,0.4)' : 'rgba(255,255,255,0.09)' }}
               />
             </div>
+            {/* Slug status indicator */}
+            {form.slug && (
+              <p style={{ fontSize: 11.5, marginTop: 6, fontWeight: 600,
+                color: slugStatus === 'taken' ? '#fca5a5' : slugStatus === 'available' ? '#34d399' : 'rgba(255,255,255,0.3)' }}>
+                {slugStatus === 'checking' && '⏳ Memeriksa ketersediaan...'}
+                {slugStatus === 'available' && '✓ Slug tersedia — URL: /w/' + form.slug}
+                {slugStatus === 'taken' && '✗ Slug sudah dipakai workspace lain'}
+                {slugStatus === 'idle' && '/w/' + form.slug}
+              </p>
+            )}
           </div>
 
           <button
             onClick={handleDaftar}
-            disabled={loading}
+            disabled={loading || slugStatus === 'taken'}
             className="w-full rounded-2xl py-3.5 text-sm font-bold text-white transition-all disabled:opacity-60 mt-2"
-            style={{ background: loading ? 'rgba(16,185,129,0.5)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)', boxShadow: '0 4px 20px rgba(16,185,129,0.42)' }}
+            style={{ background: loading || slugStatus === 'taken' ? 'rgba(16,185,129,0.5)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)', boxShadow: '0 4px 20px rgba(16,185,129,0.42)' }}
           >
             {loading ? 'Membuat Workspace...' : 'Buat Workspace & Daftar'}
           </button>
