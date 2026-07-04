@@ -117,32 +117,57 @@ function RoleModal({ role, onClose, onSave }: {
               <label style={{ display:'block', fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.36)', letterSpacing:'0.8px', textTransform:'uppercase', marginBottom:12 }}>
                 Akses Halaman
               </label>
-              <div style={{ borderRadius:12, border:'1px solid rgba(255,255,255,0.08)', overflowX:'auto', WebkitOverflowScrolling:'touch' }}>
+
+              {/* ── MOBILE: kolom compact 1fr+55+55+55 (sm:hidden) ── */}
+              <div className="sm:hidden" style={{ borderRadius:12, border:'1px solid rgba(255,255,255,0.08)', overflow:'hidden' }}>
+                {/* Header */}
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 55px 55px 55px', padding:'8px 12px', background:'rgba(255,255,255,0.04)', borderBottom:'1px solid rgba(255,255,255,0.07)' }}>
+                  {[['Halaman','left'],['T.Ada','center'],['Lihat','center'],['Full','center']].map(([h, align]) => (
+                    <span key={h} style={{ fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.3)', textTransform:'uppercase', textAlign: align as any }}>{h}</span>
+                  ))}
+                </div>
+                {PAGES_CFG.map(({ key, label, hasVisitor }, idx) => {
+                  const cur = perms[key]
+                  return (
+                    <div key={key} style={{ display:'grid', gridTemplateColumns:'1fr 55px 55px 55px', padding:'10px 12px', alignItems:'center', borderBottom: idx < PAGES_CFG.length-1 ? '1px solid rgba(255,255,255,0.05)' : 'none', background: idx%2===0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
+                      <span style={{ fontSize:12, color:'rgba(255,255,255,0.72)', fontWeight:500, paddingRight:4 }}>{label}</span>
+                      <div style={{ display:'flex', justifyContent:'center' }} onClick={() => setPerms((p) => ({ ...p, [key]:'none' }))}>
+                        <RadioDot active={cur==='none'} color="#ef4444" />
+                      </div>
+                      <div style={{ display:'flex', justifyContent:'center' }}>
+                        {hasVisitor
+                          ? <div onClick={() => setPerms((p) => ({ ...p, [key]:'visitor' }))}><RadioDot active={cur==='visitor'} color="#f59e0b" /></div>
+                          : <span style={{ fontSize:11, color:'rgba(255,255,255,0.15)', display:'block', textAlign:'center' }}>—</span>}
+                      </div>
+                      <div style={{ display:'flex', justifyContent:'center' }} onClick={() => setPerms((p) => ({ ...p, [key]:'full' }))}>
+                        <RadioDot active={cur==='full'} color="#10b981" />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* ── DESKTOP: tabel original (hidden sm:block) ── */}
+              <div className="hidden sm:block" style={{ borderRadius:12, border:'1px solid rgba(255,255,255,0.08)', overflowX:'auto', WebkitOverflowScrolling:'touch' }}>
                <div style={{ minWidth:380 }}>
-                {/* Header tabel */}
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 90px 90px 90px', padding:'8px 14px', background:'rgba(255,255,255,0.04)', borderBottom:'1px solid rgba(255,255,255,0.07)' }}>
                   {['Halaman','Tidak Ada','Lihat Saja','Full'].map((h) => (
                     <span key={h} style={{ fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.3)', textTransform:'uppercase', textAlign: h==='Halaman' ? 'left' : 'center' }}>{h}</span>
                   ))}
                 </div>
-
                 {PAGES_CFG.map(({ key, label, hasVisitor }, idx) => {
                   const cur = perms[key]
                   return (
                     <div key={key} style={{ display:'grid', gridTemplateColumns:'1fr 90px 90px 90px', padding:'11px 14px', alignItems:'center', borderBottom: idx < PAGES_CFG.length-1 ? '1px solid rgba(255,255,255,0.05)' : 'none', background: idx%2===0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
                       <span style={{ fontSize:13, color:'rgba(255,255,255,0.72)', fontWeight:500 }}>{label}</span>
-                      {/* Tidak Ada */}
                       <div style={{ display:'flex', justifyContent:'center' }} onClick={() => setPerms((p) => ({ ...p, [key]:'none' }))}>
                         <RadioDot active={cur==='none'} color="#ef4444" />
                       </div>
-                      {/* Lihat Saja */}
                       <div style={{ display:'flex', justifyContent:'center' }}>
                         {hasVisitor
                           ? <div onClick={() => setPerms((p) => ({ ...p, [key]:'visitor' }))}><RadioDot active={cur==='visitor'} color="#f59e0b" /></div>
-                          : <span style={{ fontSize:11, color:'rgba(255,255,255,0.15)', textAlign:'center' }}>—</span>
-                        }
+                          : <span style={{ fontSize:11, color:'rgba(255,255,255,0.15)', textAlign:'center' }}>—</span>}
                       </div>
-                      {/* Full */}
                       <div style={{ display:'flex', justifyContent:'center' }} onClick={() => setPerms((p) => ({ ...p, [key]:'full' }))}>
                         <RadioDot active={cur==='full'} color="#10b981" />
                       </div>
@@ -153,8 +178,8 @@ function RoleModal({ role, onClose, onSave }: {
               </div>
 
               <p style={{ fontSize:11, color:'rgba(255,255,255,0.25)', marginTop:8, lineHeight:1.6 }}>
-                <span style={{ color:'#ef444499' }}>● Tidak Ada</span> — tersembunyi dari sidebar &nbsp;·&nbsp;
-                <span style={{ color:'#f59e0b99' }}>● Lihat Saja</span> — bisa masuk, tidak bisa ubah &nbsp;·&nbsp;
+                <span style={{ color:'#ef444499' }}>● T.Ada</span> — tersembunyi dari sidebar &nbsp;·&nbsp;
+                <span style={{ color:'#f59e0b99' }}>● Lihat</span> — bisa masuk, tidak bisa ubah &nbsp;·&nbsp;
                 <span style={{ color:'#10b98199' }}>● Full</span> — akses penuh
               </p>
             </div>
