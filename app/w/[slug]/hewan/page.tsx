@@ -4,7 +4,7 @@ import HewanClient from './HewanClient'
 import type { Periode } from '@/types'
 
 // Komponen empty state ketika tidak ada periode aktif
-function NoPeriodeState({ isSuperAdmin }: { isSuperAdmin: boolean }) {
+function NoPeriodeState({ isSuperAdmin, slug }: { isSuperAdmin: boolean; slug: string }) {
   return (
     <div className="p-6 md:p-8 max-w-5xl mx-auto animate-slide-up">
       <div style={{
@@ -82,7 +82,7 @@ export default async function HewanPage({ params }: { params: Promise<{ slug: st
 
   // Tidak ada periode aktif → tampilkan empty state
   if (!periodeAktif) {
-    return <NoPeriodeState isSuperAdmin={profile.role === 'SUPER_ADMIN'} />
+    return <NoPeriodeState isSuperAdmin={profile.role === 'SUPER_ADMIN'} slug={slug} />
   }
 
   const periode = periodeAktif as Periode
