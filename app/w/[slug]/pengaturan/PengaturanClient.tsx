@@ -117,7 +117,8 @@ function RoleModal({ role, onClose, onSave }: {
               <label style={{ display:'block', fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.36)', letterSpacing:'0.8px', textTransform:'uppercase', marginBottom:12 }}>
                 Akses Halaman
               </label>
-              <div style={{ borderRadius:12, overflow:'hidden', border:'1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ borderRadius:12, border:'1px solid rgba(255,255,255,0.08)', overflowX:'auto', WebkitOverflowScrolling:'touch' }}>
+               <div style={{ minWidth:380 }}>
                 {/* Header tabel */}
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 90px 90px 90px', padding:'8px 14px', background:'rgba(255,255,255,0.04)', borderBottom:'1px solid rgba(255,255,255,0.07)' }}>
                   {['Halaman','Tidak Ada','Lihat Saja','Full'].map((h) => (
@@ -148,6 +149,7 @@ function RoleModal({ role, onClose, onSave }: {
                     </div>
                   )
                 })}
+               </div>
               </div>
 
               <p style={{ fontSize:11, color:'rgba(255,255,255,0.25)', marginTop:8, lineHeight:1.6 }}>
@@ -220,7 +222,7 @@ export default function PengaturanClient({ workspace, roles: initialRoles, slug 
   })
 
   return (
-    <div className="p-6 md:p-8 max-w-3xl mx-auto animate-slide-up">
+    <div className="p-6 md:p-8 pb-20 md:pb-8 max-w-3xl mx-auto animate-slide-up">
       <div style={{ marginBottom:24 }}>
         <h1 style={{ fontSize:26, fontWeight:800, color:'rgba(255,255,255,0.97)', letterSpacing:'-0.5px', margin:0 }}>Pengaturan</h1>
         <p style={{ fontSize:13, color:'rgba(255,255,255,0.36)', marginTop:6 }}>{workspace.nama}</p>
