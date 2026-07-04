@@ -387,6 +387,27 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
           {/* Settings */}
           <div className="w-full sm:w-64 flex-shrink-0 border-b sm:border-b-0 sm:border-r border-gray-100 p-5 space-y-5 overflow-y-auto max-h-[60vh] sm:max-h-none">
 
+            {/* Pilih jenis — hanya muncul di mobile (desktop gunakan tab di preview) */}
+            <div className="sm:hidden">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Pilih Jenis</p>
+              <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+                {sapiData.length > 0 && (
+                  <button
+                    onClick={() => setPreviewType('sapi')}
+                    className={`flex-1 py-2 text-xs rounded-md font-semibold transition ${previewType === 'sapi' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
+                    Sapi ({sapiData.length})
+                  </button>
+                )}
+                {kambingFlat.length > 0 && (
+                  <button
+                    onClick={() => setPreviewType('kambing')}
+                    className={`flex-1 py-2 text-xs rounded-md font-semibold transition ${previewType === 'kambing' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
+                    Kambing ({kambingFlat.length})
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* Orientasi — SATU untuk sapi+kambing */}
             <div>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Orientasi Kertas</p>
