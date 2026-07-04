@@ -553,6 +553,9 @@ export default function TrackingPage() {
               </div>
             </div>
 
+            {/* ── End desktop grid ── */}
+            </div>
+
             <p style={{ textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.24)' }}>
               Halaman ini otomatis diperbarui setiap 30 detik
             </p>
