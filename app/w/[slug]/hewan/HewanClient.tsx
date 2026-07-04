@@ -494,7 +494,7 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
       </div>
 
       {/* Stats */}
-      <div className="rg-4" style={{ gap: 10, marginBottom: 10 }}>
+      <div className="grid grid-cols-2 md:grid-cols-4" style={{ gap: 10, marginBottom: 10 }}>
         {STAT_STATUSES.map((s) => {
           const sg = STATUS_GLASS[s]
           const cfg = STATUS_CONFIG[s]
