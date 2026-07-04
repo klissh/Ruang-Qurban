@@ -308,7 +308,7 @@ export default function PengantaranClient({ jamaahList }: { jamaahList: JamaahIt
                     key={j.id}
                     onClick={() => setModal({ ids: [j.id], statusAntar: j.status_antar, diantarOleh: j.diantar_oleh ?? '' })}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 10,
+                      display: 'flex', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10,
                       padding: '10px 16px', borderLeft: `3px solid ${cfg.dot}`,
                       borderBottom: '1px solid rgba(255,255,255,0.04)',
                       background: isSelected ? 'rgba(16,185,129,0.05)' : 'transparent',
