@@ -11,34 +11,40 @@ export default async function WorkspaceLayout({
   children: React.ReactNode
   params: Promise<{ slug: string }>
 }) {
-  const { slug } = await params
+  const { slug: rawSlug } = await params
+  // Decode URL encoding (misal Masjid%20Ar-Ridho → Masjid Ar-Ridho)
+  const slug = decodeURIComponent(rawSlug)
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('nama_lengkap, role, id_workspace, workspaces(id, nama, slug)')
     .eq('id', user.id)
     .single()
 
-  if (!profile) redirect('/login')
+  // Tidak ada profil → login
+  if (profileError || !profile) redirect('/login')
 
+  // Belum punya workspace → tunggu
   if (!profile.id_workspace) redirect('/waiting')
 
   const workspace = profile.workspaces as any
 
   // Kalau slug di URL tidak cocok dengan workspace user, redirect ke slug yang benar
-  if (workspace?.slug && workspace.slug !== slug) {
-    const role = profile.role
-    const dest = role === 'PETUGAS_LAPANGAN' ? 'status' : 'analitik'
+  if (workspace?.slug && decodeURIComponent(workspace.slug) !== slug) {
+    const dest = profile.role === 'PETUGAS_LAPANGAN' ? 'status' : 'analitik'
     redirect(`/w/${workspace.slug}/${dest}`)
   }
 
+  const workspaceSlug = workspace?.slug ?? slug
+
   const contextValue = {
     workspaceId: profile.id_workspace,
-    slug: workspace?.slug ?? slug,
+    slug: workspaceSlug,
     namaWorkspace: workspace?.nama ?? '',
     userId: user.id,
     namaUser: profile.nama_lengkap,
@@ -62,7 +68,7 @@ export default async function WorkspaceLayout({
           role={profile.role as Role}
           namaUser={profile.nama_lengkap}
           namaWorkspace={workspace?.nama ?? ''}
-          slug={workspace?.slug ?? slug}
+          slug={workspaceSlug}
         />
 
         <main className="flex-1 overflow-y-auto relative z-10">
