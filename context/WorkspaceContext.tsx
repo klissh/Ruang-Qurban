@@ -16,39 +16,30 @@ export interface WorkspacePermissions {
 }
 
 export const SUPER_ADMIN_PERMISSIONS: WorkspacePermissions = {
-  analitik: 'full', data_hewan: 'full', status: 'full',
-  pengantaran: 'full', log: 'full', arsip: 'full', manajemen_anggota: 'full',
+  analitik:'full', data_hewan:'full', status:'full',
+  pengantaran:'full', log:'full', arsip:'full', manajemen_anggota:'full',
 }
 
 export const NO_PERMISSIONS: WorkspacePermissions = {
-  analitik: 'none', data_hewan: 'none', status: 'none',
-  pengantaran: 'none', log: 'none', arsip: 'none', manajemen_anggota: 'none',
+  analitik:'none', data_hewan:'none', status:'none',
+  pengantaran:'none', log:'none', arsip:'none', manajemen_anggota:'none',
 }
 
 export interface WorkspaceContextValue {
-  workspaceId:  string
-  slug:         string
+  workspaceId:   string
+  slug:          string
   namaWorkspace: string
-  userId:       string
-  namaUser:     string
-  role:         Role
-  permissions:  WorkspacePermissions
+  userId:        string
+  namaUser:      string
+  role:          Role
+  roleName:      string   // ← nama custom role, misal "panitia", "kurir", "Super Admin"
+  permissions:   WorkspacePermissions
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null)
 
-export function WorkspaceProvider({
-  children,
-  value,
-}: {
-  children: React.ReactNode
-  value: WorkspaceContextValue
-}) {
-  return (
-    <WorkspaceContext.Provider value={value}>
-      {children}
-    </WorkspaceContext.Provider>
-  )
+export function WorkspaceProvider({ children, value }: { children: React.ReactNode; value: WorkspaceContextValue }) {
+  return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>
 }
 
 export function useWorkspace() {
