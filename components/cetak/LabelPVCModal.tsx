@@ -274,10 +274,10 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
           </button>
         </div>
 
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-col sm:flex-row flex-1 overflow-hidden">
 
           {/* ── Settings ─────────────────────────────────────────────────── */}
-          <div className="w-64 flex-shrink-0 border-r border-gray-100 p-5 space-y-5 overflow-y-auto">
+          <div className="w-full sm:w-64 flex-shrink-0 border-b sm:border-b-0 sm:border-r border-gray-100 p-5 space-y-5 overflow-y-auto max-h-[60vh] sm:max-h-none">
 
             <div>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Kertas</p>
@@ -359,7 +359,7 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
           </div>
 
           {/* ── Preview ───────────────────────────────────────────────────── */}
-          <div className="flex-1 overflow-auto bg-gray-200 p-6">
+          <div className="hidden sm:flex sm:flex-col flex-1 overflow-auto bg-gray-200 p-6">
             <div className="flex items-center justify-between mb-4">
               <p className="text-xs text-gray-500">
                 Preview hal. 1{totalPages > 1 ? ` dari ${totalPages}` : ''}
