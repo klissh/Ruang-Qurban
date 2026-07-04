@@ -151,8 +151,7 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
     const count = (counts as Record<string, number>)[fkey] ?? 0
     return (
       <button
-        onClick={() =
-                    suppressHydrationWarning> setFilter(fkey as any)}
+        onClick={() => setFilter(fkey as any)}
         style={{
           flexShrink: 0,
           display: 'flex', alignItems: 'center', gap: 5,
@@ -240,8 +239,7 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
             }}
           />
           {search && (
-            <button onClick={() =
-                    suppressHydrationWarning> setSearch('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 5, cursor: 'pointer', color: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', padding: 3 }}>
+            <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 5, cursor: 'pointer', color: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', padding: 3 }}>
               <X size={11} />
             </button>
           )}
@@ -277,8 +275,7 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
           return (
             <button
               key={hewan.id}
-              onClick={() =
-                    suppressHydrationWarning> setModal({ hewan, statusBaru: hewan.status, urlDok: hewan.url_dokumentasi ?? '' })}
+              onClick={() => setModal({ hewan, statusBaru: hewan.status, urlDok: hewan.url_dokumentasi ?? '' })}
               style={{
                 background: 'rgba(255,255,255,0.04)',
                 border: '1px solid rgba(255,255,255,0.08)',
@@ -385,8 +382,7 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
                   </div>
                 </div>
               </div>
-              <button onClick={() =
-                    suppressHydrationWarning> setModal(null)} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.38)', flexShrink: 0 }}>
+              <button onClick={() => setModal(null)} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.38)', flexShrink: 0 }}>
                 <X size={14} />
               </button>
             </div>
@@ -404,8 +400,7 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
                   return (
                     <button
                       key={status}
-                      onClick={() =
-                    suppressHydrationWarning> setModal((m) => m ? { ...m, statusBaru: status } : m)}
+                      onClick={() => setModal((m) => m ? { ...m, statusBaru: status } : m)}
                       style={{
                         padding: '12px 14px', borderRadius: 11, textAlign: 'left',
                         cursor: 'pointer', transition: 'all 0.15s',
@@ -440,8 +435,7 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
                 {/* Tombol hapus — muncul jika ada dokumentasi sebelumnya */}
                 {modal.hewan.url_dokumentasi && (
                   <button
-                    onClick={() =
-                    suppressHydrationWarning> setModal((m) => m ? { ...m, urlDok: '' } : m)}
+                    onClick={() => setModal((m) => m ? { ...m, urlDok: '' } : m)}
                     style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 6, color: '#f87171', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
                     <X size={10} /> Hapus Dokumentasi
                   </button>
@@ -473,8 +467,7 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
 
             {/* Buttons */}
             <div style={{ padding: '4px 24px 22px', display: 'flex', gap: 10 }}>
-              <button onClick={() =
-                    suppressHydrationWarning> setModal(null)} style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 11, color: 'rgba(255,255,255,0.5)', fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}>
+              <button onClick={() => setModal(null)} style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 11, color: 'rgba(255,255,255,0.5)', fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}>
                 Batal
               </button>
               <button onClick={handleSimpan} disabled={loading} style={{ flex: 2, padding: '12px', background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none', borderRadius: 11, color: 'white', fontSize: 13.5, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px rgba(16,185,129,0.35)', opacity: loading ? 0.6 : 1 }}
