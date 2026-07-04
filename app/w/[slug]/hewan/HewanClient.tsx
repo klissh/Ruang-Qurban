@@ -894,7 +894,7 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
             </div>
 
             <div style={{ padding: '20px 26px', overflowY: 'auto', flex: 1 }}>
-              <div className="rg-1-3" style={{ gap: 10, marginBottom: 20 }}>
+              <div className="grid grid-cols-3" style={{ gap: 10, marginBottom: 20 }}>
                 {([
                   { j: 'SAPI' as JenisHewan, label: 'Sapi Tipe A', sub: 'SAPI-A01, A02, ...', Icon: Beef },
                   { j: 'SAPI_B' as any,       label: 'Sapi Tipe B', sub: 'SAPI-B01, B02, ...', Icon: Beef },
