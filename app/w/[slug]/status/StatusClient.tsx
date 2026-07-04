@@ -273,7 +273,7 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
       </div>
 
       {/* ── Grid ── */}
-      <div style={{ padding: '20px 20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px,1fr))', gap: 10 }}>
+      <div style={{ padding: '20px 20px', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10 }}>
         {paginated.map((hewan) => {
           const sg = SG[hewan.status]
           const isSapi = hewan.jenis_hewan === 'SAPI'
@@ -379,7 +379,7 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
           )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
             <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Tampilkan:</span>
-            {[20, 40, 100, 0].map(n => (
+            {[10, 20, 50, 0].map(n => (
               <button key={n} onClick={() => { setPerPage(n); setPage(1) }} style={{ padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 700, border: perPage === n ? '1px solid rgba(16,185,129,0.45)' : '1px solid rgba(255,255,255,0.09)', background: perPage === n ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)', color: perPage === n ? '#34d399' : 'rgba(255,255,255,0.4)', cursor: 'pointer' }}>
                 {n === 0 ? 'Semua' : n}
               </button>
