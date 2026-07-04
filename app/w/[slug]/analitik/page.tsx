@@ -54,8 +54,14 @@ export default async function AnalitikPage({ params }: { params: Promise<{ slug:
     .eq('id', user.id)
     .single()
 
-  if (!profile || !['SUPER_ADMIN', 'ADMIN_PENDAFTARAN'].includes(profile.role)) {
+  // PETUGAS_LAPANGAN tidak boleh akses analitik → redirect ke status
+  // Kalau profile null, layout sudah menangani → tidak perlu redirect di sini
+  if (profile?.role === 'PETUGAS_LAPANGAN') {
     redirect(`/w/${slug}/status`)
+  }
+
+  if (!profile || !profile.id_workspace) {
+    redirect('/login')
   }
 
   const wid = profile.id_workspace!
@@ -94,13 +100,12 @@ export default async function AnalitikPage({ params }: { params: Promise<{ slug:
     return acc
   }, {} as Record<StatusHewan, number>)
   const persenSelesai = totalHewan > 0 ? Math.round((perStatus.SELESAI / totalHewan) * 100) : 0
-
   const labelPeriode = periodeAktif.nama_event ?? `Qurban ${periodeAktif.tahun}`
 
   const statCards = [
-    { label: 'Total Hewan',  value: totalHewan,        icon: <Layers size={18} color="#34d399" />, accent: 'rgba(52,211,153,0.35)',  iconBg: 'rgba(16,185,129,0.14)' },
-    { label: 'Total Jamaah', value: totalJamaah ?? 0,  icon: <Users size={18} color="#60a5fa" />,  accent: 'rgba(96,165,250,0.35)',  iconBg: 'rgba(96,165,250,0.14)' },
-    { label: 'Sapi',         value: totalSapi,          icon: <Beef size={18} color="#fbbf24" />,   accent: 'rgba(251,191,36,0.35)', iconBg: 'rgba(251,191,36,0.14)' },
+    { label: 'Total Hewan',  value: totalHewan,        icon: <Layers size={18} color="#34d399" />, accent: 'rgba(52,211,153,0.35)',   iconBg: 'rgba(16,185,129,0.14)' },
+    { label: 'Total Jamaah', value: totalJamaah ?? 0,  icon: <Users size={18} color="#60a5fa" />,  accent: 'rgba(96,165,250,0.35)',   iconBg: 'rgba(96,165,250,0.14)' },
+    { label: 'Sapi',         value: totalSapi,          icon: <Beef size={18} color="#fbbf24" />,   accent: 'rgba(251,191,36,0.35)',  iconBg: 'rgba(251,191,36,0.14)' },
     { label: 'Kambing',      value: totalKambing,       icon: <PawPrint size={18} color="#c4b5fd" />, accent: 'rgba(167,139,250,0.35)', iconBg: 'rgba(167,139,250,0.14)' },
   ]
 
@@ -119,7 +124,7 @@ export default async function AnalitikPage({ params }: { params: Promise<{ slug:
             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', marginTop: 4 }}>{perStatus.SELESAI} dari {totalHewan} hewan selesai</p>
           </div>
           <p style={{ fontSize: 46, fontWeight: 800, color: '#34d399', margin: 0, lineHeight: 1, letterSpacing: -2 }}>
-            {persenSelesai}<span style={{ fontSize: 20, fontWeight: 600, opacity: 0.46, letterSpacing: 0 }}>%</span>
+            {persenSelesai}<span style={{ fontSize: 20, fontWeight: 600, opacity: 0.46 }}>%</span>
           </p>
         </div>
         <div style={{ height: 10, background: 'rgba(255,255,255,0.06)', borderRadius: 99, overflow: 'hidden' }}>
