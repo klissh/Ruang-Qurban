@@ -126,16 +126,14 @@ function RoleModal({ role, onClose, onSave }: {
                     <span style={{ fontSize:13, color:'rgba(255,255,255,0.72)', fontWeight:500 }}>{label}</span>
                     {/* Tidak Ada */}
                     <div style={{ display:'flex', justifyContent:'center' }}>
-                      <button onClick={() =
-                    suppressHydrationWarning> setAccess(key,'none')} style={{ width:22, height:22, borderRadius:'50%', border: cur==='none' ? '2px solid #ef4444' : '2px solid rgba(255,255,255,0.15)', background: cur==='none' ? 'rgba(239,68,68,0.2)' : 'transparent', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                      <button onClick={() => setAccess(key,'none')} style={{ width:22, height:22, borderRadius:'50%', border: cur==='none' ? '2px solid #ef4444' : '2px solid rgba(255,255,255,0.15)', background: cur==='none' ? 'rgba(239,68,68,0.2)' : 'transparent', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
                         {cur==='none' && <div style={{ width:8, height:8, borderRadius:'50%', background:'#ef4444' }} />}
                       </button>
                     </div>
                     {/* Lihat Saja */}
                     <div style={{ display:'flex', justifyContent:'center' }}>
                       {hasVisitor ? (
-                        <button onClick={() =
-                    suppressHydrationWarning> setAccess(key,'visitor')} style={{ width:22, height:22, borderRadius:'50%', border: cur==='visitor' ? '2px solid #f59e0b' : '2px solid rgba(255,255,255,0.15)', background: cur==='visitor' ? 'rgba(245,158,11,0.2)' : 'transparent', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                        <button onClick={() => setAccess(key,'visitor')} style={{ width:22, height:22, borderRadius:'50%', border: cur==='visitor' ? '2px solid #f59e0b' : '2px solid rgba(255,255,255,0.15)', background: cur==='visitor' ? 'rgba(245,158,11,0.2)' : 'transparent', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
                           {cur==='visitor' && <div style={{ width:8, height:8, borderRadius:'50%', background:'#f59e0b' }} />}
                         </button>
                       ) : (
@@ -144,8 +142,7 @@ function RoleModal({ role, onClose, onSave }: {
                     </div>
                     {/* Full */}
                     <div style={{ display:'flex', justifyContent:'center' }}>
-                      <button onClick={() =
-                    suppressHydrationWarning> setAccess(key,'full')} style={{ width:22, height:22, borderRadius:'50%', border: cur==='full' ? '2px solid #10b981' : '2px solid rgba(255,255,255,0.15)', background: cur==='full' ? 'rgba(16,185,129,0.2)' : 'transparent', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                      <button onClick={() => setAccess(key,'full')} style={{ width:22, height:22, borderRadius:'50%', border: cur==='full' ? '2px solid #10b981' : '2px solid rgba(255,255,255,0.15)', background: cur==='full' ? 'rgba(16,185,129,0.2)' : 'transparent', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
                         {cur==='full' && <div style={{ width:8, height:8, borderRadius:'50%', background:'#10b981' }} />}
                       </button>
                     </div>
@@ -217,10 +214,8 @@ export default function PengaturanClient({ workspace, roles: initialRoles, slug 
       </div>
 
       <div style={{ display:'flex', gap:8, marginBottom:24 }}>
-        <button style={tabStyle(tab==='info')} onClick={() =
-                    suppressHydrationWarning> setTab('info')}>Info Workspace</button>
-        <button style={tabStyle(tab==='roles')} onClick={() =
-                    suppressHydrationWarning> setTab('roles')}>Manajemen Role</button>
+        <button style={tabStyle(tab==='info')} onClick={() => setTab('info')}>Info Workspace</button>
+        <button style={tabStyle(tab==='roles')} onClick={() => setTab('roles')}>Manajemen Role</button>
       </div>
 
       {/* Tab Info */}
@@ -254,8 +249,7 @@ export default function PengaturanClient({ workspace, roles: initialRoles, slug 
         <div>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
             <p style={{ fontSize:13, color:'rgba(255,255,255,0.36)', margin:0 }}>{roles.length} role tersedia</p>
-            <button onClick={() =
-                    suppressHydrationWarning> { setModalRole({}); setShowModal(true) }}
+            <button onClick={() => { setModalRole({}); setShowModal(true) }}
               style={{ display:'flex', alignItems:'center', gap:7, padding:'8px 16px', background:'linear-gradient(135deg,#10b981,#059669)', border:'none', borderRadius:10, color:'white', fontSize:13, fontWeight:700, cursor:'pointer' }}>
               <Plus size={14} /> Buat Role Baru
             </button>
@@ -282,13 +276,11 @@ export default function PengaturanClient({ workspace, roles: initialRoles, slug 
                   </div>
                   {!r.is_super_admin && (
                     <div style={{ display:'flex', gap:6 }}>
-                      <button onClick={() =
-                    suppressHydrationWarning> { setModalRole(r); setShowModal(true) }}
+                      <button onClick={() => { setModalRole(r); setShowModal(true) }}
                         style={{ background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'6px 10px', cursor:'pointer', color:'rgba(255,255,255,0.5)', display:'flex', alignItems:'center', gap:5, fontSize:12 }}>
                         <Edit2 size={12} /> Edit
                       </button>
-                      <button onClick={() =
-                    suppressHydrationWarning> handleDelete(r)} disabled={deleting===r.id}
+                      <button onClick={() => handleDelete(r)} disabled={deleting===r.id}
                         style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.18)', borderRadius:8, padding:'6px 10px', cursor:'pointer', color:'#fca5a5', display:'flex', alignItems:'center', gap:5, fontSize:12, opacity: deleting===r.id ? 0.5 : 1 }}>
                         <Trash2 size={12} /> Hapus
                       </button>
