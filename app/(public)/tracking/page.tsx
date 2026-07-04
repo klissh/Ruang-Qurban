@@ -414,32 +414,44 @@ export default function TrackingPage() {
               </div>
             )}
 
-            {/* Dokumentasi video — ditaruh di sini biar kelihatan lebih awal */}
+            {/* Dokumentasi video */}
             {result.url_dokumentasi && (() => {
               const driveFileId = result.url_dokumentasi.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)?.[1]
+              // Gunakan /preview agar Google Drive embed tanpa Chrome UI — lebih bersih & fullscreen supported
+              const embedUrl = driveFileId
+                ? `https://drive.google.com/file/d/${driveFileId}/preview`
+                : result.url_dokumentasi
               return (
-                <div style={{ ...G.card, padding: 24 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
-                    <h3 style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', margin: 0, display: 'flex', alignItems: 'center', gap: 7, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-                      <Video size={14} color="#34d399" /> Dokumentasi Penyembelihan
-                    </h3>
+                <div style={{ ...G.card }} className="p-3 sm:p-6">
+                  {/* Header: judul kecil kiri + tombol Download pojok kanan */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.55)', display: 'flex', alignItems: 'center', gap: 5, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                      <Video size={11} color="#34d399" /> Dokumentasi
+                    </span>
                     {driveFileId && (
                       <a
                         href={`https://drive.google.com/file/d/${driveFileId}/view`}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
-                          display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px',
+                          display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px',
                           background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(52,211,153,0.25)',
-                          borderRadius: 8, color: '#34d399', fontSize: 12, fontWeight: 700, textDecoration: 'none',
+                          borderRadius: 7, color: '#34d399', fontSize: 11, fontWeight: 700, textDecoration: 'none',
                         }}
                       >
-                        <Download size={13} /> Download
+                        <Download size={11} /> Download
                       </a>
                     )}
                   </div>
-                  <div style={{ borderRadius: 12, overflow: 'hidden', background: 'rgba(0,0,0,0.3)', aspectRatio: '16/9' }}>
-                    <iframe src={result.url_dokumentasi} style={{ width: '100%', height: '100%', border: 'none' }} allow="autoplay" title="Dokumentasi" />
+                  {/* Video: full width, 16/9, fullscreen enabled */}
+                  <div style={{ borderRadius: 10, overflow: 'hidden', background: '#000', aspectRatio: '16/9', width: '100%' }}>
+                    <iframe
+                      src={embedUrl}
+                      style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+                      allow="autoplay; fullscreen"
+                      allowFullScreen
+                      title="Dokumentasi Penyembelihan"
+                    />
                   </div>
                 </div>
               )
