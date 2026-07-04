@@ -121,10 +121,16 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
   const [filterTipe, setFilterTipe] = useState<'SEMUA' | 'SAPI-A' | 'SAPI-B' | 'KAMBING'>('SEMUA')
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(20)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
 
   // Sync state dengan props baru setelah router.refresh() pasca-import
   useEffect(() => { setHewan(hewanList) }, [hewanList])
   useEffect(() => { setJamaah(jamaahList) }, [jamaahList])
+  // Reset ke halaman 1 saat search / filter berubah
+  useEffect(() => { setPage(1) }, [search, filterTipe])
 
   // ── State form Tambah ──
   const [jenisHewan, setJenisHewan] = useState<JenisHewan>('SAPI')
@@ -162,6 +168,10 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
   })
   const getJamaahFor = (idHewan: string) => jamaah.filter((j) => j.id_hewan === idHewan)
   const cetakData = hewan.map((h) => ({ hewan: h, jamaah: getJamaahFor(h.id) }))
+
+  // Pagination
+  const totalPages = perPage === 0 ? 1 : Math.ceil(filtered.length / perPage)
+  const paginated  = perPage === 0 ? filtered : filtered.slice((page - 1) * perPage, page * perPage)
 
   // ── Helpers form Tambah ──
   function updateForm(idx: number, field: keyof JamaahFormData, val: string) {
@@ -617,7 +627,7 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
             </p>
           </div>
         )}
-        {filtered.map((h) => {
+        {paginated.map((h) => {
           const sg = STATUS_GLASS[h.status]
           const cfg = STATUS_CONFIG[h.status]
           const jList = getJamaahFor(h.id)
@@ -791,8 +801,83 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
         })}
       </div>
 
-      {/* ══════════════════════════════════════════════════════
-          MODAL: Tambah Kelompok
+      {/* Pagination bar */}
+      {filtered.length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          flexWrap: 'wrap', gap: 10, marginTop: 14, padding: '10px 4px',
+        }}>
+          {/* Keterangan */}
+          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>
+            {perPage === 0
+              ? `Menampilkan semua ${filtered.length} hewan`
+              : `Menampilkan ${Math.min((page - 1) * perPage + 1, filtered.length)}–${Math.min(page * perPage, filtered.length)} dari ${filtered.length} hewan`}
+          </span>
+
+          {/* Navigasi halaman */}
+          {perPage !== 0 && totalPages > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              {/* Prev */}
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                style={{
+                  width: 32, height: 32, borderRadius: 8, border: '1px solid rgba(255,255,255,0.09)',
+                  background: 'rgba(255,255,255,0.04)', color: page === 1 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.55)',
+                  cursor: page === 1 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >‹</button>
+
+              {/* Nomor halaman */}
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(n => n === 1 || n === totalPages || Math.abs(n - page) <= 1)
+                .reduce<(number | '…')[]>((acc, n, idx, arr) => {
+                  if (idx > 0 && (n as number) - (arr[idx - 1] as number) > 1) acc.push('…')
+                  acc.push(n)
+                  return acc
+                }, [])
+                .map((n, i) =>
+                  n === '…'
+                    ? <span key={`e${i}`} style={{ width: 32, textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,0.25)' }}>…</span>
+                    : <button key={n} onClick={() => setPage(n as number)} style={{
+                        width: 32, height: 32, borderRadius: 8, fontSize: 12, fontWeight: 700,
+                        border: page === n ? '1px solid rgba(16,185,129,0.45)' : '1px solid rgba(255,255,255,0.09)',
+                        background: page === n ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)',
+                        color: page === n ? '#34d399' : 'rgba(255,255,255,0.5)',
+                        cursor: 'pointer',
+                      }}>{n}</button>
+                )}
+
+              {/* Next */}
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                style={{
+                  width: 32, height: 32, borderRadius: 8, border: '1px solid rgba(255,255,255,0.09)',
+                  background: 'rgba(255,255,255,0.04)', color: page === totalPages ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.55)',
+                  cursor: page === totalPages ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >›</button>
+            </div>
+          )}
+
+          {/* Selector per-halaman */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Tampilkan:</span>
+            {[10, 20, 50, 0].map(n => (
+              <button key={n} onClick={() => { setPerPage(n); setPage(1) }} style={{
+                padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 700,
+                border: perPage === n ? '1px solid rgba(16,185,129,0.45)' : '1px solid rgba(255,255,255,0.09)',
+                background: perPage === n ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)',
+                color: perPage === n ? '#34d399' : 'rgba(255,255,255,0.4)',
+                cursor: 'pointer',
+              }}>
+                {n === 0 ? 'Semua' : n}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       ══════════════════════════════════════════════════════ */}
       {modal === 'tambah' && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.62)', backdropFilter: 'blur(10px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
