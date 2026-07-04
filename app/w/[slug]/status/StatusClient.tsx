@@ -273,7 +273,7 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
       </div>
 
       {/* ── Grid ── */}
-      <div className="rg-5" style={{ padding: '20px 20px', gap: 10 }}>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5" style={{ padding: '20px 20px', gap: 10 }}>
         {paginated.map((hewan) => {
           const sg = SG[hewan.status]
           const isSapi = hewan.jenis_hewan === 'SAPI'
