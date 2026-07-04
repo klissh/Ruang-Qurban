@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { STATUS_CONFIG, STATUS_ORDER, STATUS_ANTAR_CONFIG } from '@/types'
 import type { StatusHewan, JenisHewan, StatusAntar } from '@/types'
-import { Moon, Search, Beef, PawPrint, Check, Video, AlertCircle, Loader2, Truck, Clock, Download } from 'lucide-react'
+import { Moon, Search, Beef, PawPrint, Check, Video, AlertCircle, Loader2, Truck, Clock, Download, Users } from 'lucide-react'
 
 interface TrackingData {
   kode_resi: string
@@ -20,6 +20,12 @@ interface TrackingData {
     status_antar: StatusAntar
     diantar_oleh: string | null
   }>
+  workspace_stats: {
+    totalSapi: number
+    totalKambing: number
+    totalJamaah: number
+    labelPeriode: string
+  }
 }
 
 const STATUS_GLASS: Record<StatusHewan, { color: string; bg: string; border: string; dot: string }> = {
@@ -303,6 +309,72 @@ export default function TrackingPage() {
                 </div>
               </div>
             </div>
+
+            {/* Statistik Workspace — simetris 3 kolom */}
+            {result.workspace_stats.labelPeriode && (
+              <div style={{ maxWidth: 560, margin: '0 auto', width: '100%' }}>
+                {/* Header workspace */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, paddingInline: 2 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                    {result.nama_workspace}
+                  </span>
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)', fontWeight: 500 }}>
+                    {result.workspace_stats.labelPeriode}
+                  </span>
+                </div>
+
+                {/* 3 kartu statistik simetris */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                  {[
+                    {
+                      label: 'Total Sapi',
+                      value: result.workspace_stats.totalSapi,
+                      icon: <Beef size={18} color="#fbbf24" />,
+                      iconBg: 'rgba(251,191,36,0.12)',
+                      accent: 'rgba(251,191,36,0.3)',
+                      color: '#fbbf24',
+                    },
+                    {
+                      label: 'Total Kambing',
+                      value: result.workspace_stats.totalKambing,
+                      icon: <PawPrint size={18} color="#c4b5fd" />,
+                      iconBg: 'rgba(167,139,250,0.12)',
+                      accent: 'rgba(167,139,250,0.3)',
+                      color: '#c4b5fd',
+                    },
+                    {
+                      label: 'Total Jamaah',
+                      value: result.workspace_stats.totalJamaah,
+                      icon: <Users size={18} color="#60a5fa" />,
+                      iconBg: 'rgba(96,165,250,0.12)',
+                      accent: 'rgba(96,165,250,0.3)',
+                      color: '#60a5fa',
+                    },
+                  ].map((s) => (
+                    <div key={s.label} style={{
+                      ...G.card,
+                      borderTop: `2px solid ${s.accent}`,
+                      padding: '16px 14px',
+                      display: 'flex', flexDirection: 'column', gap: 10,
+                    }}>
+                      <div style={{
+                        width: 34, height: 34, borderRadius: 10,
+                        background: s.iconBg,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        {s.icon}
+                      </div>
+                      <div>
+                        <p style={{ fontSize: 26, fontWeight: 800, color: 'rgba(255,255,255,0.97)', margin: '0 0 3px', lineHeight: 1, letterSpacing: -1 }}>
+                          {s.value}
+                        </p>
+                        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.36)', margin: 0, fontWeight: 500 }}>{s.label}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Dokumentasi video — ditaruh di sini biar kelihatan lebih awal */}
             {result.url_dokumentasi && (() => {

@@ -49,6 +49,39 @@ export async function GET(request: NextRequest) {
     .eq('id', hewan.id_workspace)
     .single()
 
+  // Ambil periode aktif workspace ini (untuk scope stats)
+  const { data: periode } = await supabase
+    .from('periode_qurban')
+    .select('id, tahun, nama_event')
+    .eq('id_workspace', hewan.id_workspace)
+    .eq('status', 'aktif')
+    .single()
+
+  // Hitung total hewan + jamaah di workspace (periode aktif)
+  let workspaceStats = { totalSapi: 0, totalKambing: 0, totalJamaah: 0, labelPeriode: '' }
+  if (periode) {
+    const { data: allHewan } = await supabase
+      .from('hewan')
+      .select('jenis_hewan')
+      .eq('id_workspace', hewan.id_workspace)
+      .eq('periode_id', periode.id)
+      .is('deleted_at', null)
+
+    const { count: jmlJamaah } = await supabase
+      .from('jamaah')
+      .select('id', { count: 'exact', head: true })
+      .eq('id_workspace', hewan.id_workspace)
+      .eq('periode_id', periode.id)
+      .is('deleted_at', null)
+
+    workspaceStats = {
+      totalSapi:    (allHewan ?? []).filter((h) => h.jenis_hewan === 'SAPI').length,
+      totalKambing: (allHewan ?? []).filter((h) => h.jenis_hewan === 'KAMBING').length,
+      totalJamaah:  jmlJamaah ?? 0,
+      labelPeriode: periode.nama_event ?? `Qurban ${periode.tahun}`,
+    }
+  }
+
   return NextResponse.json({
     data: {
       kode_resi: hewan.kode_resi,
@@ -57,6 +90,7 @@ export async function GET(request: NextRequest) {
       url_dokumentasi: hewan.url_dokumentasi,
       nama_workspace: workspace?.nama ?? '',
       jamaah: jamaah ?? [],
+      workspace_stats: workspaceStats,
     }
   })
 }
