@@ -246,7 +246,7 @@ export default function PanitiaClient({ anggotaList, workspaceRoles, currentUser
               </div>
               <div style={{ padding:'18px 26px', borderTop:'1px solid rgba(255,255,255,0.07)', display:'flex', gap:10 }}>
                 <button onClick={() => setShowAdd(false)} style={{ flex:1, padding:11, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:12, color:'rgba(255,255,255,0.58)', fontSize:13.5, fontWeight:600, cursor:'pointer' }}>Batal</button>
-                <button onClick={handleTambah} disabled={saving} style={{ flex:1, padding:11, background:'linear-gradient(135deg,#10b981,#059669)', border:'none', borderRadius:12, color:'white', fontSize:13.5, fontWeight:700, cursor:'pointer', opacity: saving ? 0.6 : 1 }}
+                <button onClick={handleTambah} disabled={saving} style={{ flex:1, padding:11, background:'linear-gradient(135deg,#10b981,#059669)', border:'none', borderRadius:12, color:'white', fontSize:13.5, fontWeight:700, cursor:'pointer', opacity: saving ? 0.6 : 1 }}>
                   {saving ? 'Menambahkan...' : 'Tambahkan'}
                 </button>
               </div>
@@ -291,7 +291,7 @@ export default function PanitiaClient({ anggotaList, workspaceRoles, currentUser
               </div>
               <div style={{ padding:'18px 26px', borderTop:'1px solid rgba(255,255,255,0.07)', display:'flex', gap:10 }}>
                 <button onClick={() => { setShowEdit(false); setEditTarget(null) }} style={{ flex:1, padding:11, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:12, color:'rgba(255,255,255,0.58)', fontSize:13.5, fontWeight:600, cursor:'pointer' }}>Batal</button>
-                <button onClick={handleUpdateRole} disabled={updating===editTarget.id} style={{ flex:1, padding:11, background:'linear-gradient(135deg,#10b981,#059669)', border:'none', borderRadius:12, color:'white', fontSize:13.5, fontWeight:700, cursor:'pointer', opacity: updating===editTarget.id ? 0.6 : 1 }}
+                <button onClick={handleUpdateRole} disabled={updating===editTarget.id} style={{ flex:1, padding:11, background:'linear-gradient(135deg,#10b981,#059669)', border:'none', borderRadius:12, color:'white', fontSize:13.5, fontWeight:700, cursor:'pointer', opacity: updating===editTarget.id ? 0.6 : 1 }}>
                   {updating===editTarget.id ? 'Menyimpan...' : 'Simpan Role'}
                 </button>
               </div>
