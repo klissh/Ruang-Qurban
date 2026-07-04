@@ -128,14 +128,14 @@ export default async function AnalitikPage({ params }: { params: Promise<{ slug:
   ]
 
   return (
-    <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-5 animate-slide-up">
+    <div className="p-6 md:p-8 pb-20 md:pb-8 max-w-4xl mx-auto space-y-5 animate-slide-up">
       <div className="mb-2">
         <h1 style={{ fontSize: 26, fontWeight: 800, color: 'rgba(255,255,255,0.97)', letterSpacing: '-0.5px', margin: 0 }}>Dashboard Analitik</h1>
         <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.36)', marginTop: 6 }}>{namaWorkspace} · {labelPeriode}</p>
       </div>
 
       {/* ── Progress bar row: Penyembelihan + Pengantaran ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div className="rg-2" style={{ gap: 16 }}>
 
         {/* Progress Penyembelihan */}
         <div style={{ ...G.card, padding: 28, position: 'relative', overflow: 'hidden' }}>
@@ -172,7 +172,7 @@ export default async function AnalitikPage({ params }: { params: Promise<{ slug:
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
+      <div className="rg-4" style={{ gap: 16 }}>
         {statCards.map((s) => (
           <div key={s.label} style={{ ...G.card, borderTop: `2px solid ${s.accent}`, padding: 20 }}>
             <div style={{ width: 38, height: 38, borderRadius: 11, background: s.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>{s.icon}</div>
@@ -183,7 +183,7 @@ export default async function AnalitikPage({ params }: { params: Promise<{ slug:
       </div>
 
       {/* ── Breakdown row: Status Proses + Status Pengantaran ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
+      <div className="rg-2" style={{ gap: 16, alignItems: 'start' }}>
 
         {/* Breakdown Per Status Proses */}
         <div style={{ ...G.card, padding: 26 }}>
