@@ -878,7 +878,7 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
           </div>
         </div>
       )}
-      ══════════════════════════════════════════════════════ */}
+
       {modal === 'tambah' && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.62)', backdropFilter: 'blur(10px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={G.modal}>
