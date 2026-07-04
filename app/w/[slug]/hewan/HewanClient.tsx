@@ -572,7 +572,7 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
         </div>
 
         {/* Filter bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflowX: 'auto', WebkitOverflowScrolling: 'touch' as any, paddingBottom: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', paddingBottom: 4 }}>
           <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', fontWeight: 500, marginRight: 2, flexShrink: 0 }}>Filter:</span>
           {([
             { key: 'SEMUA',   label: 'Semua',   count: hewan.length },
@@ -650,7 +650,9 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap', overflow: 'hidden' }}>
                     <span style={{ fontFamily: 'ui-monospace,monospace', fontWeight: 800, fontSize: 14, color: 'rgba(255,255,255,0.95)', whiteSpace: 'nowrap' }}>{h.kode_resi}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      {isSapi ? <Beef size={12} color="rgba(255,255,255,0.28)" /> : <PawPrint size={12} color="rgba(255,255,255,0.28)" />}
+                      <span className="hidden sm:inline-flex items-center">
+                        {isSapi ? <Beef size={12} color="rgba(255,255,255,0.28)" /> : <PawPrint size={12} color="rgba(255,255,255,0.28)" />}
+                      </span>
                       <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.32)' }}>{jList.length} orang</span>
                     </div>
                   </div>
