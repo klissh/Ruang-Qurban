@@ -573,7 +573,7 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
 
         {/* Filter bar */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', paddingBottom: 4 }}>
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', fontWeight: 500, marginRight: 2, flexShrink: 0 }}>Filter:</span>
+          <span className="hidden sm:inline" style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', fontWeight: 500, marginRight: 2, flexShrink: 0 }}>Filter:</span>
           {([
             { key: 'SEMUA',   label: 'Semua',   count: hewan.length },
             { key: 'SAPI-A',  label: 'Sapi A',  count: hewan.filter(h => h.kode_resi.startsWith('SAPI-A')).length },
@@ -804,12 +804,10 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
 
       {/* Pagination bar */}
       {filtered.length > 0 && (
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          flexWrap: 'wrap', gap: 10, marginTop: 14, padding: '10px 4px',
-        }}>
+        <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between sm:flex-wrap"
+          style={{ marginTop: 14, padding: '10px 4px' }}>
           {/* Keterangan */}
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>
+          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', flexShrink: 0, textAlign: 'center' }}>
             {perPage === 0
               ? `Menampilkan semua ${filtered.length} hewan`
               : `Menampilkan ${Math.min((page - 1) * perPage + 1, filtered.length)}–${Math.min(page * perPage, filtered.length)} dari ${filtered.length} hewan`}
@@ -863,8 +861,8 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
           )}
 
           {/* Selector per-halaman */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Tampilkan:</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexShrink: 0 }}>
+            <span className="hidden sm:inline" style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Tampilkan:</span>
             {[10, 20, 50, 0].map(n => (
               <button key={n} onClick={() => { setPerPage(n); setPage(1) }} style={{
                 padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 700,
