@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import Sidebar from '@/components/dashboard/Sidebar'
 import { WorkspaceProvider } from '@/context/WorkspaceContext'
 import { resolvePermissions } from '@/lib/permissions'
+import { SUPER_ADMIN_PERMISSIONS } from '@/context/WorkspaceContext'
 import type { Role } from '@/types'
 
 export default async function WorkspaceLayout({
@@ -19,33 +20,45 @@ export default async function WorkspaceLayout({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  // ── Query utama (dengan workspace_role jika migration 005 sudah jalan) ──
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('nama_lengkap, role, id_workspace, workspace_role_id, workspace_roles(permissions), workspaces(id, nama, slug)')
     .eq('id', user.id)
     .single()
 
-  if (profileError || !profile) redirect('/login')
-  if (!profile.id_workspace) redirect('/waiting')
+  // ── Fallback: jika query gagal (misal kolom belum ada), pakai query sederhana ──
+  let finalProfile: any = profile
+  if (profileError || !profile) {
+    const { data: basicProfile } = await supabase
+      .from('profiles')
+      .select('nama_lengkap, role, id_workspace, workspaces(id, nama, slug)')
+      .eq('id', user.id)
+      .single()
+    finalProfile = basicProfile
+  }
 
-  const workspace = profile.workspaces as any
+  if (!finalProfile) redirect('/login')
+  if (!finalProfile.id_workspace) redirect('/waiting')
+
+  const workspace = finalProfile.workspaces as any
 
   if (workspace?.slug && decodeURIComponent(workspace.slug) !== slug) {
-    const dest = profile.role === 'PETUGAS_LAPANGAN' ? 'status' : 'analitik'
+    const dest = finalProfile.role === 'PETUGAS_LAPANGAN' ? 'status' : 'analitik'
     redirect(`/w/${workspace.slug}/${dest}`)
   }
 
   const workspaceSlug = workspace?.slug ?? slug
-  const wrPerms = (profile.workspace_roles as any)?.permissions ?? null
-  const permissions = resolvePermissions(profile.role, wrPerms)
+  const wrPerms = (finalProfile.workspace_roles as any)?.permissions ?? null
+  const permissions = resolvePermissions(finalProfile.role, wrPerms)
 
   const contextValue = {
-    workspaceId:   profile.id_workspace,
+    workspaceId:   finalProfile.id_workspace,
     slug:          workspaceSlug,
     namaWorkspace: workspace?.nama ?? '',
     userId:        user.id,
-    namaUser:      profile.nama_lengkap,
-    role:          profile.role as Role,
+    namaUser:      finalProfile.nama_lengkap,
+    role:          finalProfile.role as Role,
     permissions,
   }
 
@@ -63,8 +76,8 @@ export default async function WorkspaceLayout({
         <div className="pointer-events-none fixed" style={{ bottom: '-25%', right: '-10%', width: 1000, height: 1000, zIndex: 0, background: 'radial-gradient(circle, rgba(5,150,105,0.07) 0%, transparent 62%)' }} />
 
         <Sidebar
-          role={profile.role as Role}
-          namaUser={profile.nama_lengkap}
+          role={finalProfile.role as Role}
+          namaUser={finalProfile.nama_lengkap}
           namaWorkspace={workspace?.nama ?? ''}
           slug={workspaceSlug}
           permissions={permissions}
