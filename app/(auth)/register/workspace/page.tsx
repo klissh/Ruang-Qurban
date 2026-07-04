@@ -95,22 +95,43 @@ export default function RegisterWorkspacePage() {
     })
 
     if (signUpError) {
-      // Terjemahkan error Supabase ke pesan yang ramah
-      const msg = typeof signUpError.message === 'string' ? signUpError.message.toLowerCase() : ''
-      if (msg.includes('already registered') || msg.includes('already exists') || msg.includes('user already')) {
+      // Debug: log error lengkap ke console untuk investigasi
+      console.error('SignUp error:', JSON.stringify(signUpError))
+
+      const msg    = typeof signUpError.message === 'string' ? signUpError.message.toLowerCase() : ''
+      const code   = ((signUpError as any).code   ?? '').toLowerCase()
+      const status = (signUpError as any).status  ?? 0
+
+      if (
+        code.includes('user_already') || code.includes('email_exists') ||
+        msg.includes('already registered') || msg.includes('already exists') || msg.includes('user already')
+      ) {
         setError('Email ini sudah terdaftar. Silakan masuk atau gunakan email lain.')
-      } else if (msg.includes('invalid email') || msg.includes('email')) {
-        setError('Format email tidak valid.')
-      } else if (msg.includes('password') || msg.includes('weak')) {
-        setError('Password terlalu lemah. Gunakan minimal 6 karakter.')
-      } else if (msg.includes('rate limit') || msg.includes('too many')) {
+      } else if (
+        code.includes('email_not_confirmed') || msg.includes('not confirmed')
+      ) {
+        setError('Email belum dikonfirmasi. Cek kotak masuk Anda.')
+      } else if (
+        code.includes('signup_disabled') || msg.includes('signup')
+      ) {
+        setError('Pendaftaran akun baru sedang dinonaktifkan.')
+      } else if (
+        status === 429 || code.includes('rate') || msg.includes('rate limit') || msg.includes('too many')
+      ) {
         setError('Terlalu banyak percobaan. Tunggu beberapa menit lalu coba lagi.')
-      } else if (msg.includes('network') || msg.includes('fetch')) {
+      } else if (msg.includes('invalid email') || (msg.includes('email') && !msg.includes('confirm'))) {
+        setError('Format email tidak valid.')
+      } else if (msg.includes('password') || msg.includes('weak') || status === 422) {
+        setError('Password terlalu lemah atau format tidak valid. Gunakan minimal 6 karakter.')
+      } else if (msg.includes('network') || msg.includes('fetch') || status === 0) {
         setError('Koneksi bermasalah. Periksa internet Anda.')
-      } else if (msg && msg !== '{}' && msg !== 'undefined') {
-        setError(signUpError.message)
       } else {
-        setError('Terjadi kesalahan saat membuat akun. Coba lagi.')
+        // Tampilkan error mentah supaya bisa diinvestigasi
+        const rawMsg = signUpError.message || code || `status ${status}`
+        setError(rawMsg
+          ? `Gagal membuat akun: ${rawMsg}`
+          : 'Terjadi kesalahan tak terduga. Coba lagi atau hubungi admin.'
+        )
       }
       setLoading(false)
       return
