@@ -15,11 +15,9 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { email, role } = body as { email: string; role: Role }
+  const { email, role, workspace_role_id } = body as { email: string; role: Role; workspace_role_id?: string }
 
-  if (!email || !role) {
-    return NextResponse.json({ error: 'Email dan role wajib diisi' }, { status: 400 })
-  }
+  if (!email) return NextResponse.json({ error: 'Email wajib diisi' }, { status: 400 })
 
   const serviceClient = createServiceClient()
 
@@ -35,24 +33,22 @@ export async function POST(request: NextRequest) {
   }
 
   if (targetProfile.id_workspace) {
-    return NextResponse.json({ error: 'User ini sudah tergabung di workspace lain dan tidak bisa ditambahkan.' }, { status: 409 })
+    return NextResponse.json({ error: 'User ini sudah tergabung di workspace lain.' }, { status: 409 })
   }
 
   // Assign ke workspace
   const { error: updateError } = await serviceClient
     .from('profiles')
-    .update({ id_workspace: callerProfile.id_workspace, role })
+    .update({
+      id_workspace: callerProfile.id_workspace,
+      role: role ?? 'PETUGAS_LAPANGAN',
+      workspace_role_id: workspace_role_id ?? null,
+    })
     .eq('id', targetProfile.id)
 
-  if (updateError) {
-    return NextResponse.json({ error: 'Gagal menambahkan anggota' }, { status: 500 })
-  }
+  if (updateError) return NextResponse.json({ error: 'Gagal menambahkan anggota' }, { status: 500 })
 
   return NextResponse.json({
-    profile: {
-      ...targetProfile,
-      role,
-      id_workspace: callerProfile.id_workspace,
-    }
+    profile: { ...targetProfile, role: role ?? 'PETUGAS_LAPANGAN', id_workspace: callerProfile.id_workspace, workspace_role_id: workspace_role_id ?? null }
   })
 }
