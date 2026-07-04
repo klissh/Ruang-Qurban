@@ -31,7 +31,8 @@ function checkRateLimit(ip: string, limit = 10, windowMs = 60_000): boolean {
   return true
 }
 
-export async function middleware(request: NextRequest) {
+// Next.js 16: export harus bernama "proxy" (bukan "middleware")
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   if (pathname.startsWith('/api/tracking')) {
