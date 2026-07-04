@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Sidebar from '@/components/dashboard/Sidebar'
 import { WorkspaceProvider } from '@/context/WorkspaceContext'
+import { resolvePermissions } from '@/lib/permissions'
 import type { Role } from '@/types'
 
 export default async function WorkspaceLayout({
@@ -12,43 +13,40 @@ export default async function WorkspaceLayout({
   params: Promise<{ slug: string }>
 }) {
   const { slug: rawSlug } = await params
-  // Decode URL encoding (misal Masjid%20Ar-Ridho → Masjid Ar-Ridho)
   const slug = decodeURIComponent(rawSlug)
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-
   if (!user) redirect('/login')
 
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('nama_lengkap, role, id_workspace, workspaces(id, nama, slug)')
+    .select('nama_lengkap, role, id_workspace, workspace_role_id, workspace_roles(permissions), workspaces(id, nama, slug)')
     .eq('id', user.id)
     .single()
 
-  // Tidak ada profil → login
   if (profileError || !profile) redirect('/login')
-
-  // Belum punya workspace → tunggu
   if (!profile.id_workspace) redirect('/waiting')
 
   const workspace = profile.workspaces as any
 
-  // Kalau slug di URL tidak cocok dengan workspace user, redirect ke slug yang benar
   if (workspace?.slug && decodeURIComponent(workspace.slug) !== slug) {
     const dest = profile.role === 'PETUGAS_LAPANGAN' ? 'status' : 'analitik'
     redirect(`/w/${workspace.slug}/${dest}`)
   }
 
   const workspaceSlug = workspace?.slug ?? slug
+  const wrPerms = (profile.workspace_roles as any)?.permissions ?? null
+  const permissions = resolvePermissions(profile.role, wrPerms)
 
   const contextValue = {
-    workspaceId: profile.id_workspace,
-    slug: workspaceSlug,
+    workspaceId:   profile.id_workspace,
+    slug:          workspaceSlug,
     namaWorkspace: workspace?.nama ?? '',
-    userId: user.id,
-    namaUser: profile.nama_lengkap,
-    role: profile.role as Role,
+    userId:        user.id,
+    namaUser:      profile.nama_lengkap,
+    role:          profile.role as Role,
+    permissions,
   }
 
   return (
@@ -69,6 +67,7 @@ export default async function WorkspaceLayout({
           namaUser={profile.nama_lengkap}
           namaWorkspace={workspace?.nama ?? ''}
           slug={workspaceSlug}
+          permissions={permissions}
         />
 
         <main className="flex-1 overflow-y-auto relative z-10">
