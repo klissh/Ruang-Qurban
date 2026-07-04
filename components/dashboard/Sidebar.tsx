@@ -4,8 +4,10 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Role } from '@/types'
+import type { WorkspacePermissions } from '@/context/WorkspaceContext'
 import {
-  LayoutDashboard, Beef, Activity, ScrollText, Users, LogOut, Menu, X, Moon, Truck, Archive, Settings,
+  LayoutDashboard, Beef, Activity, ScrollText, Users, LogOut,
+  Menu, X, Moon, Truck, Archive, Settings, Eye,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -13,18 +15,21 @@ interface NavItem {
   key: string
   label: string
   icon: React.ReactNode
-  roles: Role[]
+  permKey?: keyof WorkspacePermissions  // undefined = hanya SUPER_ADMIN
+  superAdminOnly?: boolean
 }
 
+// Urutan sidebar (dari atas ke bawah):
+// Analitik, Data Hewan, Status, Pengantaran, Log, Arsip, Manajemen Anggota, Pengaturan
 const NAV_ITEMS: NavItem[] = [
-  { key: 'analitik',    label: 'Analitik',          icon: <LayoutDashboard size={16} />, roles: ['SUPER_ADMIN', 'ADMIN_PENDAFTARAN'] },
-  { key: 'hewan',       label: 'Data Hewan',         icon: <Beef size={16} />,            roles: ['SUPER_ADMIN', 'ADMIN_PENDAFTARAN'] },
-  { key: 'status',      label: 'Status',             icon: <Activity size={16} />,        roles: ['SUPER_ADMIN', 'PETUGAS_LAPANGAN'] },
-  { key: 'pengantaran', label: 'Pengantaran',        icon: <Truck size={16} />,           roles: ['SUPER_ADMIN', 'PETUGAS_LAPANGAN'] },
-  { key: 'log',         label: 'Log Aktivitas',      icon: <ScrollText size={16} />,      roles: ['SUPER_ADMIN', 'ADMIN_PENDAFTARAN'] },
-  { key: 'panitia',     label: 'Manajemen Anggota',  icon: <Users size={16} />,           roles: ['SUPER_ADMIN'] },
-  { key: 'arsip',       label: 'Arsip Periode',      icon: <Archive size={16} />,         roles: ['SUPER_ADMIN', 'ADMIN_PENDAFTARAN'] },
-  { key: 'pengaturan',  label: 'Pengaturan',         icon: <Settings size={16} />,        roles: ['SUPER_ADMIN'] },
+  { key: 'analitik',    label: 'Analitik',          icon: <LayoutDashboard size={16} />, permKey: 'analitik' },
+  { key: 'hewan',       label: 'Data Hewan',         icon: <Beef size={16} />,            permKey: 'data_hewan' },
+  { key: 'status',      label: 'Status',             icon: <Activity size={16} />,        permKey: 'status' },
+  { key: 'pengantaran', label: 'Pengantaran',        icon: <Truck size={16} />,           permKey: 'pengantaran' },
+  { key: 'log',         label: 'Log Aktivitas',      icon: <ScrollText size={16} />,      permKey: 'log' },
+  { key: 'arsip',       label: 'Arsip Periode',      icon: <Archive size={16} />,         permKey: 'arsip' },
+  { key: 'panitia',     label: 'Manajemen Anggota',  icon: <Users size={16} />,           permKey: 'manajemen_anggota' },
+  { key: 'pengaturan',  label: 'Pengaturan',         icon: <Settings size={16} />,        superAdminOnly: true },
 ]
 
 const ROLE_LABEL: Record<Role, string> = {
@@ -44,32 +49,44 @@ interface SidebarProps {
   namaUser: string
   namaWorkspace: string
   slug: string
+  permissions: WorkspacePermissions
 }
 
-export default function Sidebar({ role, namaUser, namaWorkspace, slug }: SidebarProps) {
+export default function Sidebar({ role, namaUser, namaWorkspace, slug, permissions }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  const visibleItems = NAV_ITEMS.filter((item) => item.roles.includes(role))
-  const badge = ROLE_BADGE[role]
+  const isSuperAdmin = role === 'SUPER_ADMIN'
+
+  // Filter berdasarkan permissions
+  const visibleItems = NAV_ITEMS.filter((item) => {
+    if (item.superAdminOnly) return isSuperAdmin
+    if (!item.permKey) return true
+    const access = permissions[item.permKey]
+    return access !== 'none'
+  })
+
+  const badge = ROLE_BADGE[role] ?? ROLE_BADGE.PETUGAS_LAPANGAN
 
   async function handleLogout() {
     await supabase.auth.signOut()
-    router.push('/login')
-    router.refresh()
+    window.location.href = '/login'
   }
 
-  const isActive = (key: string) => pathname.includes(`/w/${slug}/${key}`)
+  const isActive = (key: string) => pathname.includes(`/w/${slug}/${key}`) ||
+    (key === 'hewan' && pathname.includes(`/w/${slug}/hewan`))
 
   const Content = () => (
     <div className="flex flex-col h-full">
       <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(16,185,129,0.65), transparent)' }} />
 
+      {/* Logo + user info */}
       <div className="px-4 pt-6 pb-4">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(145deg, #12c98d, #059669)', boxShadow: '0 4px 16px rgba(16,185,129,0.4), 0 0 0 1px rgba(16,185,129,0.2)' }}>
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
+            style={{ background: 'linear-gradient(145deg, #12c98d, #059669)', boxShadow: '0 4px 16px rgba(16,185,129,0.4), 0 0 0 1px rgba(16,185,129,0.2)' }}>
             <Moon size={18} color="white" strokeWidth={2.4} />
           </div>
           <div className="min-w-0">
@@ -80,18 +97,22 @@ export default function Sidebar({ role, namaUser, namaWorkspace, slug }: Sidebar
           </div>
         </div>
 
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold" style={{ background: badge.bg, color: badge.color, border: `1px solid ${badge.border}` }}>
-          {ROLE_LABEL[role]}
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
+          style={{ background: badge.bg, color: badge.color, border: `1px solid ${badge.border}` }}>
+          {ROLE_LABEL[role] ?? role}
         </div>
       </div>
 
       <div className="mx-4 mb-2" style={{ height: 1, background: 'rgba(255,255,255,0.07)' }} />
-      <p className="px-5 mb-1.5 text-[9px] font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.22)', letterSpacing: '1.2px' }}>Menu Utama</p>
+      <p className="px-5 mb-1.5 text-[9px] font-bold uppercase tracking-widest"
+        style={{ color: 'rgba(255,255,255,0.22)', letterSpacing: '1.2px' }}>Menu Utama</p>
 
       <nav className="flex-1 px-2.5 overflow-y-auto space-y-0.5">
         {visibleItems.map((item) => {
           const active = isActive(item.key)
           const href = `/w/${slug}/${item.key}`
+          const isVisitor = item.permKey && permissions[item.permKey] === 'visitor'
+
           return (
             <Link
               key={item.key}
@@ -107,7 +128,12 @@ export default function Sidebar({ role, namaUser, namaWorkspace, slug }: Sidebar
               }}
             >
               {item.icon}
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {isVisitor && (
+                <span title="Mode Lihat Saja">
+                  <Eye size={11} style={{ color: 'rgba(255,255,255,0.22)', flexShrink: 0 }} />
+                </span>
+              )}
             </Link>
           )
         })}
@@ -118,7 +144,7 @@ export default function Sidebar({ role, namaUser, namaWorkspace, slug }: Sidebar
         <button
           onClick={handleLogout}
           className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-medium w-full transition-all"
-          style={{ color: 'rgba(255,255,255,0.3)' }}
+          style={{ color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer' }}
         >
           <LogOut size={15} />
           Keluar
@@ -129,7 +155,8 @@ export default function Sidebar({ role, namaUser, namaWorkspace, slug }: Sidebar
 
   return (
     <>
-      <aside className="hidden md:flex w-[262px] flex-col flex-shrink-0 relative" style={{ background: 'rgba(4,10,7,0.78)', backdropFilter: 'blur(36px) saturate(180%)', WebkitBackdropFilter: 'blur(36px) saturate(180%)', borderRight: '1px solid rgba(255,255,255,0.07)' }}>
+      <aside className="hidden md:flex w-[262px] flex-col flex-shrink-0 relative"
+        style={{ background: 'rgba(4,10,7,0.78)', backdropFilter: 'blur(36px) saturate(180%)', WebkitBackdropFilter: 'blur(36px) saturate(180%)', borderRight: '1px solid rgba(255,255,255,0.07)' }}>
         <Content />
       </aside>
 
@@ -143,8 +170,11 @@ export default function Sidebar({ role, namaUser, namaWorkspace, slug }: Sidebar
 
       {mobileOpen && (
         <>
-          <div className="md:hidden fixed inset-0 z-40" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} onClick={() => setMobileOpen(false)} />
-          <aside className="md:hidden fixed left-0 top-0 bottom-0 w-72 z-50 shadow-2xl flex flex-col relative" style={{ background: 'rgba(4,10,7,0.96)', backdropFilter: 'blur(36px)', WebkitBackdropFilter: 'blur(36px)', borderRight: '1px solid rgba(255,255,255,0.1)' }}>
+          <div className="md:hidden fixed inset-0 z-40"
+            style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+            onClick={() => setMobileOpen(false)} />
+          <aside className="md:hidden fixed left-0 top-0 bottom-0 w-72 z-50 shadow-2xl flex flex-col relative"
+            style={{ background: 'rgba(4,10,7,0.96)', backdropFilter: 'blur(36px)', WebkitBackdropFilter: 'blur(36px)', borderRight: '1px solid rgba(255,255,255,0.1)' }}>
             <Content />
           </aside>
         </>
