@@ -53,7 +53,12 @@ export default function PengantaranClient({ jamaahList }: { jamaahList: JamaahIt
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(10)
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => {
+    // Semua group mulai collapsed — user buka satu per satu sesuai kebutuhan
+    const keys = new Set<string>()
+    for (const j of jamaahList) { keys.add(j.id_hewan ?? j.id) }
+    return keys
+  })
   const [loading, setLoading] = useState(false)
   const [modal, setModal] = useState<{ ids: string[]; statusAntar: StatusAntar; diantarOleh: string } | null>(null)
 
@@ -270,6 +275,23 @@ export default function PengantaranClient({ jamaahList }: { jamaahList: JamaahIt
                   {hewan?.kode_resi ?? 'Tanpa Kelompok'}
                 </span>
                 <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>({items.length} orang)</span>
+
+                {/* Status dots — tampil saat collapsed, tunjukkan warna per jamaah */}
+                {isCollapsed && (
+                  <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginLeft: 4 }}>
+                    {items.map((item) => {
+                      const dot = STATUS_ANTAR_CONFIG[item.status_antar].dot
+                      return (
+                        <div key={item.id} title={STATUS_ANTAR_CONFIG[item.status_antar].label} style={{
+                          width: 9, height: 9, borderRadius: '50%',
+                          background: dot, flexShrink: 0,
+                          boxShadow: `0 0 4px ${dot}66`,
+                        }} />
+                      )
+                    })}
+                  </div>
+                )}
+
                 <div style={{ flex: 1 }} />
                 <div style={{ color: 'rgba(255,255,255,0.3)', display: 'flex' }}>
                   {isCollapsed ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
