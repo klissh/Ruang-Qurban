@@ -74,7 +74,7 @@ export default function ArsipDetailClient({ periode, hewanList, jamaahList, user
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-5xl mx-auto animate-slide-up">
+    <div className="p-6 md:p-8 pb-20 md:pb-8 max-w-5xl mx-auto animate-slide-up">
 
       {/* Back + Header */}
       <div style={{ marginBottom: 24 }}>
@@ -113,7 +113,7 @@ export default function ArsipDetailClient({ periode, hewanList, jamaahList, user
       </div>
 
       {/* Stats summary */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 22 }}>
+      <div className="rg-1-3" style={{ gap: 12, marginBottom: 22 }}>
         {[
           { label: 'Sapi', value: sapiCount, color: '#f97316' },
           { label: 'Kambing', value: kambingCount, color: '#34d399' },
