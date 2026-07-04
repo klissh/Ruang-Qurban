@@ -217,6 +217,43 @@ export default function TrackingPage() {
             </h1>
             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.36)', margin: '2px 0 0' }}>Cek status hewan qurban Anda</p>
           </div>
+
+          {/* Spacer */}
+          <div style={{ flex: 1 }} />
+
+          {/* Auth buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <a
+              href="/login"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '7px 14px', borderRadius: 10,
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                color: 'rgba(255,255,255,0.7)',
+                fontSize: 13, fontWeight: 600,
+                textDecoration: 'none',
+                transition: 'background 0.15s',
+              }}
+            >
+              Masuk
+            </a>
+            <a
+              href="/register"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '7px 14px', borderRadius: 10,
+                background: 'linear-gradient(135deg,#10b981,#059669)',
+                border: 'none',
+                color: 'white',
+                fontSize: 13, fontWeight: 700,
+                textDecoration: 'none',
+                boxShadow: '0 4px 12px rgba(16,185,129,0.3)',
+              }}
+            >
+              Daftar
+            </a>
+          </div>
         </div>
       </div>
 

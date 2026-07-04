@@ -5,7 +5,7 @@ export default async function RootPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) redirect('/login')
+  if (!user) redirect('/tracking')
 
   // Query sederhana tanpa join yang bisa gagal karena RLS/migration
   const { data: profile } = await supabase
