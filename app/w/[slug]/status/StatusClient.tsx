@@ -183,12 +183,8 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
   return (
     <div style={{ minHeight: '100vh', paddingBottom: 80 }}>
 
-      {/* ── Sticky header ── */}
+      {/* ── Header ── */}
       <div style={{
-        position: 'sticky', top: 0, zIndex: 10,
-        background: 'rgba(4,10,7,0.92)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
         borderBottom: '1px solid rgba(255,255,255,0.07)',
         padding: '18px 20px 0',
       }}>
