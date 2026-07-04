@@ -63,7 +63,7 @@ export default async function LogPage({ params }: { params: Promise<{ slug: stri
     .limit(100)
 
   return (
-    <div className="p-6 md:p-8 max-w-3xl mx-auto animate-slide-up">
+    <div className="p-6 md:p-8 pb-20 md:pb-8 max-w-3xl mx-auto animate-slide-up">
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontSize: 26, fontWeight: 800, color: 'rgba(255,255,255,0.97)', letterSpacing: '-0.5px', margin: 0 }}>
           Log Aktivitas
