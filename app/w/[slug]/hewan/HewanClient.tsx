@@ -485,7 +485,7 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
       </div>
 
       {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 10, marginBottom: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 10 }}>
         {STAT_STATUSES.map((s) => {
           const sg = STATUS_GLASS[s]
           const cfg = STATUS_CONFIG[s]
