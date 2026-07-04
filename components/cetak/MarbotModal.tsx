@@ -356,10 +356,10 @@ export default function MarbotModal({ data, namaWorkspace, onClose, onBack }: Pr
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition"><X size={16} /></button>
         </div>
 
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-col sm:flex-row flex-1 overflow-hidden">
 
           {/* Settings */}
-          <div className="w-64 flex-shrink-0 border-r border-gray-100 p-5 space-y-5 overflow-y-auto">
+          <div className="w-full sm:w-64 flex-shrink-0 border-b sm:border-b-0 sm:border-r border-gray-100 p-5 space-y-5 overflow-y-auto max-h-[60vh] sm:max-h-none">
 
             <div>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Kertas</p>
@@ -420,8 +420,8 @@ export default function MarbotModal({ data, namaWorkspace, onClose, onBack }: Pr
             </div>
           </div>
 
-          {/* Preview */}
-          <div className="flex-1 overflow-auto bg-gray-200 p-6">
+          {/* Preview — hanya tampil sm+ */}
+          <div className="hidden sm:flex sm:flex-col flex-1 overflow-auto bg-gray-200 p-6">
 
             {/* Zoom controls */}
             <div className="flex items-center justify-between mb-4">
