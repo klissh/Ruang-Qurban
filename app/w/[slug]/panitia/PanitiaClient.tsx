@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
-import { UserPlus, Trash2, ShieldCheck, X, Mail, Pencil } from 'lucide-react'
+import { UserPlus, Trash2, ShieldCheck, X, Mail, Pencil, ChevronDown } from 'lucide-react'
 
 interface AnggotaRow {
   id: string; nama_lengkap: string; role: string
@@ -18,6 +18,14 @@ const G = {
   input: { width:'100%', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.09)', color:'rgba(255,255,255,0.9)', borderRadius:10, padding:'10px 14px', fontSize:13.5, outline:'none' } as React.CSSProperties,
   modal: { background:'rgba(7,18,11,0.97)', backdropFilter:'blur(36px) saturate(150%)', border:'1px solid rgba(255,255,255,0.11)', borderTop:'1px solid rgba(255,255,255,0.2)', borderRadius:24, width:'100%', maxWidth:440, boxShadow:'0 32px 80px rgba(0,0,0,0.52)' } as React.CSSProperties,
 }
+
+// Wrapper select dengan icon dropdown
+const selectWrapStyle: React.CSSProperties = { position: 'relative', width: '100%' }
+const selectChevronStyle: React.CSSProperties = {
+  position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+  pointerEvents: 'none', color: 'rgba(255,255,255,0.35)',
+}
+
 
 function ModalPortal({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false)
@@ -228,9 +236,12 @@ export default function PanitiaClient({ anggotaList, workspaceRoles, currentUser
                 </div>
                 <div>
                   <label style={{ display:'block', fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.36)', letterSpacing:'0.8px', textTransform:'uppercase', marginBottom:8 }}>Role</label>
-                  <select value={roleId} onChange={(e) => setRoleId(e.target.value)} style={{ ...G.input, appearance:'none' }}>
-                    {workspaceRoles.map((wr) => <option key={wr.id} value={wr.id}>{wr.nama}</option>)}
-                  </select>
+                  <div style={selectWrapStyle}>
+                    <select value={roleId} onChange={(e) => setRoleId(e.target.value)} style={{ ...G.input, appearance:'none', paddingRight:36, cursor:'pointer' }}>
+                      {workspaceRoles.map((wr) => <option key={wr.id} value={wr.id}>{wr.nama}</option>)}
+                    </select>
+                    <ChevronDown size={15} style={selectChevronStyle}/>
+                  </div>
                 </div>
               </div>
               <div style={{ padding:'18px 26px', borderTop:'1px solid rgba(255,255,255,0.07)', display:'flex', gap:10 }}>
@@ -270,9 +281,12 @@ export default function PanitiaClient({ anggotaList, workspaceRoles, currentUser
                 </div>
                 <div>
                   <label style={{ display:'block', fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.36)', letterSpacing:'0.8px', textTransform:'uppercase', marginBottom:8 }}>Pilih Role Baru</label>
-                  <select value={editRoleId} onChange={(e) => setEditRoleId(e.target.value)} style={{ ...G.input, appearance:'none' }}>
-                    {workspaceRoles.map((wr) => <option key={wr.id} value={wr.id}>{wr.nama}</option>)}
-                  </select>
+                  <div style={selectWrapStyle}>
+                    <select value={editRoleId} onChange={(e) => setEditRoleId(e.target.value)} style={{ ...G.input, appearance:'none', paddingRight:36, cursor:'pointer' }}>
+                      {workspaceRoles.map((wr) => <option key={wr.id} value={wr.id}>{wr.nama}</option>)}
+                    </select>
+                    <ChevronDown size={15} style={selectChevronStyle}/>
+                  </div>
                 </div>
               </div>
               <div style={{ padding:'18px 26px', borderTop:'1px solid rgba(255,255,255,0.07)', display:'flex', gap:10 }}>
