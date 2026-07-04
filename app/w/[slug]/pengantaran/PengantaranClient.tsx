@@ -173,12 +173,8 @@ export default function PengantaranClient({ jamaahList }: { jamaahList: JamaahIt
   return (
     <div style={{ minHeight: '100vh', paddingBottom: 100 }}>
 
-      {/* ── Sticky header ── */}
+      {/* ── Header ── */}
       <div style={{
-        position: 'sticky', top: 0, zIndex: 10,
-        background: 'rgba(4,10,7,0.92)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
         borderBottom: '1px solid rgba(255,255,255,0.07)',
         padding: '18px 20px 0',
       }}>
@@ -222,8 +218,37 @@ export default function PengantaranClient({ jamaahList }: { jamaahList: JamaahIt
           )}
         </div>
 
-        {/* Filter bar */}
-        <div style={{ display: 'flex', gap: 5, paddingBottom: 14, overflowX: 'auto' }}>
+        {/* ── Filter bar MOBILE (sm:hidden): grid 2×2 simetris ── */}
+        <div className="sm:hidden grid grid-cols-2 gap-1.5" style={{ paddingBottom: 14 }}>
+          {filterPills.map(({ key, label, icon }) => {
+            const active = filter === key
+            const cfg = key !== 'SEMUA' ? STATUS_ANTAR_CONFIG[key] : null
+            return (
+              <button
+                key={key}
+                onClick={() => setFilter(key)}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                  padding: '7px 11px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                  cursor: 'pointer', transition: 'all 0.15s',
+                  background: active ? (cfg?.bg ?? 'rgba(16,185,129,0.15)') : 'transparent',
+                  color: active ? (cfg?.color ?? '#34d399') : 'rgba(255,255,255,0.4)',
+                  border: active ? `1px solid ${cfg?.border ?? 'rgba(16,185,129,0.3)'}` : '1px solid rgba(255,255,255,0.07)',
+                }}
+              >
+                {icon}{label}
+                <span style={{
+                  fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 5,
+                  background: active ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.07)',
+                  color: active ? (cfg?.color ?? '#34d399') : 'rgba(255,255,255,0.3)',
+                }}>{counts[key]}</span>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* ── Filter bar DESKTOP (hidden sm:flex): 1 baris original ── */}
+        <div className="hidden sm:flex" style={{ gap: 5, paddingBottom: 14, overflowX: 'auto' }}>
           {filterPills.map(({ key, label, icon }) => {
             const active = filter === key
             const cfg = key !== 'SEMUA' ? STATUS_ANTAR_CONFIG[key] : null
