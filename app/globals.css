@@ -113,3 +113,11 @@ input:focus, select:focus, textarea:focus {
   .tracking-auth { display:none !important; }
 }
 
+/* ─── Stat card compact on mobile (2-per-row inside analitik) ─── */
+@media (max-width:767px) {
+  .stat-mini               { padding: 14px 12px !important; }
+  .stat-mini .s-icon       { width:30px !important; height:30px !important; border-radius:9px !important; margin-bottom:10px !important; }
+  .stat-mini .s-value      { font-size:24px !important; margin-bottom:4px !important; }
+  .stat-mini .s-label      { font-size:11px !important; }
+}
+
