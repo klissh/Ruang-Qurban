@@ -149,8 +149,6 @@ export default function RegisterWorkspacePage() {
             disabled={loading}
             className="w-full rounded-2xl py-3.5 text-sm font-bold text-white transition-all disabled:opacity-60 mt-2"
             style={{ background: loading ? 'rgba(16,185,129,0.5)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)', boxShadow: '0 4px 20px rgba(16,185,129,0.42)' }}
-          
-                    suppressHydrationWarning>
             {loading ? 'Membuat Workspace...' : 'Buat Workspace & Daftar'}
           </button>
         </div>
