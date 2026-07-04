@@ -471,7 +471,6 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
                 Batal
               </button>
               <button onClick={handleSimpan} disabled={loading} style={{ flex: 2, padding: '12px', background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none', borderRadius: 11, color: 'white', fontSize: 13.5, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px rgba(16,185,129,0.35)', opacity: loading ? 0.6 : 1 }}
-                    suppressHydrationWarning>
                 {loading ? 'Menyimpan...' : 'Simpan Status'}
               </button>
             </div>
