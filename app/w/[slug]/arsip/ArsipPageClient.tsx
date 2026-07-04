@@ -67,7 +67,7 @@ export default function ArsipPageClient({ periodeList, isSuperAdmin, slug }: Pro
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-5xl mx-auto animate-slide-up">
+    <div className="p-6 md:p-8 pb-20 md:pb-8 max-w-5xl mx-auto animate-slide-up">
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 28 }}>
