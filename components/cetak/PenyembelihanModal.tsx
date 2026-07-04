@@ -382,10 +382,10 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
           </button>
         </div>
 
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-col sm:flex-row flex-1 overflow-hidden">
 
           {/* Settings */}
-          <div className="w-64 flex-shrink-0 border-r border-gray-100 p-5 space-y-5 overflow-y-auto">
+          <div className="w-full sm:w-64 flex-shrink-0 border-b sm:border-b-0 sm:border-r border-gray-100 p-5 space-y-5 overflow-y-auto max-h-[60vh] sm:max-h-none">
 
             {/* Orientasi — SATU untuk sapi+kambing */}
             <div>
@@ -445,8 +445,8 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
             </div>
           </div>
 
-          {/* Preview */}
-          <div className="flex-1 overflow-auto bg-gray-200 p-6 flex flex-col">
+          {/* Preview — hanya tampil sm+ */}
+          <div className="hidden sm:flex sm:flex-col flex-1 overflow-auto bg-gray-200 p-6">
 
             {/* Tab + Zoom */}
             <div className="flex items-center justify-between mb-4 flex-shrink-0">
@@ -509,7 +509,7 @@ export default function PenyembelihanModal({ data, onClose, onBack }: Props) {
         </div>
 
         {/* Footer — dua tombol download terpisah, tanpa Print (tidak buka tab baru) */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 flex-shrink-0">
+        <div className="grid grid-cols-2 sm:flex sm:justify-end gap-3 px-6 py-4 border-t border-gray-100 flex-shrink-0">
           {sapiData.length > 0 && (
             <button onClick={downloadSapiPDF} disabled={isGenSapi}
               className="flex items-center gap-2 px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition">
