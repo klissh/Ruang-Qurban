@@ -228,43 +228,45 @@ export default function PanitiaClient({ anggotaList, workspaceRoles, currentUser
           const isSA     = a.role === 'SUPER_ADMIN'
           const isMe     = a.id  === currentUserId
           return (
-            <div key={a.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 20px', borderBottom: idx < list.length-1 ? '1px solid rgba(255,255,255,0.045)' : 'none' }}>
-              {/* Avatar */}
-              <div style={{ width:40, height:40, borderRadius:'50%', background: isSA ? 'rgba(167,139,250,0.13)' : 'rgba(16,185,129,0.08)', border:`1px solid ${isSA ? 'rgba(167,139,250,0.22)' : 'rgba(16,185,129,0.18)'}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:15, fontWeight:700, color: isSA ? '#c4b5fd' : '#34d399', flexShrink:0 }}>
-                {a.nama_lengkap.charAt(0).toUpperCase()}
-              </div>
-              {/* Info */}
-              <div style={{ flex:1, minWidth:0 }}>
-                <p style={{ fontSize:14, fontWeight:600, color:'rgba(255,255,255,0.88)', margin:0 }}>
-                  {a.nama_lengkap}{isMe && <span style={{ fontSize:10, color:'rgba(255,255,255,0.28)', marginLeft:6, fontWeight:400 }}>(Anda)</span>}
-                </p>
-                <p style={{ fontSize:11.5, color:'rgba(255,255,255,0.28)', marginTop:2 }}>{a.email ?? '—'}</p>
-              </div>
-              {/* Role badge */}
-              <div style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'4px 10px', borderRadius:20, background: isSA ? 'rgba(167,139,250,0.12)' : 'rgba(16,185,129,0.08)', color: isSA ? '#c4b5fd' : '#34d399', border:`1px solid ${isSA ? 'rgba(167,139,250,0.22)' : 'rgba(16,185,129,0.18)'}`, fontSize:10.5, fontWeight:700 }}>
-                <ShieldCheck size={11}/>{roleName}
-              </div>
-              {/* Aksi — hanya untuk member lain */}
-              {!isMe && (
-                <div style={{ display:'flex', gap:4 }}>
-                  <button
-                    onClick={() => openEdit(a)}
-                    disabled={updating === a.id}
-                    title="Ganti role"
-                    style={{ background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, width:32, height:32, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'rgba(255,255,255,0.45)' }}
-                  >
-                    <Pencil size={13}/>
-                  </button>
-                  <button
-                    onClick={() => handleRemove(a.id, a.nama_lengkap)}
-                    disabled={removing === a.id}
-                    title="Hapus dari workspace"
-                    style={{ background:'rgba(239,68,68,0.07)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:8, width:32, height:32, cursor: removing===a.id ? 'not-allowed' : 'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'#fca5a5', opacity: removing===a.id ? 0.5 : 1 }}
-                  >
-                    <Trash2 size={13}/>
-                  </button>
+            <div key={a.id} style={{ padding:'14px 20px', borderBottom: idx < list.length-1 ? '1px solid rgba(255,255,255,0.045)' : 'none' }}>
+              {/* Baris 1: avatar + info (selalu satu baris) */}
+              <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                {/* Avatar */}
+                <div style={{ width:40, height:40, borderRadius:'50%', background: isSA ? 'rgba(167,139,250,0.13)' : 'rgba(16,185,129,0.08)', border:`1px solid ${isSA ? 'rgba(167,139,250,0.22)' : 'rgba(16,185,129,0.18)'}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:15, fontWeight:700, color: isSA ? '#c4b5fd' : '#34d399', flexShrink:0 }}>
+                  {a.nama_lengkap.charAt(0).toUpperCase()}
                 </div>
-              )}
+                {/* Info */}
+                <div style={{ flex:1, minWidth:0 }}>
+                  <p style={{ fontSize:14, fontWeight:600, color:'rgba(255,255,255,0.88)', margin:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                    {a.nama_lengkap}{isMe && <span style={{ fontSize:10, color:'rgba(255,255,255,0.28)', marginLeft:6, fontWeight:400 }}>(Anda)</span>}
+                  </p>
+                  <p style={{ fontSize:11.5, color:'rgba(255,255,255,0.28)', marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.email ?? '—'}</p>
+                </div>
+                {/* Desktop: badge + aksi di kanan (hidden on mobile) */}
+                <div className="hidden sm:flex" style={{ alignItems:'center', gap:8, flexShrink:0 }}>
+                  <div style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'4px 10px', borderRadius:20, background: isSA ? 'rgba(167,139,250,0.12)' : 'rgba(16,185,129,0.08)', color: isSA ? '#c4b5fd' : '#34d399', border:`1px solid ${isSA ? 'rgba(167,139,250,0.22)' : 'rgba(16,185,129,0.18)'}`, fontSize:10.5, fontWeight:700 }}>
+                    <ShieldCheck size={11}/>{roleName}
+                  </div>
+                  {!isMe && (
+                    <div style={{ display:'flex', gap:4 }}>
+                      <button onClick={() => openEdit(a)} disabled={updating === a.id} title="Ganti role" style={{ background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, width:32, height:32, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'rgba(255,255,255,0.45)' }}><Pencil size={13}/></button>
+                      <button onClick={() => handleRemove(a.id, a.nama_lengkap)} disabled={removing === a.id} title="Hapus dari workspace" style={{ background:'rgba(239,68,68,0.07)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:8, width:32, height:32, cursor: removing===a.id ? 'not-allowed' : 'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'#fca5a5', opacity: removing===a.id ? 0.5 : 1 }}><Trash2 size={13}/></button>
+                    </div>
+                  )}
+                </div>
+              </div>
+              {/* Baris 2: badge + aksi — hanya mobile (sm:hidden), indented sejajar nama */}
+              <div className="sm:hidden" style={{ display:'flex', alignItems:'center', gap:8, marginTop:8, paddingLeft:52 }}>
+                <div style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'4px 10px', borderRadius:20, background: isSA ? 'rgba(167,139,250,0.12)' : 'rgba(16,185,129,0.08)', color: isSA ? '#c4b5fd' : '#34d399', border:`1px solid ${isSA ? 'rgba(167,139,250,0.22)' : 'rgba(16,185,129,0.18)'}`, fontSize:10.5, fontWeight:700 }}>
+                  <ShieldCheck size={11}/>{roleName}
+                </div>
+                {!isMe && (
+                  <div style={{ display:'flex', gap:4, marginLeft:'auto' }}>
+                    <button onClick={() => openEdit(a)} disabled={updating === a.id} title="Ganti role" style={{ background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, width:32, height:32, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'rgba(255,255,255,0.45)' }}><Pencil size={13}/></button>
+                    <button onClick={() => handleRemove(a.id, a.nama_lengkap)} disabled={removing === a.id} title="Hapus dari workspace" style={{ background:'rgba(239,68,68,0.07)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:8, width:32, height:32, cursor: removing===a.id ? 'not-allowed' : 'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'#fca5a5', opacity: removing===a.id ? 0.5 : 1 }}><Trash2 size={13}/></button>
+                  </div>
+                )}
+              </div>
             </div>
           )
         })}
