@@ -98,7 +98,6 @@ function RoleModal({ role, onClose, onSave }: {
         <div style={{ padding:'22px 26px 18px', borderBottom:'1px solid rgba(255,255,255,0.08)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <h2 style={{ fontSize:16, fontWeight:800, color:'rgba(255,255,255,0.95)', margin:0 }}>{isEdit ? 'Edit Role' : 'Buat Role Baru'}</h2>
           <button onClick={onClose} style={{ background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:10, width:34, height:34, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'rgba(255,255,255,0.42)' }}
-                    suppressHydrationWarning>
             <X size={15} />
           </button>
         </div>
@@ -160,10 +159,8 @@ function RoleModal({ role, onClose, onSave }: {
 
         {/* Footer */}
         <div style={{ padding:'16px 26px', borderTop:'1px solid rgba(255,255,255,0.07)', display:'flex', gap:10 }}>
-          <button onClick={onClose} style={{ flex:1, padding:11, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:12, color:'rgba(255,255,255,0.58)', fontSize:13.5, fontWeight:600, cursor:'pointer' }}
-                    suppressHydrationWarning>Batal</button>
+          <button onClick={onClose} style={{ flex:1, padding:11, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:12, color:'rgba(255,255,255,0.58)', fontSize:13.5, fontWeight:600, cursor:'pointer' }}Batal</button>
           <button onClick={handleSave} disabled={saving} style={{ flex:1, padding:11, background:'linear-gradient(135deg,#10b981,#059669)', border:'none', borderRadius:12, color:'white', fontSize:13.5, fontWeight:700, cursor:'pointer', opacity: saving ? 0.6 : 1 }}
-                    suppressHydrationWarning>
             {saving ? 'Menyimpan...' : (isEdit ? 'Simpan Perubahan' : 'Buat Role')}
           </button>
         </div>
