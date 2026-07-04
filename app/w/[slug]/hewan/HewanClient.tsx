@@ -438,7 +438,7 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
   // ══════════════════════════════════════════════════════
 
   return (
-    <div className="p-6 md:p-8 max-w-5xl mx-auto animate-slide-up">
+    <div className="p-6 md:p-8 pb-20 md:pb-8 max-w-5xl mx-auto animate-slide-up">
 
       {/* Header */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 28 }}>
@@ -493,7 +493,7 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
       </div>
 
       {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 10 }}>
+      <div className="rg-4" style={{ gap: 10, marginBottom: 10 }}>
         {STAT_STATUSES.map((s) => {
           const sg = STATUS_GLASS[s]
           const cfg = STATUS_CONFIG[s]
@@ -571,7 +571,7 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
         </div>
 
         {/* Filter bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflowX: 'auto', WebkitOverflowScrolling: 'touch' as any, paddingBottom: 4 }}>
           <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', fontWeight: 500, marginRight: 2, flexShrink: 0 }}>Filter:</span>
           {([
             { key: 'SEMUA',   label: 'Semua',   count: hewan.length },
@@ -893,7 +893,7 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
             </div>
 
             <div style={{ padding: '20px 26px', overflowY: 'auto', flex: 1 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 20 }}>
+              <div className="rg-1-3" style={{ gap: 10, marginBottom: 20 }}>
                 {([
                   { j: 'SAPI' as JenisHewan, label: 'Sapi Tipe A', sub: 'SAPI-A01, A02, ...', Icon: Beef },
                   { j: 'SAPI_B' as any,       label: 'Sapi Tipe B', sub: 'SAPI-B01, B02, ...', Icon: Beef },
