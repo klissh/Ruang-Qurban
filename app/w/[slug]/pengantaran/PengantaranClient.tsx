@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { STATUS_ANTAR_CONFIG } from '@/types'
@@ -50,6 +50,8 @@ export default function PengantaranClient({ jamaahList }: { jamaahList: JamaahIt
   const [list, setList] = useState<JamaahItem[]>(jamaahList)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<'SEMUA' | StatusAntar>('SEMUA')
+  const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(10)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
@@ -87,6 +89,11 @@ export default function PengantaranClient({ jamaahList }: { jamaahList: JamaahIt
       (a.hewan?.kode_resi ?? '').localeCompare(b.hewan?.kode_resi ?? '')
     )
   }, [filtered])
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { setPage(1) }, [search, filter])
+  const totalPages     = perPage === 0 ? 1 : Math.ceil(groups.length / perPage)
+  const paginatedGroups = perPage === 0 ? groups : groups.slice((page - 1) * perPage, page * perPage)
 
   function toggleSelect(id: string) {
     setSelected((prev) => {
@@ -242,7 +249,7 @@ export default function PengantaranClient({ jamaahList }: { jamaahList: JamaahIt
 
       {/* ── List per kelompok hewan ── */}
       <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {groups.map(({ hewan, items }) => {
+        {paginatedGroups.map(({ hewan, items }) => {
           const groupKey = hewan?.id ?? 'lainnya'
           const isCollapsed = collapsed.has(groupKey)
           const allSelected = items.every((i) => selected.has(i.id))
@@ -334,6 +341,42 @@ export default function PengantaranClient({ jamaahList }: { jamaahList: JamaahIt
           </div>
         )}
       </div>
+
+      {/* ── Pagination ── */}
+      {groups.length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          flexWrap: 'wrap', gap: 10, padding: '4px 20px 20px',
+        }}>
+          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>
+            {perPage === 0
+              ? `Menampilkan semua ${groups.length} kelompok`
+              : `Menampilkan ${Math.min((page - 1) * perPage + 1, groups.length)}–${Math.min(page * perPage, groups.length)} dari ${groups.length} kelompok`}
+          </span>
+          {perPage !== 0 && totalPages > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid rgba(255,255,255,0.09)', background: 'rgba(255,255,255,0.04)', color: page === 1 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.55)', cursor: page === 1 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>‹</button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(n => n === 1 || n === totalPages || Math.abs(n - page) <= 1)
+                .reduce<(number | '…')[]>((acc, n, idx, arr) => { if (idx > 0 && (n as number) - (arr[idx - 1] as number) > 1) acc.push('…'); acc.push(n); return acc }, [])
+                .map((n, i) => n === '…'
+                  ? <span key={`e${i}`} style={{ width: 32, textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,0.25)' }}>…</span>
+                  : <button key={n} onClick={() => setPage(n as number)} style={{ width: 32, height: 32, borderRadius: 8, fontSize: 12, fontWeight: 700, border: page === n ? '1px solid rgba(16,185,129,0.45)' : '1px solid rgba(255,255,255,0.09)', background: page === n ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)', color: page === n ? '#34d399' : 'rgba(255,255,255,0.5)', cursor: 'pointer' }}>{n}</button>)}
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid rgba(255,255,255,0.09)', background: 'rgba(255,255,255,0.04)', color: page === totalPages ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.55)', cursor: page === totalPages ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>›</button>
+            </div>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Tampilkan:</span>
+            {[5, 10, 20, 0].map(n => (
+              <button key={n} onClick={() => { setPerPage(n); setPage(1) }} style={{ padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 700, border: perPage === n ? '1px solid rgba(16,185,129,0.45)' : '1px solid rgba(255,255,255,0.09)', background: perPage === n ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)', color: perPage === n ? '#34d399' : 'rgba(255,255,255,0.4)', cursor: 'pointer' }}>
+                {n === 0 ? 'Semua' : n}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Bulk action bar ── */}
       {selected.size > 0 && (

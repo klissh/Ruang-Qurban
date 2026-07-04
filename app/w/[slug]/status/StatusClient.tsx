@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { STATUS_CONFIG, STATUS_ORDER } from '@/types'
@@ -55,6 +55,8 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
   const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState<'SEMUA' | 'SAPI-A' | 'SAPI-B' | JenisHewan | StatusHewan>('SEMUA')
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(20)
 
   // ── Counts untuk filter badges ──
   const counts: Record<string, number> = {
@@ -81,6 +83,11 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
     const q = search.toLowerCase().trim()
     return h.kode_resi.toLowerCase().includes(q)
   })
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { setPage(1) }, [search, filter])
+  const totalPages = perPage === 0 ? 1 : Math.ceil(filtered.length / perPage)
+  const paginated  = perPage === 0 ? filtered : filtered.slice((page - 1) * perPage, page * perPage)
 
   async function handleSimpan() {
     if (!modal) return
@@ -267,7 +274,7 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
 
       {/* ── Grid ── */}
       <div style={{ padding: '20px 20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px,1fr))', gap: 10 }}>
-        {filtered.map((hewan) => {
+        {paginated.map((hewan) => {
           const sg = SG[hewan.status]
           const isSapi = hewan.jenis_hewan === 'SAPI'
           const isSelesai = hewan.status === 'SELESAI'
@@ -344,6 +351,42 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
           </div>
         )}
       </div>
+
+      {/* ── Pagination ── */}
+      {filtered.length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          flexWrap: 'wrap', gap: 10, padding: '10px 20px 20px',
+        }}>
+          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>
+            {perPage === 0
+              ? `Menampilkan semua ${filtered.length} hewan`
+              : `Menampilkan ${Math.min((page - 1) * perPage + 1, filtered.length)}–${Math.min(page * perPage, filtered.length)} dari ${filtered.length} hewan`}
+          </span>
+          {perPage !== 0 && totalPages > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid rgba(255,255,255,0.09)', background: 'rgba(255,255,255,0.04)', color: page === 1 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.55)', cursor: page === 1 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>‹</button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(n => n === 1 || n === totalPages || Math.abs(n - page) <= 1)
+                .reduce<(number | '…')[]>((acc, n, idx, arr) => { if (idx > 0 && (n as number) - (arr[idx - 1] as number) > 1) acc.push('…'); acc.push(n); return acc }, [])
+                .map((n, i) => n === '…'
+                  ? <span key={`e${i}`} style={{ width: 32, textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,0.25)' }}>…</span>
+                  : <button key={n} onClick={() => setPage(n as number)} style={{ width: 32, height: 32, borderRadius: 8, fontSize: 12, fontWeight: 700, border: page === n ? '1px solid rgba(16,185,129,0.45)' : '1px solid rgba(255,255,255,0.09)', background: page === n ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)', color: page === n ? '#34d399' : 'rgba(255,255,255,0.5)', cursor: 'pointer' }}>{n}</button>)}
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid rgba(255,255,255,0.09)', background: 'rgba(255,255,255,0.04)', color: page === totalPages ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.55)', cursor: page === totalPages ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>›</button>
+            </div>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Tampilkan:</span>
+            {[20, 40, 100, 0].map(n => (
+              <button key={n} onClick={() => { setPerPage(n); setPage(1) }} style={{ padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 700, border: perPage === n ? '1px solid rgba(16,185,129,0.45)' : '1px solid rgba(255,255,255,0.09)', background: perPage === n ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)', color: perPage === n ? '#34d399' : 'rgba(255,255,255,0.4)', cursor: 'pointer' }}>
+                {n === 0 ? 'Semua' : n}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Modal Update Status ── */}
       {modal && createPortal(
