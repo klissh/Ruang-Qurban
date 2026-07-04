@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { UserPlus, Trash2, ShieldCheck, X, Mail } from 'lucide-react'
 
@@ -138,7 +139,8 @@ export default function PanitiaClient({ anggotaList, workspaceRoles, currentUser
 
       {/* Modal Tambah */}
       {showModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.62)', backdropFilter: 'blur(10px)', zIndex: 50, display: 'flex', overflowY: 'auto', padding: '24px 16px' }}>
+        {createPortal(
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.62)', backdropFilter: 'blur(10px)', zIndex: 9999, display: 'flex', overflowY: 'auto', padding: '24px 16px' }}>
           <div style={{ ...G.modal, margin: 'auto' }}>
             <div style={{ padding: '22px 26px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <h2 style={{ fontSize: 16, fontWeight: 800, color: 'rgba(255,255,255,0.95)', margin: 0 }}>Tambah Anggota</h2>
@@ -170,7 +172,9 @@ export default function PanitiaClient({ anggotaList, workspaceRoles, currentUser
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
+        )}
       )}
     </div>
   )
