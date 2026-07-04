@@ -161,7 +161,7 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
         onClick={() => setFilter(fkey as any)}
         style={{
           flexShrink: 0,
-          display: 'flex', alignItems: 'center', gap: 5,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
           padding: '5px 11px', borderRadius: 8, fontSize: 12, fontWeight: 600,
           cursor: 'pointer', transition: 'all 0.15s',
           background: active ? (activeBg ?? 'rgba(16,185,129,0.15)') : 'transparent',
@@ -252,21 +252,16 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
           )}
         </div>
 
-        {/* Filter bar — mobile: 2 baris simetris | desktop: 1 baris */}
-        <div className="flex flex-col sm:flex-row sm:items-center" style={{ gap: 6, paddingBottom: 14 }}>
-
-          {/* Baris 1 — Jenis: Semua / Sapi A / Sapi B / Kambing (semua tampil, wrap) */}
-          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+        {/* ── Filter bar MOBILE (sm:hidden): 2 grid simetris ─────────────── */}
+        <div className="sm:hidden flex flex-col gap-2" style={{ paddingBottom: 14 }}>
+          {/* Jenis: grid 2×2 — Semua, Sapi A, Sapi B, Kambing */}
+          <div className="grid grid-cols-2 gap-1">
             {jenisFilters.map(({ key, label, icon }) => (
               <FilterBtn key={key} fkey={key} label={label} icon={icon} />
             ))}
           </div>
-
-          {/* Separator — hanya desktop */}
-          <span className="hidden sm:block" style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />
-
-          {/* Baris 2 — Status: 8 pill, scroll horizontal */}
-          <div style={{ display: 'flex', gap: 5, overflowX: 'auto', WebkitOverflowScrolling: 'touch' as any, paddingBottom: 2 }}>
+          {/* Status: grid 2 kolom — semua 8 status tampil simetris */}
+          <div className="grid grid-cols-2 gap-1">
             {statusFilters.map(({ key, label, icon, color }) => (
               <FilterBtn
                 key={key} fkey={key} label={label} icon={icon}
@@ -274,6 +269,20 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
               />
             ))}
           </div>
+        </div>
+
+        {/* ── Filter bar DESKTOP (hidden sm:flex): 1 baris original ───────── */}
+        <div className="hidden sm:flex" style={{ gap: 5, paddingBottom: 14, overflowX: 'auto' }}>
+          {jenisFilters.map(({ key, label, icon }) => (
+            <FilterBtn key={key} fkey={key} label={label} icon={icon} />
+          ))}
+          <span style={{ width: 1, background: 'rgba(255,255,255,0.1)', margin: '2px 4px', flexShrink: 0 }} />
+          {statusFilters.map(({ key, label, icon, color }) => (
+            <FilterBtn
+              key={key} fkey={key} label={label} icon={icon}
+              activeColor={color.color} activeBg={color.bg} activeBorder={color.border}
+            />
+          ))}
         </div>
       </div>
 
