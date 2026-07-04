@@ -391,11 +391,9 @@ export default function PengantaranClient({ jamaahList }: { jamaahList: JamaahIt
 
       {/* ── Pagination ── */}
       {groups.length > 0 && (
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          flexWrap: 'wrap', gap: 10, padding: '4px 20px 20px',
-        }}>
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>
+        <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between sm:flex-wrap"
+          style={{ padding: '4px 20px 20px' }}>
+          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', flexShrink: 0, textAlign: 'center' }}>
             {perPage === 0
               ? `Menampilkan semua ${groups.length} kelompok`
               : `Menampilkan ${Math.min((page - 1) * perPage + 1, groups.length)}–${Math.min(page * perPage, groups.length)} dari ${groups.length} kelompok`}
@@ -414,8 +412,8 @@ export default function PengantaranClient({ jamaahList }: { jamaahList: JamaahIt
                 style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid rgba(255,255,255,0.09)', background: 'rgba(255,255,255,0.04)', color: page === totalPages ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.55)', cursor: page === totalPages ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>›</button>
             </div>
           )}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Tampilkan:</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexShrink: 0 }}>
+            <span className="hidden sm:inline" style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Tampilkan:</span>
             {[5, 10, 20, 0].map(n => (
               <button key={n} onClick={() => { setPerPage(n); setPage(1) }} style={{ padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 700, border: perPage === n ? '1px solid rgba(16,185,129,0.45)' : '1px solid rgba(255,255,255,0.09)', background: perPage === n ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)', color: perPage === n ? '#34d399' : 'rgba(255,255,255,0.4)', cursor: 'pointer' }}>
                 {n === 0 ? 'Semua' : n}
