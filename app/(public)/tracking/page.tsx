@@ -443,8 +443,11 @@ export default function TrackingPage() {
                       </a>
                     )}
                   </div>
-                  {/* Video: full width, 16/9, fullscreen enabled */}
-                  <div style={{ borderRadius: 10, overflow: 'hidden', background: '#000', aspectRatio: '16/9', width: '100%' }}>
+                  {/* Video: mobile = 3/2 (cukup untuk controls), desktop = 16/9 */}
+                  <div
+                    className="aspect-[3/2] sm:aspect-video"
+                    style={{ borderRadius: 10, overflow: 'hidden', background: '#000' }}
+                  >
                     <iframe
                       src={embedUrl}
                       style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
