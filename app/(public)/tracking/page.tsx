@@ -445,8 +445,70 @@ export default function TrackingPage() {
               )
             })()}
 
-            {/* Stepper + Daftar Pengqurban — berdampingan biar video dokumentasi nggak kejauhan ke bawah */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16 }}>
+            {/* ── MOBILE: 2-col compact simetris (sm:hidden) ─────────────── */}
+            <div className="sm:hidden grid grid-cols-2 gap-3">
+
+              {/* Stepper mobile — dot 22px, font 10px */}
+              <div style={{ ...G.card, padding: 12 }}>
+                <h3 style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)', margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Status
+                </h3>
+                {steps.map((step, idx) => {
+                  const isLast = idx === steps.length - 1
+                  const palette = step.state === 'done' ? DONE_PALETTE : step.state === 'active' ? step.palette : UPCOMING_PALETTE
+                  const isDoneOrActive = step.state === 'done' || step.state === 'active'
+                  const shortLabel = (STATUS_CONFIG as any)[step.key]?.labelShort ?? step.label
+                  return (
+                    <div key={`m-${step.key}`} style={{ display: 'flex', gap: 8 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <div style={{ width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, flexShrink: 0, background: isDoneOrActive ? palette.bg : 'rgba(255,255,255,0.05)', border: `2px solid ${isDoneOrActive ? palette.dot : 'rgba(255,255,255,0.12)'}`, color: isDoneOrActive ? palette.color : 'rgba(255,255,255,0.2)', boxShadow: step.state === 'active' ? `0 0 8px ${palette.dot}55` : 'none' }}>
+                          {step.state === 'done' ? <Check size={9} /> : step.icon ?? (idx + 1)}
+                        </div>
+                        {!isLast && <div style={{ width: 2, flex: 1, margin: '3px 0', minHeight: 14, background: step.state === 'done' ? DONE_PALETTE.dot : 'rgba(255,255,255,0.07)' }} />}
+                      </div>
+                      <div style={{ paddingBottom: isLast ? 0 : 12 }}>
+                        <p style={{ fontSize: 10, fontWeight: step.state === 'active' ? 700 : 500, lineHeight: '22px', margin: 0, color: isDoneOrActive ? palette.color : 'rgba(255,255,255,0.22)' }}>
+                          {shortLabel}
+                        </p>
+                        {step.state === 'active' && (
+                          <p style={{ fontSize: 9, color: palette.color, fontWeight: 600, margin: '1px 0 0', opacity: 0.85 }}>
+                            {step.subLabel ?? 'Berlangsung'}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Jamaah mobile — compact rows, nama truncated */}
+              <div style={{ ...G.card, padding: 12 }}>
+                <h3 style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Pengqurban ({result.jamaah.length})
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  {result.jamaah.map((j, idx) => {
+                    const da = STATUS_ANTAR_CONFIG[j.status_antar]
+                    return (
+                      <div key={`mj-${j.id}`} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 7px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8 }}>
+                        <div style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(16,185,129,0.15)', color: '#34d399', fontSize: 8, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {idx + 1}
+                        </div>
+                        <p style={{ flex: 1, minWidth: 0, fontSize: 10.5, fontWeight: 600, color: 'rgba(255,255,255,0.88)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{j.nama_lengkap}</p>
+                        {result.status === 'SELESAI' && (
+                          <span style={{ flexShrink: 0, fontSize: 8, fontWeight: 700, padding: '2px 4px', borderRadius: 20, background: da.bg, color: da.color, border: `1px solid ${da.border}` }}>
+                            {j.status_antar === 'SUDAH_DIANTAR' ? '✓' : '→'}
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* ── DESKTOP: auto-fit berdampingan (hidden sm:grid) ─────────── */}
+            <div className="hidden sm:grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16 }}>
 
               {/* Stepper */}
               <div style={{ ...G.card, padding: 24 }}>
@@ -551,9 +613,6 @@ export default function TrackingPage() {
                   })}
                 </div>
               </div>
-            </div>
-
-            {/* ── End desktop grid ── */}
             </div>
 
             <p style={{ textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.24)' }}>
