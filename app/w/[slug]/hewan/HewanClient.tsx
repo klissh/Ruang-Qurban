@@ -448,20 +448,21 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
           </h1>
           <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.36)', marginTop: 6 }}>{hewan.length} hewan terdaftar</p>
         </div>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <button onClick={() => setModal('cetakPicker')} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 11, color: 'rgba(255,255,255,0.62)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+        {/* Mobile: grid 2×2 simetris | Desktop: flex row */}
+        <div className="grid grid-cols-2 gap-2 w-full md:flex md:flex-wrap md:w-auto md:gap-[10px]">
+          <button onClick={() => setModal('cetakPicker')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '9px 16px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 11, color: 'rgba(255,255,255,0.62)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             <Printer size={14} /> Cetak
           </button>
-          <button onClick={() => setModal('import')} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 11, color: 'rgba(255,255,255,0.62)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => setModal('import')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '9px 16px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 11, color: 'rgba(255,255,255,0.62)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             <Upload size={14} /> Import Excel
           </button>
           <button
             onClick={() => { setHapusSemua_confirm(''); setModal('hapusSemua') }}
-            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 11, color: 'rgba(252,165,165,0.85)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '9px 16px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 11, color: 'rgba(252,165,165,0.85)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
           >
             <Trash2 size={14} /> Hapus Semua
           </button>
-          <button onClick={() => setModal('tambah')} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none', borderRadius: 11, color: 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px rgba(16,185,129,0.38)' }}>
+          <button onClick={() => setModal('tambah')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '9px 18px', background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none', borderRadius: 11, color: 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px rgba(16,185,129,0.38)' }}>
             <Plus size={14} /> Tambah Kelompok
           </button>
         </div>
@@ -646,8 +647,8 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
               >
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: sg.dot, boxShadow: `0 0 7px ${sg.dot}99`, flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                    <span style={{ fontFamily: 'ui-monospace,monospace', fontWeight: 800, fontSize: 14, color: 'rgba(255,255,255,0.95)' }}>{h.kode_resi}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap', overflow: 'hidden' }}>
+                    <span style={{ fontFamily: 'ui-monospace,monospace', fontWeight: 800, fontSize: 14, color: 'rgba(255,255,255,0.95)', whiteSpace: 'nowrap' }}>{h.kode_resi}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       {isSapi ? <Beef size={12} color="rgba(255,255,255,0.28)" /> : <PawPrint size={12} color="rgba(255,255,255,0.28)" />}
                       <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.32)' }}>{jList.length} orang</span>
@@ -655,13 +656,13 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                  {/* Kode publik — subtle, hanya teks */}
-                  <span style={{
+                  {/* Kode publik — hanya tampil di sm+ agar tidak sesak di mobile */}
+                  <span className="hidden sm:inline" style={{
                     fontFamily: 'ui-monospace,monospace', fontSize: 10.5,
                     color: 'rgba(255,255,255,0.18)', letterSpacing: '0.5px',
                   }}>{h.kode_publik}</span>
                   {/* Divider */}
-                  <span style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.08)', flexShrink: 0 }} />
+                  <span className="hidden sm:inline" style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.08)', flexShrink: 0 }} />
                   {/* Status badge */}
                   <div style={{
                     display: 'inline-flex', alignItems: 'center',
