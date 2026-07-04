@@ -95,40 +95,34 @@ export default function RegisterWorkspacePage() {
     })
 
     if (signUpError) {
-      // Debug: log error lengkap ke console untuk investigasi
       console.error('SignUp error:', JSON.stringify(signUpError))
 
       const msg    = typeof signUpError.message === 'string' ? signUpError.message.toLowerCase() : ''
       const code   = ((signUpError as any).code   ?? '').toLowerCase()
       const status = (signUpError as any).status  ?? 0
+      const name   = ((signUpError as any).name   ?? '').toLowerCase()
 
-      if (
+      if (status === 500 || name.includes('retryfetch') || name.includes('retryable') || msg === '{}') {
+        // Supabase gagal kirim email konfirmasi (SMTP/Resend error)
+        setError('Layanan email konfirmasi sedang bermasalah. Kemungkinan email Anda sudah pernah terdaftar — coba klik "Sudah punya akun" dan masuk, atau coba lagi beberapa menit kemudian.')
+      } else if (
         code.includes('user_already') || code.includes('email_exists') ||
         msg.includes('already registered') || msg.includes('already exists') || msg.includes('user already')
       ) {
         setError('Email ini sudah terdaftar. Silakan masuk atau gunakan email lain.')
-      } else if (
-        code.includes('email_not_confirmed') || msg.includes('not confirmed')
-      ) {
+      } else if (code.includes('email_not_confirmed') || msg.includes('not confirmed')) {
         setError('Email belum dikonfirmasi. Cek kotak masuk Anda.')
-      } else if (
-        code.includes('signup_disabled') || msg.includes('signup')
-      ) {
+      } else if (code.includes('signup_disabled') || msg.includes('signup')) {
         setError('Pendaftaran akun baru sedang dinonaktifkan.')
-      } else if (
-        status === 429 || code.includes('rate') || msg.includes('rate limit') || msg.includes('too many')
-      ) {
+      } else if (status === 429 || code.includes('rate') || msg.includes('rate limit') || msg.includes('too many')) {
         setError('Terlalu banyak percobaan. Tunggu beberapa menit lalu coba lagi.')
       } else if (msg.includes('invalid email') || (msg.includes('email') && !msg.includes('confirm'))) {
         setError('Format email tidak valid.')
       } else if (msg.includes('password') || msg.includes('weak') || status === 422) {
         setError('Password terlalu lemah atau format tidak valid. Gunakan minimal 6 karakter.')
-      } else if (msg.includes('network') || msg.includes('fetch') || status === 0) {
-        setError('Koneksi bermasalah. Periksa internet Anda.')
       } else {
-        // Tampilkan error mentah supaya bisa diinvestigasi
         const rawMsg = signUpError.message || code || `status ${status}`
-        setError(rawMsg
+        setError(rawMsg && rawMsg !== '{}'
           ? `Gagal membuat akun: ${rawMsg}`
           : 'Terjadi kesalahan tak terduga. Coba lagi atau hubungi admin.'
         )
