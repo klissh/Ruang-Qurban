@@ -174,10 +174,10 @@ export default async function AnalitikPage({ params }: { params: Promise<{ slug:
 
       <div className="grid grid-cols-2 md:grid-cols-4" style={{ gap: 16 }}>
         {statCards.map((s) => (
-          <div key={s.label} style={{ ...G.card, borderTop: `2px solid ${s.accent}`, padding: 20 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 11, background: s.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>{s.icon}</div>
-            <p style={{ fontSize: 32, fontWeight: 800, color: 'rgba(255,255,255,0.97)', margin: '0 0 6px', lineHeight: 1, letterSpacing: -1 }}>{s.value}</p>
-            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', margin: 0, fontWeight: 500 }}>{s.label}</p>
+          <div key={s.label} className="stat-mini" style={{ ...G.card, borderTop: `2px solid ${s.accent}`, padding: 20 }}>
+            <div className="s-icon" style={{ width: 38, height: 38, borderRadius: 11, background: s.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>{s.icon}</div>
+            <p className="s-value" style={{ fontSize: 32, fontWeight: 800, color: 'rgba(255,255,255,0.97)', margin: '0 0 6px', lineHeight: 1, letterSpacing: -1 }}>{s.value}</p>
+            <p className="s-label" style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', margin: 0, fontWeight: 500 }}>{s.label}</p>
           </div>
         ))}
       </div>
