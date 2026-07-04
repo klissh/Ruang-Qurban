@@ -137,7 +137,8 @@ export default function PanitiaClient({ anggotaList, workspaceRoles, currentUser
           </h1>
           <p style={{ fontSize:13, color:'rgba(255,255,255,0.36)', marginTop:6 }}>{list.length} anggota terdaftar</p>
         </div>
-        <button onClick={() => setShowAdd(true)}
+        <button onClick={() =
+                    suppressHydrationWarning> setShowAdd(true)}
           style={{ display:'flex', alignItems:'center', gap:7, padding:'9px 18px', background:'linear-gradient(135deg,#10b981,#059669)', border:'none', borderRadius:11, color:'white', fontSize:13, fontWeight:700, cursor:'pointer', boxShadow:'0 4px 16px rgba(16,185,129,0.38)' }}>
           <UserPlus size={15}/> Tambah Anggota
         </button>
@@ -185,7 +186,8 @@ export default function PanitiaClient({ anggotaList, workspaceRoles, currentUser
                 <div style={{ display:'flex', gap:4 }}>
                   {/* Ganti role */}
                   <button
-                    onClick={() => openEdit(a)}
+                    onClick={() =
+                    suppressHydrationWarning> openEdit(a)}
                     disabled={updating === a.id}
                     title="Ganti role"
                     style={{ background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, width:32, height:32, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'rgba(255,255,255,0.45)' }}
@@ -194,7 +196,8 @@ export default function PanitiaClient({ anggotaList, workspaceRoles, currentUser
                   </button>
                   {/* Hapus */}
                   <button
-                    onClick={() => handleRemove(a.id, a.nama_lengkap)}
+                    onClick={() =
+                    suppressHydrationWarning> handleRemove(a.id, a.nama_lengkap)}
                     disabled={removing === a.id}
                     title="Hapus dari workspace"
                     style={{ background:'rgba(239,68,68,0.07)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:8, width:32, height:32, cursor: removing===a.id ? 'not-allowed' : 'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'#fca5a5', opacity: removing===a.id ? 0.5 : 1 }}
@@ -217,7 +220,8 @@ export default function PanitiaClient({ anggotaList, workspaceRoles, currentUser
             <div style={{ ...G.modal, margin:'auto' }}>
               <div style={{ padding:'22px 26px 18px', borderBottom:'1px solid rgba(255,255,255,0.08)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                 <h2 style={{ fontSize:16, fontWeight:800, color:'rgba(255,255,255,0.95)', margin:0 }}>Tambah Anggota</h2>
-                <button onClick={() => setShowAdd(false)} style={{ background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:10, width:34, height:34, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'rgba(255,255,255,0.42)' }}>
+                <button onClick={() =
+                    suppressHydrationWarning> setShowAdd(false)} style={{ background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:10, width:34, height:34, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'rgba(255,255,255,0.42)' }}>
                   <X size={15}/>
                 </button>
               </div>
@@ -245,8 +249,10 @@ export default function PanitiaClient({ anggotaList, workspaceRoles, currentUser
                 </div>
               </div>
               <div style={{ padding:'18px 26px', borderTop:'1px solid rgba(255,255,255,0.07)', display:'flex', gap:10 }}>
-                <button onClick={() => setShowAdd(false)} style={{ flex:1, padding:11, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:12, color:'rgba(255,255,255,0.58)', fontSize:13.5, fontWeight:600, cursor:'pointer' }}>Batal</button>
-                <button onClick={handleTambah} disabled={saving} style={{ flex:1, padding:11, background:'linear-gradient(135deg,#10b981,#059669)', border:'none', borderRadius:12, color:'white', fontSize:13.5, fontWeight:700, cursor:'pointer', opacity: saving ? 0.6 : 1 }}>
+                <button onClick={() =
+                    suppressHydrationWarning> setShowAdd(false)} style={{ flex:1, padding:11, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:12, color:'rgba(255,255,255,0.58)', fontSize:13.5, fontWeight:600, cursor:'pointer' }}>Batal</button>
+                <button onClick={handleTambah} disabled={saving} style={{ flex:1, padding:11, background:'linear-gradient(135deg,#10b981,#059669)', border:'none', borderRadius:12, color:'white', fontSize:13.5, fontWeight:700, cursor:'pointer', opacity: saving ? 0.6 : 1 }}
+                    suppressHydrationWarning>
                   {saving ? 'Menambahkan...' : 'Tambahkan'}
                 </button>
               </div>
@@ -264,7 +270,8 @@ export default function PanitiaClient({ anggotaList, workspaceRoles, currentUser
             <div style={{ ...G.modal, margin:'auto' }}>
               <div style={{ padding:'22px 26px 18px', borderBottom:'1px solid rgba(255,255,255,0.08)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                 <h2 style={{ fontSize:16, fontWeight:800, color:'rgba(255,255,255,0.95)', margin:0 }}>Ganti Role</h2>
-                <button onClick={() => { setShowEdit(false); setEditTarget(null) }} style={{ background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:10, width:34, height:34, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'rgba(255,255,255,0.42)' }}>
+                <button onClick={() =
+                    suppressHydrationWarning> { setShowEdit(false); setEditTarget(null) }} style={{ background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:10, width:34, height:34, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'rgba(255,255,255,0.42)' }}>
                   <X size={15}/>
                 </button>
               </div>
@@ -290,8 +297,10 @@ export default function PanitiaClient({ anggotaList, workspaceRoles, currentUser
                 </div>
               </div>
               <div style={{ padding:'18px 26px', borderTop:'1px solid rgba(255,255,255,0.07)', display:'flex', gap:10 }}>
-                <button onClick={() => { setShowEdit(false); setEditTarget(null) }} style={{ flex:1, padding:11, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:12, color:'rgba(255,255,255,0.58)', fontSize:13.5, fontWeight:600, cursor:'pointer' }}>Batal</button>
-                <button onClick={handleUpdateRole} disabled={updating===editTarget.id} style={{ flex:1, padding:11, background:'linear-gradient(135deg,#10b981,#059669)', border:'none', borderRadius:12, color:'white', fontSize:13.5, fontWeight:700, cursor:'pointer', opacity: updating===editTarget.id ? 0.6 : 1 }}>
+                <button onClick={() =
+                    suppressHydrationWarning> { setShowEdit(false); setEditTarget(null) }} style={{ flex:1, padding:11, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:12, color:'rgba(255,255,255,0.58)', fontSize:13.5, fontWeight:600, cursor:'pointer' }}>Batal</button>
+                <button onClick={handleUpdateRole} disabled={updating===editTarget.id} style={{ flex:1, padding:11, background:'linear-gradient(135deg,#10b981,#059669)', border:'none', borderRadius:12, color:'white', fontSize:13.5, fontWeight:700, cursor:'pointer', opacity: updating===editTarget.id ? 0.6 : 1 }}
+                    suppressHydrationWarning>
                   {updating===editTarget.id ? 'Menyimpan...' : 'Simpan Role'}
                 </button>
               </div>
