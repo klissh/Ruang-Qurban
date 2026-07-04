@@ -23,7 +23,12 @@ export default async function StatusPage({ params }: { params: Promise<{ slug: s
     .eq('id', user.id)
     .single()
 
-  if (!profile || !['SUPER_ADMIN', 'PETUGAS_LAPANGAN'].includes(profile.role)) {
+  // Kalau profile null, biarkan layout yang handle redirect
+  if (!profile || !profile.id_workspace) redirect('/login')
+
+  // ADMIN_PENDAFTARAN tidak punya akses status → redirect ke analitik
+  // (hanya SUPER_ADMIN dan PETUGAS_LAPANGAN yang boleh)
+  if (profile.role === 'ADMIN_PENDAFTARAN') {
     redirect(`/w/${slug}/analitik`)
   }
 
