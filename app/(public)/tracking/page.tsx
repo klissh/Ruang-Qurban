@@ -311,7 +311,7 @@ export default function TrackingPage() {
             </div>
 
             {/* Statistik Workspace — simetris 3 kolom */}
-            {result.workspace_stats.labelPeriode && (
+            {result.workspace_stats?.labelPeriode && (
               <div style={{ maxWidth: 560, margin: '0 auto', width: '100%' }}>
                 {/* Header workspace */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, paddingInline: 2 }}>
