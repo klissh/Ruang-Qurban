@@ -83,13 +83,9 @@ export default function WaitingPage() {
         <div className="inline-flex mb-8">
           <div
             className="w-24 h-24 rounded-3xl flex items-center justify-center"
-            style={{
-              background: 'rgba(16,185,129,0.08)',
-              border: '1px solid rgba(16,185,129,0.18)',
-              boxShadow: '0 0 60px rgba(16,185,129,0.08)',
-            }}
+            style={{ background: '#ffffff', boxShadow: '0 0 0 1px rgba(16,185,129,0.28), 0 8px 40px rgba(0,0,0,0.4)', padding: '14px' }}
           >
-            <Clock size={40} color="#34d399" strokeWidth={1.6} style={{ opacity: checking ? 0.5 : 1, transition: 'opacity 0.3s' }} />
+            <img src="/logo.png" alt="Ruang Qurban" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
         </div>
 

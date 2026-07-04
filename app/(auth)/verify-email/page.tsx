@@ -10,8 +10,8 @@ export default function VerifyEmailPage() {
 
       <div className="w-full max-w-[400px] relative z-10 text-center">
         <div className="inline-flex mb-6">
-          <div className="w-20 h-20 rounded-3xl flex items-center justify-center" style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)' }}>
-            <Mail size={34} color="#34d399" strokeWidth={1.8} />
+          <div className="w-20 h-20 rounded-3xl flex items-center justify-center" style={{ background: '#ffffff', boxShadow: '0 0 0 1px rgba(16,185,129,0.28), 0 8px 40px rgba(0,0,0,0.35)', padding: '10px' }}>
+            <img src="/logo.png" alt="Ruang Qurban" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
         </div>
 

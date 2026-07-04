@@ -148,8 +148,8 @@ export default function RegisterWorkspacePage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex mb-4">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(145deg, #12c98d 0%, #059669 100%)', boxShadow: '0 0 0 1px rgba(16,185,129,0.28), 0 8px 40px rgba(16,185,129,0.42)' }}>
-              <Building2 size={26} color="white" strokeWidth={2.2} />
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: '#ffffff', boxShadow: '0 0 0 1px rgba(16,185,129,0.28), 0 8px 40px rgba(0,0,0,0.35)', padding: '8px' }}>
+              <img src="/logo.png" alt="Ruang Qurban" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
           </div>
           <h1 className="text-xl font-extrabold" style={{ color: 'rgba(255,255,255,0.97)', letterSpacing: '-0.5px' }}>Buat Workspace Masjid</h1>

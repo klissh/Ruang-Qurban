@@ -39,12 +39,12 @@ export default function LoginPage() {
         <div className="text-center mb-10">
           <div className="inline-flex relative mb-5">
             <div className="w-[74px] h-[74px] rounded-3xl flex items-center justify-center"
-              style={{ background:'linear-gradient(145deg, #12c98d 0%, #059669 100%)', boxShadow:'0 0 0 1px rgba(16,185,129,0.28), 0 8px 40px rgba(16,185,129,0.42)' }}>
-              <Moon size={30} color="white" strokeWidth={2.2} />
+              style={{ background:'#ffffff', boxShadow:'0 0 0 1px rgba(16,185,129,0.28), 0 8px 40px rgba(0,0,0,0.35)', padding:'10px' }}>
+              <img src="/logo.png" alt="Ruang Qurban" style={{ width:'100%', height:'100%', objectFit:'contain' }} />
             </div>
           </div>
           <h1 className="text-2xl font-extrabold tracking-tight" style={{ color:'rgba(255,255,255,0.97)', letterSpacing:'-0.5px' }}>
-            Portal Qurban
+            Ruang Qurban
           </h1>
           <p className="text-sm mt-2" style={{ color:'rgba(255,255,255,0.35)' }}>Sistem Manajemen Kepanitiaan Qurban</p>
         </div>

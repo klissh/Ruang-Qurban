@@ -205,11 +205,12 @@ export default function TrackingPage() {
         <div style={{ maxWidth: 780, margin: '0 auto', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
             width: 38, height: 38, borderRadius: 12,
-            background: 'linear-gradient(145deg,#12c98d,#059669)',
+            background: '#ffffff',
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            boxShadow: '0 4px 16px rgba(16,185,129,0.4)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+            padding: 5,
           }}>
-            <Moon size={18} color="white" strokeWidth={2.4} />
+            <img src="/logo.png" alt="Ruang Qurban" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
           <div>
             <h1 style={{ fontWeight: 800, fontSize: 15, color: 'rgba(255,255,255,0.95)', margin: 0, letterSpacing: '-0.2px' }}>

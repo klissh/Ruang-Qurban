@@ -72,8 +72,8 @@ export default function Sidebar({ role, roleName, namaUser, namaWorkspace, slug,
       <div className="px-4 pt-6 pb-4">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
-            style={{ background:'linear-gradient(145deg, #12c98d, #059669)', boxShadow:'0 4px 16px rgba(16,185,129,0.4), 0 0 0 1px rgba(16,185,129,0.2)' }}>
-            <Moon size={18} color="white" strokeWidth={2.4}/>
+            style={{ background:'#ffffff', boxShadow:'0 4px 16px rgba(0,0,0,0.25), 0 0 0 1px rgba(16,185,129,0.2)', padding:'5px' }}>
+            <img src="/logo.png" alt="Ruang Qurban" style={{ width:'100%', height:'100%', objectFit:'contain' }} />
           </div>
           <div className="min-w-0">
             <p className="font-extrabold text-sm truncate" style={{ color:'rgba(255,255,255,0.95)', letterSpacing:'-0.2px' }}>
