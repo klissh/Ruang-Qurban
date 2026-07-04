@@ -173,8 +173,8 @@ export const STATUS_CONFIG: Record<StatusHewan, {
     bgColor: 'bg-indigo-100',
   },
   SELESAI: {
-    label: 'Selesai / Siap Distribusi',
-    labelShort: 'Selesai',
+    label: 'Siap Distribusi',
+    labelShort: 'Siap Distribusi',
     step: 8,
     color: 'text-emerald-700',
     bgColor: 'bg-emerald-100',

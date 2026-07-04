@@ -9,6 +9,7 @@ import {
   Copy, Beef, PawPrint, Phone, MapPin, X, Pencil, Trash2,
   ArrowRightLeft, AlertTriangle, Clock, Flame, Package, CheckCircle2,
   ShieldAlert, ClipboardList, Truck, CheckCheck, Scissors, PackageCheck,
+  BadgeCheck,
 } from 'lucide-react'
 import { STATUS_CONFIG, STATUS_ORDER } from '@/types'
 import type { StatusHewan, JenisHewan, Hewan, Jamaah, JamaahFormData, Periode, Role } from '@/types'
@@ -417,6 +418,13 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
 
   const STAT_STATUSES: StatusHewan[] = STATUS_ORDER
 
+  // Hewan yang benar-benar selesai: status SELESAI + semua jamaahnya SUDAH_DIANTAR
+  const terkirimCount = hewan.filter(h => {
+    if (h.status !== 'SELESAI') return false
+    const heJamaah = jamaah.filter(j => j.id_hewan === h.id)
+    return heJamaah.length > 0 && heJamaah.every(j => j.status_antar === 'SUDAH_DIANTAR')
+  }).length
+
   // ══════════════════════════════════════════════════════
   // RENDER
   // ══════════════════════════════════════════════════════
@@ -477,7 +485,7 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
       </div>
 
       {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 10, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 10, marginBottom: 10 }}>
         {STAT_STATUSES.map((s) => {
           const sg = STATUS_GLASS[s]
           const cfg = STATUS_CONFIG[s]
@@ -500,6 +508,40 @@ export default function HewanClient({ hewanList, jamaahList, kambingCount, works
             </div>
           )
         })}
+      </div>
+
+      {/* Terkirim card — hewan SELESAI + semua jamaah SUDAH_DIANTAR */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{
+          background: terkirimCount > 0
+            ? 'rgba(6,182,212,0.08)'
+            : 'rgba(255,255,255,0.03)',
+          border: terkirimCount > 0
+            ? '1px solid rgba(6,182,212,0.25)'
+            : '1px solid rgba(255,255,255,0.06)',
+          borderLeft: `3px solid ${terkirimCount > 0 ? '#06b6d4' : 'rgba(255,255,255,0.12)'}`,
+          borderRadius: 12, padding: '14px 20px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <BadgeCheck size={16} style={{ color: terkirimCount > 0 ? '#06b6d4' : 'rgba(255,255,255,0.2)' }} />
+            <div>
+              <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: terkirimCount > 0 ? '#06b6d4' : 'rgba(255,255,255,0.25)', letterSpacing: '0.2px' }}>
+                Terkirim
+              </p>
+              <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.28)', marginTop: 2 }}>
+                Hewan siap distribusi &amp; semua jamaah sudah menerima daging
+              </p>
+            </div>
+          </div>
+          <span style={{
+            fontSize: 26, fontWeight: 800,
+            color: terkirimCount > 0 ? '#06b6d4' : 'rgba(255,255,255,0.18)',
+            letterSpacing: '-0.5px', lineHeight: 1,
+          }}>
+            {terkirimCount}
+          </span>
+        </div>
       </div>
 
       {/* Search + Filter */}
