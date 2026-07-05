@@ -371,9 +371,10 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
               const isSel = selected.has(j.id)
               return (
                 <div key={j.id}
-                  style={{ padding: '12px 16px', borderBottom: idx < group.items.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none', background: isSel ? 'rgba(16,185,129,0.05)' : 'transparent', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  onClick={() => openModal([j.id], j.status_antar)}
+                  style={{ padding: '12px 16px', borderBottom: idx < group.items.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none', background: isSel ? 'rgba(16,185,129,0.05)' : 'transparent', display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
                   {/* Checkbox */}
-                  <div onClick={() => toggleSelect(j.id)}
+                  <div onClick={(e) => { e.stopPropagation(); toggleSelect(j.id) }}
                     style={{ width: 16, height: 16, borderRadius: 4, border: `2px solid ${isSel ? '#10b981' : 'rgba(255,255,255,0.15)'}`, background: isSel ? '#10b981' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 3 }}>
                     {isSel && <Check size={9} color="white" />}
                   </div>
@@ -414,7 +415,7 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
                     )}
                   </div>
                   {/* Tombol status — klik buka modal */}
-                  <button onClick={() => openModal([j.id], j.status_antar)}
+                  <button onClick={(e) => { e.stopPropagation(); openModal([j.id], j.status_antar) }}
                     style={{ flexShrink: 0, padding: '5px 12px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: `1px solid ${cfg.border}`, background: cfg.bg, color: cfg.color, whiteSpace: 'nowrap' }}>
                     {cfg.label}
                   </button>
