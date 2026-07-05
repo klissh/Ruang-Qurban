@@ -14,9 +14,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Hanya Super Admin yang bisa menambah panitia' }, { status: 403 })
   }
 
+  // Workspace ID diambil dari session (bukan dari body) untuk mencegah
+  // SUPER_ADMIN menyuntikkan user ke workspace lain.
+  const workspaceId = profile.id_workspace
+  if (!workspaceId) {
+    return NextResponse.json({ error: 'Workspace tidak ditemukan' }, { status: 403 })
+  }
+
   const body = await request.json()
-  const { nama_lengkap, email, password, role, workspace_id } = body as {
-    nama_lengkap: string; email: string; password: string; role: Role; workspace_id: string
+  const { nama_lengkap, email, password, role } = body as {
+    nama_lengkap: string; email: string; password: string; role: Role
+  }
+
+  if (!email || !password || !nama_lengkap) {
+    return NextResponse.json({ error: 'nama_lengkap, email, dan password wajib diisi' }, { status: 400 })
   }
 
   // Gunakan service role untuk membuat user baru
@@ -32,10 +43,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: authError?.message ?? 'Gagal membuat akun' }, { status: 400 })
   }
 
-  // Buat profil
+  // Buat profil dengan workspaceId dari session caller (bukan dari body)
   const { data: newProfile, error: profileError } = await serviceSupabase
     .from('profiles')
-    .insert({ id: newUser.user.id, id_workspace: workspace_id, nama_lengkap, role })
+    .insert({ id: newUser.user.id, id_workspace: workspaceId, nama_lengkap, role })
     .select()
     .single()
 
