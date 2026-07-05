@@ -114,7 +114,7 @@ export default function Sidebar({ role, roleName, namaUser, namaWorkspace, slug,
             >
               {item.icon}
               <span className="flex-1">{item.label}</span>
-              {isVisitor && <Eye size={11} style={{ color:'rgba(255,255,255,0.22)', flexShrink:0 }} title="Mode Lihat Saja"/>}
+              {isVisitor && <span title="Mode Lihat Saja" style={{ display:'inline-flex', flexShrink:0 }}><Eye size={11} style={{ color:'rgba(255,255,255,0.22)' }}/></span>}
             </Link>
           )
         })}
