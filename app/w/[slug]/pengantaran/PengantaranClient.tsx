@@ -190,7 +190,8 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
     <div className="p-4 md:p-8 pb-20 md:pb-8 max-w-5xl mx-auto animate-slide-up">
 
       {/* ── Header ────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 20 }}>
+      {/* ── Header ── */}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5">
         <div>
           <h1 style={{ fontSize: 26, fontWeight: 800, color: 'rgba(255,255,255,0.97)', letterSpacing: '-0.5px', margin: 0 }}>
             Pengantaran
@@ -199,9 +200,8 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
             Monitoring pengantaran per-jamaah · hanya hewan berstatus Selesai yang muncul
           </p>
         </div>
-
         {/* Stats chips */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <div className="flex flex-wrap items-center gap-2">
           {[
             { label: 'Total', val: counts.SEMUA, color: 'rgba(255,255,255,0.55)' },
             { label: 'Belum', val: counts.BELUM_DIANTAR, color: '#94a3b8' },
@@ -214,7 +214,6 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
               <span style={{ fontSize: 12, fontWeight: 800, color }}>{val}</span>
             </div>
           ))}
-
         </div>
       </div>
 
@@ -239,14 +238,14 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
         </div>
       )}
 
-      {/* Filter pills */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+      {/* Filter pills — 2-col grid mobile, flex wrap desktop */}
+      <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mb-3">
         {filterTabs.map((t) => {
           const active = filter === t.key
           const col = statusColor[t.key]
           return (
             <button key={t.key} onClick={() => setFilter(t.key)}
-              style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+              style={{ padding: '7px 14px', borderRadius: 20, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', textAlign: 'center',
                 border: active ? `1px solid ${col}` : '1px solid rgba(255,255,255,0.08)',
                 background: active ? `${col}20` : 'rgba(255,255,255,0.04)',
                 color: active ? col : 'rgba(255,255,255,0.4)' }}>
@@ -272,20 +271,22 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
         <div style={{
           marginBottom: 14, padding: '12px 16px', borderRadius: 12,
           background: 'rgba(96,165,250,0.07)', border: '1px solid rgba(96,165,250,0.15)',
-          display: 'flex', alignItems: 'center', gap: 12,
         }}>
-          <Info size={15} style={{ color: '#60a5fa', flexShrink: 0 }} />
-          <p style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.45)', margin: 0, flex: 1, lineHeight: 1.6 }}>
-            Untuk menambah atau mengubah daftar kurir, buka{' '}
-            <strong style={{ color: 'rgba(255,255,255,0.7)' }}>Pengaturan → Manajemen Kurir</strong>
-          </p>
+          <div className="flex items-start gap-3">
+            <Info size={15} style={{ color: '#60a5fa', flexShrink: 0, marginTop: 2 }} />
+            <p style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.45)', margin: 0, flex: 1, lineHeight: 1.6 }}>
+              Untuk menambah atau mengubah daftar kurir, buka{' '}
+              <strong style={{ color: 'rgba(255,255,255,0.7)' }}>Pengaturan → Manajemen Kurir</strong>
+            </p>
+          </div>
           <button
             onClick={() => window.location.href = `/w/${slug}/pengaturan`}
+            className="mt-2 w-full sm:w-auto sm:mt-0"
             style={{
-              display: 'flex', alignItems: 'center', gap: 5,
-              padding: '6px 12px', borderRadius: 8, flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+              padding: '7px 14px', borderRadius: 8, marginTop: 10,
               background: 'rgba(96,165,250,0.12)', border: '1px solid rgba(96,165,250,0.2)',
-              color: '#93c5fd', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              color: '#93c5fd', fontSize: 12, fontWeight: 700, cursor: 'pointer', width: '100%',
             }}
           >
             Buka Pengaturan →
