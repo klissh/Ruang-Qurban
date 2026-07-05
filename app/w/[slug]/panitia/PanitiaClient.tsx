@@ -256,7 +256,7 @@ export default function PanitiaClient({ anggotaList, workspaceRoles, currentUser
                 </div>
               </div>
               {/* Baris 2: badge + aksi — hanya mobile (sm:hidden), indented sejajar nama */}
-              <div className="sm:hidden" style={{ display:'flex', alignItems:'center', gap:8, marginTop:8, paddingLeft:52 }}>
+              <div className="sm:hidden flex" style={{ alignItems:'center', gap:8, marginTop:8, paddingLeft:52 }}>
                 <div style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'4px 10px', borderRadius:20, background: isSA ? 'rgba(167,139,250,0.12)' : 'rgba(16,185,129,0.08)', color: isSA ? '#c4b5fd' : '#34d399', border:`1px solid ${isSA ? 'rgba(167,139,250,0.22)' : 'rgba(16,185,129,0.18)'}`, fontSize:10.5, fontWeight:700 }}>
                   <ShieldCheck size={11}/>{roleName}
                 </div>
