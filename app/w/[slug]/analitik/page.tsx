@@ -104,6 +104,7 @@ export default async function AnalitikPage({ params }: { params: Promise<{ slug:
     BELUM_DIANTAR:  jamaahAntar.filter((j) => j.status_antar === 'BELUM_DIANTAR').length,
     SEDANG_DIANTAR: jamaahAntar.filter((j) => j.status_antar === 'SEDANG_DIANTAR').length,
     SUDAH_DIANTAR:  jamaahAntar.filter((j) => j.status_antar === 'SUDAH_DIANTAR').length,
+    GAGAL_DIANTAR:  jamaahAntar.filter((j) => j.status_antar === 'GAGAL_DIANTAR').length,
   }
   const totalAntar   = jamaahAntar.length
   const persenAntar  = totalAntar > 0 ? Math.round((antarCounts.SUDAH_DIANTAR / totalAntar) * 100) : 0
