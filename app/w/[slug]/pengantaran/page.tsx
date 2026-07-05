@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import PengantaranClient from './PengantaranClient'
-import type { StatusAntar, JenisHewan } from '@/types'
+import type { StatusAntar, JenisHewan, Kurir } from '@/types'
 
 interface JamaahRow {
   id: string
@@ -51,18 +51,31 @@ export default async function PengantaranPage({ params }: { params: Promise<{ sl
 
   if (!periodeAktif) return <NoPeriodeState />
 
-  const { data: jamaah } = await supabase
-    .from('jamaah')
-    .select(`
-      id, nama_lengkap, atas_nama, no_hp, alamat_lengkap,
-      kode_jamaah, status_antar, waktu_antar, diantar_oleh,
-      id_hewan, hewan!inner ( id, kode_resi, jenis_hewan, status )
-    `)
-    .eq('id_workspace', profile.id_workspace)
-    .eq('periode_id', periodeAktif.id)
-    .is('deleted_at', null)
-    .eq('hewan.status', 'SELESAI')
-    .order('kode_jamaah')
+  const [{ data: jamaah }, { data: kurirRaw }] = await Promise.all([
+    supabase
+      .from('jamaah')
+      .select(`
+        id, nama_lengkap, atas_nama, no_hp, alamat_lengkap,
+        kode_jamaah, status_antar, waktu_antar, diantar_oleh,
+        id_hewan, hewan!inner ( id, kode_resi, jenis_hewan, status )
+      `)
+      .eq('id_workspace', profile.id_workspace)
+      .eq('periode_id', periodeAktif.id)
+      .is('deleted_at', null)
+      .eq('hewan.status', 'SELESAI')
+      .order('kode_jamaah'),
+    supabase
+      .from('kurir')
+      .select('id, nama, no_hp, created_at, updated_at')
+      .eq('id_workspace', profile.id_workspace)
+      .order('nama'),
+  ])
 
-  return <PengantaranClient jamaahList={(jamaah as unknown as JamaahRow[]) ?? []} />
+  return (
+    <PengantaranClient
+      jamaahList={(jamaah as unknown as JamaahRow[]) ?? []}
+      kurirList={(kurirRaw as Kurir[]) ?? []}
+      isSuperAdmin={profile.role === 'SUPER_ADMIN'}
+    />
+  )
 }
