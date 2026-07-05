@@ -3,25 +3,32 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Moon, Mail, Lock, User } from 'lucide-react'
+import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react'
 
 const BG = 'linear-gradient(145deg, #030d07 0%, #091a0f 52%, #060e1a 100%)'
 
 export default function RegisterMemberPage() {
-  const router = useRouter()
+  const router  = useRouter()
   const supabase = createClient()
-  const [form, setForm] = useState({ nama: '', email: '', password: '' })
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [form, setForm] = useState({ nama: '', email: '', password: '', confirmPassword: '' })
+  const [showPw, setShowPw]       = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [loading, setLoading]     = useState(false)
+  const [error, setError]         = useState('')
+
+  function set(field: string, value: string) {
+    setForm((f) => ({ ...f, [field]: value }))
+  }
 
   async function handleDaftar() {
-    if (!form.nama || !form.email || !form.password) {
-      setError('Semua field wajib diisi')
-      return
+    if (!form.nama || !form.email || !form.password || !form.confirmPassword) {
+      setError('Semua field wajib diisi'); return
     }
     if (form.password.length < 6) {
-      setError('Password minimal 6 karakter')
-      return
+      setError('Password minimal 6 karakter'); return
+    }
+    if (form.password !== form.confirmPassword) {
+      setError('Konfirmasi password tidak cocok'); return
     }
     setError('')
     setLoading(true)
@@ -44,10 +51,10 @@ export default function RegisterMemberPage() {
     router.push('/verify-email')
   }
 
-  const inputStyle: React.CSSProperties = {
+  const inputBase: React.CSSProperties = {
     width: '100%', background: 'rgba(255,255,255,0.05)',
     border: '1px solid rgba(255,255,255,0.09)', color: 'rgba(255,255,255,0.9)',
-    borderRadius: 12, padding: '11px 14px 11px 42px', fontSize: 13.5, outline: 'none',
+    borderRadius: 12, padding: '11px 42px 11px 42px', fontSize: 13.5, outline: 'none',
   }
 
   return (
@@ -72,26 +79,75 @@ export default function RegisterMemberPage() {
             </div>
           )}
 
-          {[
-            { field: 'nama', label: 'Nama Lengkap', type: 'text', placeholder: 'Nama Anda', Icon: User },
-            { field: 'email', label: 'Email', type: 'email', placeholder: 'email@contoh.com', Icon: Mail },
-            { field: 'password', label: 'Password', type: 'password', placeholder: 'Min. 6 karakter', Icon: Lock },
-          ].map(({ field, label, type, placeholder, Icon }) => (
-            <div key={field}>
-              <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.38)' }}>{label}</label>
-              <div className="relative">
-                <Icon size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'rgba(255,255,255,0.24)' }} />
-                <input
-                  type={type}
-                  value={(form as any)[field]}
-                  onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
-                  onKeyDown={(e) => e.key === 'Enter' && handleDaftar()}
-                  placeholder={placeholder}
-                  style={inputStyle}
-                />
-              </div>
+          {/* Nama */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.38)' }}>Nama Lengkap</label>
+            <div className="relative">
+              <User size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'rgba(255,255,255,0.24)' }} />
+              <input type="text" value={form.nama} onChange={(e) => set('nama', e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleDaftar()}
+                placeholder="Nama Anda" style={{ ...inputBase, padding: '11px 14px 11px 42px' }} />
             </div>
-          ))}
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.38)' }}>Email</label>
+            <div className="relative">
+              <Mail size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'rgba(255,255,255,0.24)' }} />
+              <input type="email" value={form.email} onChange={(e) => set('email', e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleDaftar()}
+                placeholder="email@contoh.com" style={{ ...inputBase, padding: '11px 14px 11px 42px' }} />
+            </div>
+          </div>
+
+          {/* Password */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.38)' }}>Password</label>
+            <div className="relative">
+              <Lock size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'rgba(255,255,255,0.24)' }} />
+              <input type={showPw ? 'text' : 'password'} value={form.password}
+                onChange={(e) => set('password', e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleDaftar()}
+                placeholder="Min. 6 karakter" style={inputBase} />
+              <button type="button" onClick={() => setShowPw((v) => !v)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'rgba(255,255,255,0.3)', display: 'flex' }}>
+                {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            </div>
+          </div>
+
+          {/* Konfirmasi Password */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.38)' }}>Konfirmasi Password</label>
+            <div className="relative">
+              <Lock size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'rgba(255,255,255,0.24)' }} />
+              <input type={showConfirm ? 'text' : 'password'} value={form.confirmPassword}
+                onChange={(e) => set('confirmPassword', e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleDaftar()}
+                placeholder="Ulangi password"
+                style={{
+                  ...inputBase,
+                  borderColor: form.confirmPassword
+                    ? form.confirmPassword === form.password
+                      ? 'rgba(16,185,129,0.4)'
+                      : 'rgba(239,68,68,0.4)'
+                    : 'rgba(255,255,255,0.09)',
+                }} />
+              <button type="button" onClick={() => setShowConfirm((v) => !v)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'rgba(255,255,255,0.3)', display: 'flex' }}>
+                {showConfirm ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            </div>
+            {form.confirmPassword && form.confirmPassword !== form.password && (
+              <p style={{ fontSize: 11.5, marginTop: 5, color: '#fca5a5', fontWeight: 500 }}>Password tidak cocok</p>
+            )}
+            {form.confirmPassword && form.confirmPassword === form.password && (
+              <p style={{ fontSize: 11.5, marginTop: 5, color: '#34d399', fontWeight: 500 }}>✓ Password cocok</p>
+            )}
+          </div>
 
           <button
             onClick={handleDaftar}
