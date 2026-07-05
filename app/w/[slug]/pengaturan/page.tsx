@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import PengaturanClient from './PengaturanClient'
+import type { Kurir } from '@/types'
 
 export default async function PengaturanPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
@@ -15,11 +16,18 @@ export default async function PengaturanPage({ params }: { params: Promise<{ slu
 
   if (profile?.role !== 'SUPER_ADMIN') redirect(`/w/${slug}/analitik`)
 
-  const { data: roles } = await supabase
-    .from('workspace_roles')
-    .select('id, nama, permissions, is_super_admin, created_at')
-    .eq('workspace_id', profile.id_workspace)
-    .order('created_at')
+  const [{ data: roles }, { data: kurirRaw }] = await Promise.all([
+    supabase
+      .from('workspace_roles')
+      .select('id, nama, permissions, is_super_admin, created_at')
+      .eq('workspace_id', profile.id_workspace)
+      .order('created_at'),
+    supabase
+      .from('kurir')
+      .select('id, nama, no_hp, created_at, updated_at')
+      .eq('id_workspace', profile.id_workspace)
+      .order('nama'),
+  ])
 
   const workspace = profile.workspaces as any
 
@@ -27,6 +35,7 @@ export default async function PengaturanPage({ params }: { params: Promise<{ slu
     <PengaturanClient
       workspace={{ id: profile.id_workspace!, nama: workspace?.nama ?? '', slug: workspace?.slug ?? slug, created_at: workspace?.created_at ?? '' }}
       roles={roles ?? []}
+      kurirList={(kurirRaw as Kurir[]) ?? []}
       slug={slug}
     />
   )
