@@ -20,6 +20,16 @@ export type StatusAntar =
   | 'BELUM_DIANTAR'
   | 'SEDANG_DIANTAR'
   | 'SUDAH_DIANTAR'
+  | 'GAGAL_DIANTAR'
+
+export interface Kurir {
+  id: string
+  id_workspace: string
+  nama: string
+  no_hp: string | null
+  created_at: string
+  updated_at: string
+}
 
 export type StatusPeriode = 'aktif' | 'arsip'
 
@@ -223,6 +233,13 @@ export const STATUS_ANTAR_CONFIG: Record<StatusAntar, {
     bg: 'rgba(16,185,129,0.14)',
     border: 'rgba(52,211,153,0.22)',
     dot: '#10b981',
+  },
+  GAGAL_DIANTAR: {
+    label: 'Gagal Diantar',
+    color: '#f87171',
+    bg: 'rgba(239,68,68,0.14)',
+    border: 'rgba(248,113,113,0.22)',
+    dot: '#ef4444',
   },
 }
 
