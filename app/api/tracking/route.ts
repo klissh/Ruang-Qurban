@@ -82,8 +82,8 @@ export async function GET(request: NextRequest) {
       .is('deleted_at', null)
 
     workspaceStats = {
-      totalSapi:    (allHewan ?? []).filter((h) => h.jenis_hewan === 'SAPI').length,
-      totalKambing: (allHewan ?? []).filter((h) => h.jenis_hewan === 'KAMBING').length,
+      totalSapi:    (allHewan ?? []).filter((h: { jenis_hewan: string }) => h.jenis_hewan === 'SAPI').length,
+      totalKambing: (allHewan ?? []).filter((h: { jenis_hewan: string }) => h.jenis_hewan === 'KAMBING').length,
       totalJamaah:  jmlJamaah ?? 0,
       labelPeriode: periode.nama_event ?? `Qurban ${periode.tahun}`,
     }
