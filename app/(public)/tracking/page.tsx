@@ -134,6 +134,7 @@ function TrackingPageContent() {
   const [result, setResult] = useState<TrackingData | null>(null)
   const [error, setError] = useState('')
   const [activeCode, setActiveCode] = useState('')
+  const [savedCodes, setSavedCodes] = useState<string[]>([])
 
   const handleSearch = useCallback(async (searchKode?: string) => {
     const q = (searchKode ?? kode).trim().toUpperCase()
@@ -145,7 +146,15 @@ function TrackingPageContent() {
       const res = await fetch(`/api/tracking?kode=${encodeURIComponent(q)}`)
       const json = await res.json()
       if (!res.ok) { setError(json.error ?? 'Terjadi kesalahan. Coba lagi.'); setActiveCode('') }
-      else { setResult(json.data); setActiveCode(q) }
+      else {
+        setResult(json.data)
+        setActiveCode(q)
+        setSavedCodes(prev => {
+          const next = [q, ...prev.filter(c => c !== q)].slice(0, 5)
+          try { localStorage.setItem('rq_saved_codes', JSON.stringify(next)) } catch {}
+          return next
+        })
+      }
     } catch {
       setError('Koneksi gagal. Periksa internet Anda.')
       setActiveCode('')
@@ -153,6 +162,13 @@ function TrackingPageContent() {
       setLoading(false)
     }
   }, [kode])
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('rq_saved_codes')
+      if (raw) setSavedCodes(JSON.parse(raw))
+    } catch {}
+  }, [])
 
   useEffect(() => {
     const paramKode = searchParams.get('kode')
@@ -301,6 +317,53 @@ function TrackingPageContent() {
               Cek
             </button>
           </div>
+
+          {savedCodes.length > 0 && (
+            <div style={{ marginTop: 14 }}>
+              <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', marginBottom: 8, letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+                Terakhir dicari
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {savedCodes.map(code => (
+                  <div key={code} style={{ display: 'flex', alignItems: 'center' }}>
+                    <button
+                      onClick={() => { setKode(code); handleSearch(code) }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 5,
+                        padding: '5px 10px', borderRadius: '8px 0 0 8px',
+                        background: 'rgba(16,185,129,0.09)',
+                        border: '1px solid rgba(52,211,153,0.2)', borderRight: 'none',
+                        color: '#34d399', fontSize: 12, fontWeight: 700,
+                        cursor: 'pointer', fontFamily: 'ui-monospace,monospace',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
+                      <Clock size={10} />
+                      {code}
+                    </button>
+                    <button
+                      onClick={() => setSavedCodes(prev => {
+                        const next = prev.filter(c => c !== code)
+                        try { localStorage.setItem('rq_saved_codes', JSON.stringify(next)) } catch {}
+                        return next
+                      })}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        width: 26, padding: '5px 0', borderRadius: '0 8px 8px 0',
+                        background: 'rgba(16,185,129,0.09)',
+                        border: '1px solid rgba(52,211,153,0.2)',
+                        color: 'rgba(255,255,255,0.28)', fontSize: 13, lineHeight: 1,
+                        cursor: 'pointer',
+                      }}
+                      title="Hapus"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {error && (
             <div style={{
