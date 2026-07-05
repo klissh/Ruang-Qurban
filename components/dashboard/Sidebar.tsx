@@ -94,7 +94,7 @@ export default function Sidebar({ role, roleName, namaUser, namaWorkspace, slug,
       <p className="px-5 mb-1.5 text-[9px] font-bold uppercase tracking-widest"
         style={{ color:'rgba(255,255,255,0.22)', letterSpacing:'1.2px' }}>Menu Utama</p>
 
-      <nav className="flex-1 px-2.5 overflow-y-auto space-y-0.5">
+      <nav className="flex-1 min-h-0 px-2.5 overflow-y-auto space-y-0.5">
         {visibleItems.map((item) => {
           const active    = isActive(item.key)
           const isVisitor = item.permKey && permissions[item.permKey] === 'visitor'
