@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Moon, Building2, Mail, Lock, User, Hash } from 'lucide-react'
+import { Building2, Mail, Lock, User, Hash, Eye, EyeOff } from 'lucide-react'
 
 const BG = 'linear-gradient(145deg, #030d07 0%, #091a0f 52%, #060e1a 100%)'
 
@@ -17,24 +17,27 @@ function slugify(text: string) {
 }
 
 export default function RegisterWorkspacePage() {
-  const router = useRouter()
+  const router   = useRouter()
   const supabase = createClient()
-  const [form, setForm] = useState({ nama: '', email: '', password: '', namaWorkspace: '', slug: '' })
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [slugManual, setSlugManual] = useState(false)
-  const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle')
+  const [form, setForm] = useState({
+    nama: '', email: '', password: '', confirmPassword: '', namaWorkspace: '', slug: '',
+  })
+  const [showPw, setShowPw]           = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [loading, setLoading]         = useState(false)
+  const [error, setError]             = useState('')
+  const [slugManual, setSlugManual]   = useState(false)
+  const [slugStatus, setSlugStatus]   = useState<'idle' | 'checking' | 'available' | 'taken'>('idle')
   const slugDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  function handleNamaWorkspace(val: string) {
-    setForm((f) => ({
-      ...f,
-      namaWorkspace: val,
-      slug: slugManual ? f.slug : slugify(val),
-    }))
+  function set(field: string, value: string) {
+    setForm((f) => ({ ...f, [field]: value }))
   }
 
-  // Cek slug secara real-time (debounce 600ms)
+  function handleNamaWorkspace(val: string) {
+    setForm((f) => ({ ...f, namaWorkspace: val, slug: slugManual ? f.slug : slugify(val) }))
+  }
+
   useEffect(() => {
     if (!form.slug) { setSlugStatus('idle'); return }
     setSlugStatus('checking')
@@ -44,41 +47,35 @@ export default function RegisterWorkspacePage() {
         const res = await fetch(`/api/check-slug?slug=${encodeURIComponent(form.slug)}`)
         const { available } = await res.json()
         setSlugStatus(available ? 'available' : 'taken')
-      } catch {
-        setSlugStatus('idle')
-      }
+      } catch { setSlugStatus('idle') }
     }, 600)
   }, [form.slug])
 
   async function handleDaftar() {
-    if (!form.nama || !form.email || !form.password || !form.namaWorkspace || !form.slug) {
-      setError('Semua field wajib diisi')
-      return
+    if (!form.nama || !form.email || !form.password || !form.confirmPassword || !form.namaWorkspace || !form.slug) {
+      setError('Semua field wajib diisi'); return
     }
     if (form.password.length < 6) {
-      setError('Password minimal 6 karakter')
-      return
+      setError('Password minimal 6 karakter'); return
+    }
+    if (form.password !== form.confirmPassword) {
+      setError('Konfirmasi password tidak cocok'); return
     }
     if (!/^[a-z0-9-]+$/.test(form.slug)) {
-      setError('Slug hanya boleh huruf kecil, angka, dan tanda hubung')
-      return
+      setError('Slug hanya boleh huruf kecil, angka, dan tanda hubung'); return
     }
 
     setError('')
     setLoading(true)
 
-    // Cek ketersediaan slug sebelum daftar
     try {
       const slugCheck = await fetch(`/api/check-slug?slug=${encodeURIComponent(form.slug)}`)
       const { available } = await slugCheck.json()
       if (!available) {
         setError(`Slug "${form.slug}" sudah dipakai workspace lain. Gunakan nama masjid yang berbeda.`)
-        setLoading(false)
-        return
+        setLoading(false); return
       }
-    } catch {
-      // Lanjutkan jika pengecekan gagal — validasi tetap ada di DB
-    }
+    } catch { /* lanjutkan */ }
 
     const { error: signUpError } = await supabase.auth.signUp({
       email: form.email,
@@ -96,19 +93,14 @@ export default function RegisterWorkspacePage() {
 
     if (signUpError) {
       console.error('SignUp error:', JSON.stringify(signUpError))
-
       const msg    = typeof signUpError.message === 'string' ? signUpError.message.toLowerCase() : ''
       const code   = ((signUpError as any).code   ?? '').toLowerCase()
       const status = (signUpError as any).status  ?? 0
       const name   = ((signUpError as any).name   ?? '').toLowerCase()
 
       if (status === 500 || name.includes('retryfetch') || name.includes('retryable') || msg === '{}') {
-        // Supabase gagal kirim email konfirmasi (SMTP/Resend error)
         setError('Layanan email konfirmasi sedang bermasalah. Kemungkinan email Anda sudah pernah terdaftar — coba klik "Sudah punya akun" dan masuk, atau coba lagi beberapa menit kemudian.')
-      } else if (
-        code.includes('user_already') || code.includes('email_exists') ||
-        msg.includes('already registered') || msg.includes('already exists') || msg.includes('user already')
-      ) {
+      } else if (code.includes('user_already') || code.includes('email_exists') || msg.includes('already registered') || msg.includes('already exists') || msg.includes('user already')) {
         setError('Email ini sudah terdaftar. Silakan masuk atau gunakan email lain.')
       } else if (code.includes('email_not_confirmed') || msg.includes('not confirmed')) {
         setError('Email belum dikonfirmasi. Cek kotak masuk Anda.')
@@ -124,21 +116,20 @@ export default function RegisterWorkspacePage() {
         const rawMsg = signUpError.message || code || `status ${status}`
         setError(rawMsg && rawMsg !== '{}'
           ? `Gagal membuat akun: ${rawMsg}`
-          : 'Terjadi kesalahan tak terduga. Coba lagi atau hubungi admin.'
-        )
+          : 'Terjadi kesalahan tak terduga. Coba lagi atau hubungi admin.')
       }
-      setLoading(false)
-      return
+      setLoading(false); return
     }
 
     router.push('/verify-email')
   }
 
-  const inputStyle: React.CSSProperties = {
+  const inputBase: React.CSSProperties = {
     width: '100%', background: 'rgba(255,255,255,0.05)',
     border: '1px solid rgba(255,255,255,0.09)', color: 'rgba(255,255,255,0.9)',
-    borderRadius: 12, padding: '11px 14px 11px 42px', fontSize: 13.5, outline: 'none',
+    borderRadius: 12, padding: '11px 42px 11px 42px', fontSize: 13.5, outline: 'none',
   }
+  const inputNoRightPad: React.CSSProperties = { ...inputBase, padding: '11px 14px 11px 42px' }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6" style={{ background: BG }}>
@@ -165,26 +156,80 @@ export default function RegisterWorkspacePage() {
             </div>
           )}
 
-          {[
-            { field: 'nama', label: 'Nama Lengkap', type: 'text', placeholder: 'Ahmad Fauzi', Icon: User },
-            { field: 'email', label: 'Email', type: 'email', placeholder: 'admin@masjid.com', Icon: Mail },
-            { field: 'password', label: 'Password', type: 'password', placeholder: 'Min. 6 karakter', Icon: Lock },
-            { field: 'namaWorkspace', label: 'Nama Masjid / Workspace', type: 'text', placeholder: 'Masjid Al-Ikhlas', Icon: Moon, onChange: handleNamaWorkspace },
-          ].map(({ field, label, type, placeholder, Icon, onChange }) => (
-            <div key={field}>
-              <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.38)' }}>{label}</label>
-              <div className="relative">
-                <Icon size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'rgba(255,255,255,0.24)' }} />
-                <input
-                  type={type}
-                  value={(form as any)[field]}
-                  onChange={(e) => onChange ? onChange(e.target.value) : setForm((f) => ({ ...f, [field]: e.target.value }))}
-                  placeholder={placeholder}
-                  style={inputStyle}
-                />
-              </div>
+          {/* Nama */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.38)' }}>Nama Lengkap</label>
+            <div className="relative">
+              <User size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'rgba(255,255,255,0.24)' }} />
+              <input type="text" value={form.nama} onChange={(e) => set('nama', e.target.value)}
+                placeholder="Ahmad Fauzi" style={inputNoRightPad} />
             </div>
-          ))}
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.38)' }}>Email</label>
+            <div className="relative">
+              <Mail size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'rgba(255,255,255,0.24)' }} />
+              <input type="email" value={form.email} onChange={(e) => set('email', e.target.value)}
+                placeholder="admin@masjid.com" style={inputNoRightPad} />
+            </div>
+          </div>
+
+          {/* Password */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.38)' }}>Password</label>
+            <div className="relative">
+              <Lock size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'rgba(255,255,255,0.24)' }} />
+              <input type={showPw ? 'text' : 'password'} value={form.password}
+                onChange={(e) => set('password', e.target.value)}
+                placeholder="Min. 6 karakter" style={inputBase} />
+              <button type="button" onClick={() => setShowPw((v) => !v)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'rgba(255,255,255,0.3)', display: 'flex' }}>
+                {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            </div>
+          </div>
+
+          {/* Konfirmasi Password */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.38)' }}>Konfirmasi Password</label>
+            <div className="relative">
+              <Lock size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'rgba(255,255,255,0.24)' }} />
+              <input type={showConfirm ? 'text' : 'password'} value={form.confirmPassword}
+                onChange={(e) => set('confirmPassword', e.target.value)}
+                placeholder="Ulangi password"
+                style={{
+                  ...inputBase,
+                  borderColor: form.confirmPassword
+                    ? form.confirmPassword === form.password ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'
+                    : 'rgba(255,255,255,0.09)',
+                }} />
+              <button type="button" onClick={() => setShowConfirm((v) => !v)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'rgba(255,255,255,0.3)', display: 'flex' }}>
+                {showConfirm ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            </div>
+            {form.confirmPassword && form.confirmPassword !== form.password && (
+              <p style={{ fontSize: 11.5, marginTop: 5, color: '#fca5a5', fontWeight: 500 }}>Password tidak cocok</p>
+            )}
+            {form.confirmPassword && form.confirmPassword === form.password && (
+              <p style={{ fontSize: 11.5, marginTop: 5, color: '#34d399', fontWeight: 500 }}>✓ Password cocok</p>
+            )}
+          </div>
+
+          {/* Nama Workspace */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.38)' }}>Nama Masjid / Workspace</label>
+            <div className="relative">
+              <Building2 size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'rgba(255,255,255,0.24)' }} />
+              <input type="text" value={form.namaWorkspace}
+                onChange={(e) => handleNamaWorkspace(e.target.value)}
+                placeholder="Masjid Al-Ikhlas" style={inputNoRightPad} />
+            </div>
+          </div>
 
           {/* Slug */}
           <div>
@@ -196,22 +241,21 @@ export default function RegisterWorkspacePage() {
             </label>
             <div className="relative">
               <Hash size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'rgba(255,255,255,0.24)' }} />
-              <input
-                type="text"
-                value={form.slug}
+              <input type="text" value={form.slug}
                 onChange={(e) => { setSlugManual(true); setForm((f) => ({ ...f, slug: slugify(e.target.value) })) }}
                 placeholder="masjid-al-ikhlas"
-                style={{ ...inputStyle, borderColor: slugStatus === 'taken' ? 'rgba(239,68,68,0.5)' : slugStatus === 'available' ? 'rgba(16,185,129,0.4)' : 'rgba(255,255,255,0.09)' }}
-              />
+                style={{
+                  ...inputNoRightPad,
+                  borderColor: slugStatus === 'taken' ? 'rgba(239,68,68,0.5)' : slugStatus === 'available' ? 'rgba(16,185,129,0.4)' : 'rgba(255,255,255,0.09)',
+                }} />
             </div>
-            {/* Slug status indicator */}
             {form.slug && (
               <p style={{ fontSize: 11.5, marginTop: 6, fontWeight: 600,
                 color: slugStatus === 'taken' ? '#fca5a5' : slugStatus === 'available' ? '#34d399' : 'rgba(255,255,255,0.3)' }}>
-                {slugStatus === 'checking' && '⏳ Memeriksa ketersediaan...'}
+                {slugStatus === 'checking'  && '⏳ Memeriksa ketersediaan...'}
                 {slugStatus === 'available' && '✓ Slug tersedia — URL: /w/' + form.slug}
-                {slugStatus === 'taken' && '✗ Slug sudah dipakai workspace lain'}
-                {slugStatus === 'idle' && '/w/' + form.slug}
+                {slugStatus === 'taken'     && '✗ Slug sudah dipakai workspace lain'}
+                {slugStatus === 'idle'      && '/w/' + form.slug}
               </p>
             )}
           </div>
