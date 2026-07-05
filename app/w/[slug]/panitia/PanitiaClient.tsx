@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { UserPlus, Trash2, ShieldCheck, X, Mail, Pencil, ChevronDown, AlertTriangle, ArrowRight } from 'lucide-react'
+import { CustomSelect } from '@/components/ui/CustomSelect'
 import { useRouter } from 'next/navigation'
 
 export interface AnggotaRow {
@@ -317,12 +318,11 @@ export default function PanitiaClient({ anggotaList, workspaceRoles, currentUser
                     </div>
                     <div>
                       <label style={{ display:'block', fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.36)', letterSpacing:'0.8px', textTransform:'uppercase', marginBottom:8 }}>Role</label>
-                      <div style={selectWrapStyle}>
-                        <select value={roleId} onChange={(e) => setRoleId(e.target.value)} style={{ ...G.input, appearance:'none', paddingRight:36, cursor:'pointer' }}>
-                          {workspaceRoles.map((wr) => <option key={wr.id} value={wr.id}>{wr.nama}</option>)}
-                        </select>
-                        <ChevronDown size={15} style={selectChevronStyle}/>
-                      </div>
+                      <CustomSelect
+                        value={roleId}
+                        onChange={setRoleId}
+                        options={workspaceRoles.map((wr) => ({ value: wr.id, label: wr.nama }))}
+                      />
                     </div>
                   </div>
                   <div style={{ padding:'18px 26px', borderTop:'1px solid rgba(255,255,255,0.07)', display:'flex', gap:10 }}>
@@ -363,12 +363,11 @@ export default function PanitiaClient({ anggotaList, workspaceRoles, currentUser
                 </div>
                 <div>
                   <label style={{ display:'block', fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.36)', letterSpacing:'0.8px', textTransform:'uppercase', marginBottom:8 }}>Pilih Role Baru</label>
-                  <div style={selectWrapStyle}>
-                    <select value={editRoleId} onChange={(e) => setEditRoleId(e.target.value)} style={{ ...G.input, appearance:'none', paddingRight:36, cursor:'pointer' }}>
-                      {workspaceRoles.map((wr) => <option key={wr.id} value={wr.id}>{wr.nama}</option>)}
-                    </select>
-                    <ChevronDown size={15} style={selectChevronStyle}/>
-                  </div>
+                  <CustomSelect
+                    value={editRoleId}
+                    onChange={setEditRoleId}
+                    options={workspaceRoles.map((wr) => ({ value: wr.id, label: wr.nama }))}
+                  />
                 </div>
               </div>
               <div style={{ padding:'18px 26px', borderTop:'1px solid rgba(255,255,255,0.07)', display:'flex', gap:10 }}>
