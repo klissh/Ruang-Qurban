@@ -280,11 +280,20 @@ export default function PengaturanClient({ workspace, roles: initialRoles, kurir
         <p style={{ fontSize:13, color:'rgba(255,255,255,0.36)', marginTop:6 }}>{workspace.nama}</p>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display:'flex', gap:8, marginBottom:24, flexWrap:'wrap' }}>
-        <button style={tabStyle(tab==='info')}  onClick={() => setTab('info')}>Info Workspace</button>
-        <button style={tabStyle(tab==='roles')} onClick={() => setTab('roles')}>Manajemen Role</button>
-        <button style={tabStyle(tab==='kurir')} onClick={() => setTab('kurir')}>Manajemen Kurir</button>
+      {/* Tabs — 3-col equal-width grid mobile, flex row desktop */}
+      <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-2 mb-6">
+        <button onClick={() => setTab('info')}
+          style={{ ...tabStyle(tab==='info'), textAlign:'center', padding:'8px 6px', fontSize:12 }}>
+          Info Workspace
+        </button>
+        <button onClick={() => setTab('roles')}
+          style={{ ...tabStyle(tab==='roles'), textAlign:'center', padding:'8px 6px', fontSize:12 }}>
+          Manajemen Role
+        </button>
+        <button onClick={() => setTab('kurir')}
+          style={{ ...tabStyle(tab==='kurir'), textAlign:'center', padding:'8px 6px', fontSize:12 }}>
+          Manajemen Kurir
+        </button>
       </div>
 
       {/* Tab: Info */}
@@ -366,13 +375,14 @@ export default function PengaturanClient({ workspace, roles: initialRoles, kurir
       {/* Tab: Kurir */}
       {tab === 'kurir' && (
         <div>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
             <div>
               <p style={{ fontSize:14, fontWeight:700, color:'rgba(255,255,255,0.82)', margin:0 }}>Daftar Pengantar / Kurir</p>
               <p style={{ fontSize:12, color:'rgba(255,255,255,0.35)', marginTop:3 }}>Nama-nama kurir yang tersedia sebagai pilihan di halaman Pengantaran</p>
             </div>
             <button onClick={() => openKurirModal()}
-              style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 16px', background:'linear-gradient(135deg,#10b981,#059669)', border:'none', borderRadius:10, color:'white', fontSize:13, fontWeight:700, cursor:'pointer', flexShrink:0 }}>
+              className="flex items-center justify-center gap-2"
+              style={{ padding:'10px 16px', background:'linear-gradient(135deg,#10b981,#059669)', border:'none', borderRadius:10, color:'white', fontSize:13, fontWeight:700, cursor:'pointer', flexShrink:0 }}>
               <Plus size={14} /> Tambah Kurir
             </button>
           </div>
