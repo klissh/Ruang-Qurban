@@ -319,28 +319,53 @@ function TrackingPageContent() {
           </div>
 
           {savedCodes.length > 0 && (
-            <div style={{ marginTop: 14 }}>
-              <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.25)', marginBottom: 8, letterSpacing: '0.8px', textTransform: 'uppercase' }}>
-                Terakhir dicari
+            <div style={{ marginTop: 16 }}>
+              {/* Label */}
+              <p style={{
+                fontSize: 10, fontWeight: 700,
+                color: 'rgba(255,255,255,0.22)',
+                marginBottom: 10, letterSpacing: '1px',
+                textTransform: 'uppercase',
+                display: 'flex', alignItems: 'center', gap: 5,
+              }}>
+                <Clock size={9} style={{ opacity: 0.45 }} />
+                Terakhir Dicari
               </p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {/* Grid: 2 kolom di mobile, 3 kolom di desktop — tiap chip sama lebar */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {savedCodes.map(code => (
-                  <div key={code} style={{ display: 'flex', alignItems: 'center' }}>
+                  <div
+                    key={code}
+                    style={{
+                      display: 'flex', alignItems: 'stretch',
+                      background: 'rgba(16,185,129,0.07)',
+                      border: '1px solid rgba(52,211,153,0.15)',
+                      borderRadius: 10, overflow: 'hidden',
+                    }}
+                  >
+                    {/* Tombol kode — klik langsung cek */}
                     <button
                       onClick={() => { setKode(code); handleSearch(code) }}
                       style={{
-                        display: 'flex', alignItems: 'center', gap: 5,
-                        padding: '5px 10px', borderRadius: '8px 0 0 8px',
-                        background: 'rgba(16,185,129,0.09)',
-                        border: '1px solid rgba(52,211,153,0.2)', borderRight: 'none',
+                        flex: 1, minWidth: 0,
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        padding: '9px 10px',
+                        background: 'none', border: 'none',
                         color: '#34d399', fontSize: 12, fontWeight: 700,
-                        cursor: 'pointer', fontFamily: 'ui-monospace,monospace',
-                        letterSpacing: '0.05em',
+                        cursor: 'pointer',
+                        fontFamily: 'ui-monospace,monospace',
+                        letterSpacing: '0.06em',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
                       }}
                     >
-                      <Clock size={10} />
+                      <Clock size={10} style={{ flexShrink: 0, opacity: 0.6 }} />
                       {code}
                     </button>
+                    {/* Separator tipis */}
+                    <div style={{ width: 1, background: 'rgba(52,211,153,0.12)', margin: '7px 0' }} />
+                    {/* Tombol hapus */}
                     <button
                       onClick={() => setSavedCodes(prev => {
                         const next = prev.filter(c => c !== code)
@@ -349,11 +374,11 @@ function TrackingPageContent() {
                       })}
                       style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        width: 26, padding: '5px 0', borderRadius: '0 8px 8px 0',
-                        background: 'rgba(16,185,129,0.09)',
-                        border: '1px solid rgba(52,211,153,0.2)',
-                        color: 'rgba(255,255,255,0.28)', fontSize: 13, lineHeight: 1,
-                        cursor: 'pointer',
+                        width: 30, flexShrink: 0,
+                        background: 'none', border: 'none',
+                        color: 'rgba(255,255,255,0.2)',
+                        fontSize: 17, lineHeight: 1,
+                        cursor: 'pointer', padding: 0,
                       }}
                       title="Hapus"
                     >
