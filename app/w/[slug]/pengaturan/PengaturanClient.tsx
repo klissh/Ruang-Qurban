@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { Building2, Plus, Trash2, Edit2, X, ShieldCheck } from 'lucide-react'
+import { Building2, Plus, Trash2, Edit2, X, ShieldCheck, Truck, Phone } from 'lucide-react'
 import { toast } from 'sonner'
 
 type PageAccess = 'full' | 'visitor' | 'none'
@@ -16,6 +16,7 @@ interface WorkspaceRole {
   is_super_admin: boolean; created_at: string
 }
 interface Workspace { id: string; nama: string; slug: string; created_at: string }
+interface KurirItem { id: string; nama: string; no_hp: string | null; created_at: string }
 
 const DEFAULT_PERMS: Permissions = {
   analitik:'none', data_hewan:'none', status:'none',
@@ -47,10 +48,133 @@ function ModalPortal({ children }: { children: React.ReactNode }) {
 }
 
 function RadioDot({ active, color }: { active: boolean; color: string }) {
+  // ── CRUD Kurir ────────────────────────────────────────────────────────────
+  function openKurirModal(k?: KurirItem) {
+    setEditKurir(k ?? null)
+    setKurirNama(k?.nama ?? '')
+    setKurirHp(k?.no_hp ?? '')
+    setShowKurirModal(true)
+  }
+
+  async function handleSaveKurir() {
+    if (!kurirNama.trim()) { toast.error('Nama kurir wajib diisi'); return }
+    setSavingKurir(true)
+    try {
+      const method = editKurir ? 'PATCH' : 'POST'
+      const body: Record<string, string> = { nama: kurirNama.trim() }
+      if (editKurir) body.id = editKurir.id
+      if (kurirHp.trim()) body.no_hp = kurirHp.trim()
+      const res  = await fetch('/api/kurir', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      if (editKurir) {
+        setKurirList((p) => p.map((k) => k.id === data.kurir.id ? data.kurir : k))
+        toast.success('Kurir diperbarui')
+      } else {
+        setKurirList((p) => [...p, data.kurir].sort((a, b) => a.nama.localeCompare(b.nama)))
+        toast.success('Kurir ditambahkan')
+      }
+      setShowKurirModal(false)
+    } catch (e: any) { toast.error(e.message ?? 'Gagal') }
+    finally { setSavingKurir(false) }
+  }
+
+  async function handleDeleteKurir(id: string, nama: string) {
+    if (!confirm(\`Hapus kurir "${nama}"?\`)) return
+    setDeletingKurir(id)
+    try {
+      const res = await fetch(\`/api/kurir?id=\${id}\`, { method: 'DELETE' })
+      if (!res.ok) throw new Error()
+      setKurirList((p) => p.filter((k) => k.id !== id))
+      toast.success(\`\${nama} dihapus\`)
+    } catch { toast.error('Gagal menghapus kurir') }
+    finally { setDeletingKurir(null) }
+  }
+
   return (
     <div style={{ width:22, height:22, borderRadius:'50%', border:`2px solid ${active ? color : 'rgba(255,255,255,0.15)'}`, background: active ? `${color}33` : 'transparent', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
       {active && <div style={{ width:8, height:8, borderRadius:'50%', background:color }} />}
     </div>
+        {/* ════════════════════════ MANAJEMEN KURIR ════════════════════════ */}
+        <div style={{ marginTop: 32 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div>
+              <h2 style={{ fontSize: 16, fontWeight: 800, color: 'rgba(255,255,255,0.92)', margin: 0 }}>Manajemen Kurir</h2>
+              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>Daftar pengantar daging qurban yang bisa dipilih di halaman Pengantaran</p>
+            </div>
+            <button onClick={() => openKurirModal()}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px',
+                background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none',
+                borderRadius: 10, color: 'white', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
+              <Plus size={14} /> Tambah Kurir
+            </button>
+          </div>
+
+          <div style={G.card}>
+            {kurirList.length === 0 && (
+              <div style={{ padding: '40px 0', textAlign: 'center' }}>
+                <Truck size={28} style={{ color: 'rgba(255,255,255,0.15)', marginBottom: 10 }} />
+                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.28)', margin: 0 }}>Belum ada kurir — tambahkan pengantar pertama</p>
+              </div>
+            )}
+            {kurirList.map((k, idx) => (
+              <div key={k.id} style={{ padding: '12px 18px', borderBottom: idx < kurirList.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Truck size={15} style={{ color: '#34d399' }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 13.5, fontWeight: 600, color: 'rgba(255,255,255,0.88)', margin: 0 }}>{k.nama}</p>
+                  {k.no_hp && (
+                    <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.35)', margin: '2px 0 0', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Phone size={10} />{k.no_hp}
+                    </p>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button onClick={() => openKurirModal(k)}
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.45)' }}>
+                    <Edit2 size={13} />
+                  </button>
+                  <button onClick={() => handleDeleteKurir(k.id, k.nama)} disabled={deletingKurir === k.id}
+                    style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: 8, width: 32, height: 32, cursor: deletingKurir === k.id ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fca5a5', opacity: deletingKurir === k.id ? 0.5 : 1 }}>
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Modal tambah/edit kurir */}
+        {showKurirModal && (
+          <ModalPortal>
+            <div onClick={(e) => { if (e.target === e.currentTarget) setShowKurirModal(false) }} style={G.overlay}>
+              <div style={{ ...G.modal, margin: 'auto' }}>
+                <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <h2 style={{ fontSize: 15, fontWeight: 800, color: 'rgba(255,255,255,0.95)', margin: 0 }}>{editKurir ? 'Edit Kurir' : 'Tambah Kurir'}</h2>
+                  <button onClick={() => setShowKurirModal(false)} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.42)' }}><X size={14} /></button>
+                </div>
+                <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.36)', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: 7 }}>Nama Kurir</label>
+                    <input value={kurirNama} onChange={(e) => setKurirNama(e.target.value)} placeholder="Nama lengkap pengantar" style={G.input} autoFocus onKeyDown={(e) => e.key === 'Enter' && handleSaveKurir()} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.36)', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: 7 }}>No. HP <span style={{ opacity: 0.5, fontWeight: 400, textTransform: 'none' }}>(opsional)</span></label>
+                    <input value={kurirHp} onChange={(e) => setKurirHp(e.target.value)} placeholder="08xxxxxxxxxx" style={G.input} onKeyDown={(e) => e.key === 'Enter' && handleSaveKurir()} />
+                  </div>
+                </div>
+                <div style={{ padding: '16px 24px', borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', gap: 10 }}>
+                  <button onClick={() => setShowKurirModal(false)} style={{ flex: 1, padding: 10, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, color: 'rgba(255,255,255,0.55)', fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}>Batal</button>
+                  <button onClick={handleSaveKurir} disabled={savingKurir} style={{ flex: 1, padding: 10, background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none', borderRadius: 12, color: 'white', fontSize: 13.5, fontWeight: 700, cursor: 'pointer', opacity: savingKurir ? 0.6 : 1 }}>
+                    {savingKurir ? 'Menyimpan...' : editKurir ? 'Simpan' : 'Tambahkan'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </ModalPortal>
+        )}
+
   )
 }
 
