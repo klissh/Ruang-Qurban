@@ -10,6 +10,7 @@ import {
   ChevronDown, ChevronUp, User, MapPin, Check, AlertTriangle,
   UserCheck, Users, Plus, Pencil, Trash2,
 } from 'lucide-react'
+import { CustomSelect } from '@/components/ui/CustomSelect'
 
 interface HewanRef { id: string; kode_resi: string; jenis_hewan: JenisHewan; status: string }
 interface JamaahItem {
@@ -492,16 +493,14 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
                       Diantar Oleh <span style={{ opacity: 0.5, fontWeight: 400, textTransform: 'none' }}>— opsional</span>
                     </label>
                     {!modal.showCustom ? (
-                      <div style={{ position: 'relative' }}>
-                        <select value={modal.kurirId} onChange={(e) => setModal({ ...modal, kurirId: e.target.value })}
-                          style={{ ...G.input, appearance: 'none', paddingRight: 36, cursor: 'pointer' }}>
-                          <option value="">— Tidak dipilih —</option>
-                          {kurirList.map((k) => (
-                            <option key={k.id} value={k.id}>{k.nama}{k.no_hp ? ` (${k.no_hp})` : ''}</option>
-                          ))}
-                        </select>
-                        <ChevronDown size={14} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.35)', pointerEvents: 'none' }} />
-                      </div>
+                      <CustomSelect
+                        value={modal.kurirId}
+                        onChange={(v) => setModal({ ...modal, kurirId: v })}
+                        options={[
+                          { value: '', label: '— Tidak dipilih —' },
+                          ...kurirList.map((k) => ({ value: k.id, label: k.nama + (k.no_hp ? ` (${k.no_hp})` : '') })),
+                        ]}
+                      />
                     ) : (
                       <input type="text" value={modal.kurirCustom}
                         onChange={(e) => setModal({ ...modal, kurirCustom: e.target.value })}
