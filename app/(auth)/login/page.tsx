@@ -84,7 +84,7 @@ function LoginPageContent() {
           </div>
 
           {/* Password + eye toggle */}
-          <div className="mb-7">
+          <div className="mb-5">
             <label className="block text-xs font-bold uppercase tracking-widest mb-2"
               style={{ color:'rgba(255,255,255,0.38)', letterSpacing:'0.8px' }}>Password</label>
             <div className="relative">
@@ -108,6 +108,13 @@ function LoginPageContent() {
                 {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
               </button>
             </div>
+          </div>
+
+          <div className="flex justify-end mb-5">
+            <a href="/forgot-password" className="text-xs font-semibold"
+              style={{ color:'rgba(255,255,255,0.35)' }}>
+              Lupa password?
+            </a>
           </div>
 
           <button
