@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
+import { useParams } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { STATUS_ANTAR_CONFIG } from '@/types'
@@ -8,7 +9,7 @@ import type { StatusAntar, JenisHewan, Kurir } from '@/types'
 import {
   Beef, PawPrint, Search, X, Truck, Clock, CheckCircle2,
   ChevronDown, ChevronUp, User, MapPin, Check, AlertTriangle,
-  UserCheck, Users, Plus, Pencil, Trash2,
+  UserCheck, Info,
 } from 'lucide-react'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 
@@ -55,6 +56,8 @@ interface Props {
 }
 
 export default function PengantaranClient({ jamaahList, kurirList: initialKurirList, isSuperAdmin }: Props) {
+  const params = useParams()
+  const slug   = typeof params?.slug === 'string' ? params.slug : ''
   const [list, setList]           = useState<JamaahItem[]>(jamaahList)
   const [kurirList, setKurirList] = useState<Kurir[]>(initialKurirList)
   const [search, setSearch]       = useState('')
@@ -74,14 +77,6 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
     kurirCustom: string
     showCustom: boolean
   } | null>(null)
-
-  // Modal kelola kurir
-  const [showKurir, setShowKurir]     = useState(false)
-  const [editKurir, setEditKurir]     = useState<Kurir | null>(null)
-  const [kurirNama, setKurirNama]     = useState('')
-  const [kurirHp, setKurirHp]         = useState('')
-  const [savingKurir, setSavingKurir] = useState(false)
-  const [deletingKurir, setDeletingKurir] = useState<string | null>(null)
 
   const counts = {
     SEMUA:          list.length,
@@ -169,49 +164,6 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
     finally { setLoading(false) }
   }
 
-  // ── Kurir CRUD ──────────────────────────────────────────────────────────────
-  function openKurirForm(k?: Kurir) {
-    setEditKurir(k ?? null)
-    setKurirNama(k?.nama ?? '')
-    setKurirHp(k?.no_hp ?? '')
-  }
-
-  async function handleSaveKurir() {
-    if (!kurirNama.trim()) { toast.error('Nama kurir wajib diisi'); return }
-    setSavingKurir(true)
-    try {
-      const method = editKurir ? 'PATCH' : 'POST'
-      const body: Record<string, string> = { nama: kurirNama.trim() }
-      if (editKurir) body.id = editKurir.id
-      if (kurirHp.trim()) body.no_hp = kurirHp.trim()
-      const res  = await fetch('/api/kurir', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-      if (editKurir) {
-        setKurirList((p) => p.map((k) => k.id === data.kurir.id ? data.kurir : k))
-        toast.success('Kurir diperbarui')
-      } else {
-        setKurirList((p) => [...p, data.kurir].sort((a, b) => a.nama.localeCompare(b.nama)))
-        toast.success('Kurir ditambahkan')
-      }
-      setEditKurir(null); setKurirNama(''); setKurirHp('')
-    } catch (e: any) { toast.error(e.message ?? 'Gagal') }
-    finally { setSavingKurir(false) }
-  }
-
-  async function handleDeleteKurir(id: string, nama: string) {
-    if (!confirm(`Hapus kurir "${nama}"?`)) return
-    setDeletingKurir(id)
-    try {
-      const res = await fetch(`/api/kurir?id=${id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error()
-      setKurirList((p) => p.filter((k) => k.id !== id))
-      if (editKurir?.id === id) { setEditKurir(null); setKurirNama(''); setKurirHp('') }
-      toast.success(`${nama} dihapus`)
-    } catch { toast.error('Gagal menghapus kurir') }
-    finally { setDeletingKurir(null) }
-  }
-
   const overlayStyle: React.CSSProperties = {
     position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)',
     backdropFilter: 'blur(10px)', zIndex: 9999,
@@ -248,7 +200,7 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
           </p>
         </div>
 
-        {/* Stats chips + tombol Kelola Kurir */}
+        {/* Stats chips */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           {[
             { label: 'Total', val: counts.SEMUA, color: 'rgba(255,255,255,0.55)' },
@@ -262,12 +214,7 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
               <span style={{ fontSize: 12, fontWeight: 800, color }}>{val}</span>
             </div>
           ))}
-          {isSuperAdmin && (
-            <button onClick={() => { setShowKurir(true); setEditKurir(null); setKurirNama(''); setKurirHp('') }}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-              <Users size={13} /> Kelola Kurir
-            </button>
-          )}
+
         </div>
       </div>
 
@@ -318,6 +265,33 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
             style={{ ...G.input, paddingLeft: 36 }} />
         </div>
       </div>
+
+
+      {/* ── Info banner: arahkan ke Pengaturan untuk kelola kurir ── */}
+      {isSuperAdmin && (
+        <div style={{
+          marginBottom: 14, padding: '12px 16px', borderRadius: 12,
+          background: 'rgba(96,165,250,0.07)', border: '1px solid rgba(96,165,250,0.15)',
+          display: 'flex', alignItems: 'center', gap: 12,
+        }}>
+          <Info size={15} style={{ color: '#60a5fa', flexShrink: 0 }} />
+          <p style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.45)', margin: 0, flex: 1, lineHeight: 1.6 }}>
+            Untuk menambah atau mengubah daftar kurir, buka{' '}
+            <strong style={{ color: 'rgba(255,255,255,0.7)' }}>Pengaturan → Manajemen Kurir</strong>
+          </p>
+          <button
+            onClick={() => window.location.href = `/w/${slug}/pengaturan`}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '6px 12px', borderRadius: 8, flexShrink: 0,
+              background: 'rgba(96,165,250,0.12)', border: '1px solid rgba(96,165,250,0.2)',
+              color: '#93c5fd', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            Buka Pengaturan →
+          </button>
+        </div>
+      )}
 
       {/* Groups */}
       {paginatedGroups.length === 0 && (
@@ -530,73 +504,6 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
         </ModalPortal>
       )}
 
-      {/* ══ MODAL: Kelola Kurir ══════════════════════════════════════════════ */}
-      {showKurir && (
-        <ModalPortal>
-          <div onClick={(e) => { if (e.target === e.currentTarget) { setShowKurir(false); setEditKurir(null); setKurirNama(''); setKurirHp('') } }} style={overlayStyle}>
-            <div style={{ margin: 'auto', width: '100%', maxWidth: 460, background: 'rgba(7,18,11,0.97)', backdropFilter: 'blur(36px)', border: '1px solid rgba(255,255,255,0.11)', borderTop: '1px solid rgba(255,255,255,0.2)', borderRadius: 24, boxShadow: '0 32px 80px rgba(0,0,0,0.52)' }}>
-              {/* Header */}
-              <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <h2 style={{ fontSize: 15, fontWeight: 800, color: 'rgba(255,255,255,0.95)', margin: 0 }}>Kelola Kurir / Pengantar</h2>
-                <button onClick={() => { setShowKurir(false); setEditKurir(null); setKurirNama(''); setKurirHp('') }}
-                  style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.4)' }}>
-                  <X size={14} />
-                </button>
-              </div>
-
-              {/* Form tambah/edit */}
-              <div style={{ padding: '18px 24px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', margin: 0 }}>
-                  {editKurir ? `Edit: ${editKurir.nama}` : 'Tambah kurir baru'}
-                </p>
-                <input value={kurirNama} onChange={(e) => setKurirNama(e.target.value)}
-                  placeholder="Nama lengkap pengantar" style={G.input}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSaveKurir()} />
-                <input value={kurirHp} onChange={(e) => setKurirHp(e.target.value)}
-                  placeholder="Nomor HP (opsional)" style={G.input}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSaveKurir()} />
-                <div style={{ display: 'flex', gap: 8 }}>
-                  {editKurir && (
-                    <button onClick={() => { setEditKurir(null); setKurirNama(''); setKurirHp('') }}
-                      style={{ flex: 1, padding: '9px 0', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: 'rgba(255,255,255,0.45)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                      Batal Edit
-                    </button>
-                  )}
-                  <button onClick={handleSaveKurir} disabled={savingKurir}
-                    style={{ flex: 2, padding: '9px 0', background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none', borderRadius: 10, color: 'white', fontSize: 13, fontWeight: 700, cursor: savingKurir ? 'not-allowed' : 'pointer', opacity: savingKurir ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                    <Plus size={13} /> {savingKurir ? 'Menyimpan...' : editKurir ? 'Simpan Perubahan' : 'Tambahkan'}
-                  </button>
-                </div>
-              </div>
-
-              {/* Daftar kurir */}
-              <div style={{ maxHeight: 280, overflowY: 'auto' }}>
-                {kurirList.length === 0 && (
-                  <div style={{ padding: '32px 0', textAlign: 'center' }}>
-                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.28)', margin: 0 }}>Belum ada kurir — tambahkan di atas</p>
-                  </div>
-                )}
-                {kurirList.map((k, idx) => (
-                  <div key={k.id} style={{ padding: '11px 24px', borderBottom: idx < kurirList.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none', display: 'flex', alignItems: 'center', gap: 10, background: editKurir?.id === k.id ? 'rgba(16,185,129,0.05)' : 'transparent' }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.85)', margin: 0 }}>{k.nama}</p>
-                      {k.no_hp && <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.35)', margin: '2px 0 0' }}>{k.no_hp}</p>}
-                    </div>
-                    <button onClick={() => openKurirForm(k)}
-                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, width: 30, height: 30, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.45)' }}>
-                      <Pencil size={12} />
-                    </button>
-                    <button onClick={() => handleDeleteKurir(k.id, k.nama)} disabled={deletingKurir === k.id}
-                      style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: 8, width: 30, height: 30, cursor: deletingKurir === k.id ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fca5a5', opacity: deletingKurir === k.id ? 0.5 : 1 }}>
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </ModalPortal>
-      )}
     </div>
   )
 }
