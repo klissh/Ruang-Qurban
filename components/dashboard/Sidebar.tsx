@@ -65,7 +65,7 @@ export default function Sidebar({ role, roleName, namaUser, namaWorkspace, slug,
     : { bg:'rgba(52,211,153,0.10)',  color:'#34d399',  border:'rgba(52,211,153,0.20)' }
 
   const Content = () => (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-1 min-h-0">
       <div className="absolute top-0 left-0 right-0 h-px" style={{ background:'linear-gradient(90deg, transparent, rgba(16,185,129,0.65), transparent)' }} />
 
       {/* Logo + user */}
@@ -152,7 +152,7 @@ export default function Sidebar({ role, roleName, namaUser, namaWorkspace, slug,
           <div className="md:hidden fixed inset-0 z-40"
             style={{ background:'rgba(0,0,0,0.6)', backdropFilter:'blur(4px)' }}
             onClick={() => setMobileOpen(false)}/>
-          <aside className="md:hidden fixed left-0 top-0 bottom-0 w-72 z-50 shadow-2xl flex flex-col relative"
+          <aside className="md:hidden fixed left-0 top-0 bottom-0 w-72 z-50 shadow-2xl flex flex-col overflow-hidden"
             style={{ background:'rgba(4,10,7,0.96)', backdropFilter:'blur(36px)', WebkitBackdropFilter:'blur(36px)', borderRight:'1px solid rgba(255,255,255,0.1)' }}>
             <Content/>
           </aside>
