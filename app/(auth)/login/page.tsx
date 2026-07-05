@@ -3,13 +3,14 @@
 import { useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Mail, Lock, Moon } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react'
 
 function LoginPageContent() {
   const searchParams = useSearchParams()
   const supabase = createClient()
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
+  const [showPw, setShowPw]     = useState(false)
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
   const from = searchParams.get('from') ?? null
@@ -63,6 +64,7 @@ function LoginPageContent() {
             </div>
           )}
 
+          {/* Email */}
           <div className="mb-4">
             <label className="block text-xs font-bold uppercase tracking-widest mb-2"
               style={{ color:'rgba(255,255,255,0.38)', letterSpacing:'0.8px' }}>Email</label>
@@ -81,6 +83,7 @@ function LoginPageContent() {
             </div>
           </div>
 
+          {/* Password + eye toggle */}
           <div className="mb-7">
             <label className="block text-xs font-bold uppercase tracking-widest mb-2"
               style={{ color:'rgba(255,255,255,0.38)', letterSpacing:'0.8px' }}>Password</label>
@@ -88,14 +91,22 @@ function LoginPageContent() {
               <Lock size={15} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none"
                 style={{ color:'rgba(255,255,255,0.24)' }} />
               <input
-                type="password"
+                type={showPw ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                 placeholder="••••••••"
-                className="w-full rounded-xl pl-11 pr-4 py-3 text-sm outline-none"
+                className="w-full rounded-xl pl-11 pr-11 py-3 text-sm outline-none"
                 style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.09)', color:'rgba(255,255,255,0.9)' }}
               />
+              <button
+                type="button"
+                onClick={() => setShowPw((v) => !v)}
+                className="absolute right-4 top-1/2 -translate-y-1/2"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center' }}
+              >
+                {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
             </div>
           </div>
 
