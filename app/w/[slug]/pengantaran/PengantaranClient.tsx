@@ -61,8 +61,8 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
   const [page, setPage]           = useState(1)
   const [perPage, setPerPage]     = useState(10)
   const [selected, setSelected]   = useState<Set<string>>(new Set())
-  // Mulai semua EXPANDED (set kosong = tidak ada yang collapsed)
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  // Mulai semua COLLAPSED (set kosong = tidak ada yang expanded)
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [loading, setLoading]     = useState(false)
 
   // Modal update status
@@ -121,8 +121,8 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
   function toggleSelect(id: string) {
     setSelected((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
   }
-  function toggleCollapse(key: string) {
-    setCollapsed((p) => { const n = new Set(p); n.has(key) ? n.delete(key) : n.add(key); return n })
+  function toggleExpand(key: string) {
+    setExpanded((p) => { const n = new Set(p); n.has(key) ? n.delete(key) : n.add(key); return n })
   }
   function toggleGroupSelect(items: JamaahItem[]) {
     const ids = items.map((i) => i.id)
@@ -328,7 +328,7 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
       {paginatedGroups.map((group) => {
         const h = group.hewan
         const groupKey = h?.id ?? 'lainnya'
-        const isCollapsed = collapsed.has(groupKey)
+        const isCollapsed = !expanded.has(groupKey)
         const allSel = group.items.every((i) => selected.has(i.id))
         const someSel = group.items.some((i) => selected.has(i.id))
         const isSapi = h?.jenis_hewan === 'SAPI'
@@ -337,7 +337,7 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
           <div key={groupKey} style={{ ...G.card, marginBottom: 10 }}>
             {/* Group header */}
             <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', borderBottom: isCollapsed ? 'none' : '1px solid rgba(255,255,255,0.06)' }}
-              onClick={() => toggleCollapse(groupKey)}>
+              onClick={() => toggleExpand(groupKey)}>
               {/* Checkbox grup */}
               <div onClick={(e) => { e.stopPropagation(); toggleGroupSelect(group.items) }}
                 style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${allSel ? '#10b981' : someSel ? '#10b981' : 'rgba(255,255,255,0.2)'}`, background: allSel ? '#10b981' : someSel ? 'rgba(16,185,129,0.3)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
