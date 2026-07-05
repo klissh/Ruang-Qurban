@@ -445,7 +445,7 @@ function TrackingPageContent() {
                   </div>
                   {/* Video: mobile = 3/2 (cukup untuk controls), desktop = 16/9 */}
                   <div
-                    className="h-[360px] sm:h-auto sm:aspect-video"
+                    className="aspect-[3/2] sm:aspect-video"
                     style={{ borderRadius: 10, overflow: 'hidden', background: '#000' }}
                   >
                     <iframe
