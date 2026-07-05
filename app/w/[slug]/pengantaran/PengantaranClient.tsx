@@ -7,30 +7,18 @@ import { STATUS_ANTAR_CONFIG } from '@/types'
 import type { StatusAntar, JenisHewan, Kurir } from '@/types'
 import {
   Beef, PawPrint, Search, X, Truck, Clock, CheckCircle2,
-  ChevronDown, ChevronUp, User, MapPin, Check, AlertTriangle, UserCheck,
+  ChevronDown, ChevronUp, User, MapPin, Check, AlertTriangle,
+  UserCheck, Users, Plus, Pencil, Trash2,
 } from 'lucide-react'
 
-interface HewanRef {
-  id: string
-  kode_resi: string
-  jenis_hewan: JenisHewan
-  status: string
-}
-
+interface HewanRef { id: string; kode_resi: string; jenis_hewan: JenisHewan; status: string }
 interface JamaahItem {
-  id: string
-  nama_lengkap: string
-  atas_nama: string | null
-  no_hp: string | null
-  alamat_lengkap: string | null
-  kode_jamaah: string | null
-  status_antar: StatusAntar
-  waktu_antar: string | null
-  diantar_oleh: string | null
-  id_hewan: string | null
-  hewan: HewanRef | HewanRef[] | null
+  id: string; nama_lengkap: string; atas_nama: string | null
+  no_hp: string | null; alamat_lengkap: string | null
+  kode_jamaah: string | null; status_antar: StatusAntar
+  waktu_antar: string | null; diantar_oleh: string | null
+  id_hewan: string | null; hewan: HewanRef | HewanRef[] | null
 }
-
 function getHewan(j: JamaahItem): HewanRef | null {
   if (!j.hewan) return null
   return Array.isArray(j.hewan) ? (j.hewan[0] ?? null) : j.hewan
@@ -38,10 +26,9 @@ function getHewan(j: JamaahItem): HewanRef | null {
 
 const G = {
   card: {
-    background: 'rgba(255,255,255,0.05)',
-    backdropFilter: 'blur(20px) saturate(160%)',
-    WebkitBackdropFilter: 'blur(20px) saturate(160%)',
-    border: '1px solid rgba(255,255,255,0.09)',
+    background: 'rgba(255,255,255,0.04)',
+    backdropFilter: 'blur(20px)',
+    border: '1px solid rgba(255,255,255,0.08)',
     borderRadius: 14,
   } as React.CSSProperties,
   input: {
@@ -58,6 +45,8 @@ function ModalPortal({ children }: { children: React.ReactNode }) {
   return createPortal(children, document.body)
 }
 
+const STATUS_ORDER: StatusAntar[] = ['BELUM_DIANTAR', 'SEDANG_DIANTAR', 'GAGAL_DIANTAR', 'SUDAH_DIANTAR']
+
 interface Props {
   jamaahList: JamaahItem[]
   kurirList: Kurir[]
@@ -65,28 +54,33 @@ interface Props {
 }
 
 export default function PengantaranClient({ jamaahList, kurirList: initialKurirList, isSuperAdmin }: Props) {
-  const [list, setList]         = useState<JamaahItem[]>(jamaahList)
+  const [list, setList]           = useState<JamaahItem[]>(jamaahList)
   const [kurirList, setKurirList] = useState<Kurir[]>(initialKurirList)
-  const [search, setSearch]     = useState('')
-  const [filter, setFilter]     = useState<'SEMUA' | StatusAntar>('SEMUA')
-  const [page, setPage]         = useState(1)
-  const [perPage, setPerPage]   = useState(10)
-  const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => {
-    const keys = new Set<string>()
-    for (const j of jamaahList) { keys.add(j.id_hewan ?? j.id) }
-    return keys
-  })
-  const [loading, setLoading]   = useState(false)
+  const [search, setSearch]       = useState('')
+  const [filter, setFilter]       = useState<'SEMUA' | StatusAntar>('SEMUA')
+  const [page, setPage]           = useState(1)
+  const [perPage, setPerPage]     = useState(10)
+  const [selected, setSelected]   = useState<Set<string>>(new Set())
+  // Mulai semua EXPANDED (set kosong = tidak ada yang collapsed)
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  const [loading, setLoading]     = useState(false)
 
-  // Modal state: null = tutup
+  // Modal update status
   const [modal, setModal] = useState<{
     ids: string[]
     statusAntar: StatusAntar
-    kurirId: string       // id kurir dari daftar, atau '' jika custom/kosong
-    kurirCustom: string   // teks manual jika tidak ada di daftar
+    kurirId: string
+    kurirCustom: string
     showCustom: boolean
   } | null>(null)
+
+  // Modal kelola kurir
+  const [showKurir, setShowKurir]     = useState(false)
+  const [editKurir, setEditKurir]     = useState<Kurir | null>(null)
+  const [kurirNama, setKurirNama]     = useState('')
+  const [kurirHp, setKurirHp]         = useState('')
+  const [savingKurir, setSavingKurir] = useState(false)
+  const [deletingKurir, setDeletingKurir] = useState<string | null>(null)
 
   const counts = {
     SEMUA:          list.length,
@@ -125,26 +119,25 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
   const paginatedGroups = perPage === 0 ? groups : groups.slice((page - 1) * perPage, page * perPage)
 
   function toggleSelect(id: string) {
-    setSelected((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+    setSelected((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
   }
-  function toggleCollapse(groupKey: string) {
-    setCollapsed((prev) => { const n = new Set(prev); n.has(groupKey) ? n.delete(groupKey) : n.add(groupKey); return n })
+  function toggleCollapse(key: string) {
+    setCollapsed((p) => { const n = new Set(p); n.has(key) ? n.delete(key) : n.add(key); return n })
   }
   function toggleGroupSelect(items: JamaahItem[]) {
     const ids = items.map((i) => i.id)
     const allSel = ids.every((id) => selected.has(id))
-    setSelected((prev) => {
-      const n = new Set(prev)
+    setSelected((p) => {
+      const n = new Set(p)
       ids.forEach((id) => { if (allSel) n.delete(id); else n.add(id) })
       return n
     })
   }
 
-  function openModal(ids: string[], status: StatusAntar) {
-    setModal({ ids, statusAntar: status, kurirId: '', kurirCustom: '', showCustom: false })
+  function openModal(ids: string[], currentStatus: StatusAntar) {
+    setModal({ ids, statusAntar: currentStatus, kurirId: '', kurirCustom: '', showCustom: false })
   }
 
-  // Resolve nama kurir dari modal state
   function resolveDiantarOleh(m: NonNullable<typeof modal>): string {
     if (m.showCustom) return m.kurirCustom.trim()
     if (m.kurirId) return kurirList.find((k) => k.id === m.kurirId)?.nama ?? ''
@@ -159,40 +152,63 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
       const res = await fetch('/api/pengantaran', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ids: modal.ids,
-          status_antar: modal.statusAntar,
-          diantar_oleh: diantarOleh || null,
-        }),
+        body: JSON.stringify({ ids: modal.ids, status_antar: modal.statusAntar, diantar_oleh: diantarOleh || null }),
       })
       if (!res.ok) throw new Error()
       const now = new Date().toISOString()
-      setList((prev) =>
-        prev.map((j) =>
-          modal.ids.includes(j.id)
-            ? { ...j, status_antar: modal.statusAntar, waktu_antar: modal.statusAntar === 'BELUM_DIANTAR' ? null : now, diantar_oleh: diantarOleh || null }
-            : j
-        )
-      )
+      setList((prev) => prev.map((j) =>
+        modal.ids.includes(j.id)
+          ? { ...j, status_antar: modal.statusAntar, waktu_antar: modal.statusAntar === 'BELUM_DIANTAR' ? null : now, diantar_oleh: diantarOleh || null }
+          : j
+      ))
       setSelected(new Set())
       setModal(null)
-      const label = STATUS_ANTAR_CONFIG[modal.statusAntar].label
-      toast.success(`${modal.ids.length} jamaah → ${label}`)
-    } catch {
-      toast.error('Gagal memperbarui status')
-    } finally {
-      setLoading(false)
-    }
+      toast.success(`${modal.ids.length} jamaah → ${STATUS_ANTAR_CONFIG[modal.statusAntar].label}`)
+    } catch { toast.error('Gagal memperbarui status') }
+    finally { setLoading(false) }
   }
 
-  // Aksi cepat dari baris (tanpa modal jika tidak butuh kurir)
-  function quickAction(ids: string[], status: StatusAntar) {
-    if (status === 'BELUM_DIANTAR') {
-      // Reset langsung tanpa konfirmasi kurir
-      setModal({ ids, statusAntar: status, kurirId: '', kurirCustom: '', showCustom: false })
-    } else {
-      openModal(ids, status)
-    }
+  // ── Kurir CRUD ──────────────────────────────────────────────────────────────
+  function openKurirForm(k?: Kurir) {
+    setEditKurir(k ?? null)
+    setKurirNama(k?.nama ?? '')
+    setKurirHp(k?.no_hp ?? '')
+  }
+
+  async function handleSaveKurir() {
+    if (!kurirNama.trim()) { toast.error('Nama kurir wajib diisi'); return }
+    setSavingKurir(true)
+    try {
+      const method = editKurir ? 'PATCH' : 'POST'
+      const body: Record<string, string> = { nama: kurirNama.trim() }
+      if (editKurir) body.id = editKurir.id
+      if (kurirHp.trim()) body.no_hp = kurirHp.trim()
+      const res  = await fetch('/api/kurir', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      if (editKurir) {
+        setKurirList((p) => p.map((k) => k.id === data.kurir.id ? data.kurir : k))
+        toast.success('Kurir diperbarui')
+      } else {
+        setKurirList((p) => [...p, data.kurir].sort((a, b) => a.nama.localeCompare(b.nama)))
+        toast.success('Kurir ditambahkan')
+      }
+      setEditKurir(null); setKurirNama(''); setKurirHp('')
+    } catch (e: any) { toast.error(e.message ?? 'Gagal') }
+    finally { setSavingKurir(false) }
+  }
+
+  async function handleDeleteKurir(id: string, nama: string) {
+    if (!confirm(`Hapus kurir "${nama}"?`)) return
+    setDeletingKurir(id)
+    try {
+      const res = await fetch(`/api/kurir?id=${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error()
+      setKurirList((p) => p.filter((k) => k.id !== id))
+      if (editKurir?.id === id) { setEditKurir(null); setKurirNama(''); setKurirHp('') }
+      toast.success(`${nama} dihapus`)
+    } catch { toast.error('Gagal menghapus kurir') }
+    finally { setDeletingKurir(null) }
   }
 
   const overlayStyle: React.CSSProperties = {
@@ -201,93 +217,105 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
     display: 'flex', overflowY: 'auto', padding: '24px 16px',
   }
 
-  const filterTabs: Array<{ key: 'SEMUA' | StatusAntar; label: string; color: string; count: number }> = [
-    { key: 'SEMUA',          label: 'Semua',          color: 'rgba(255,255,255,0.5)', count: counts.SEMUA },
-    { key: 'BELUM_DIANTAR',  label: 'Belum Diantar',  color: '#94a3b8',  count: counts.BELUM_DIANTAR },
-    { key: 'SEDANG_DIANTAR', label: 'Sedang Diantar', color: '#fbbf24',  count: counts.SEDANG_DIANTAR },
-    { key: 'SUDAH_DIANTAR',  label: 'Sudah Diantar',  color: '#34d399',  count: counts.SUDAH_DIANTAR },
-    { key: 'GAGAL_DIANTAR',  label: 'Gagal Diantar',  color: '#f87171',  count: counts.GAGAL_DIANTAR },
+  const filterTabs = [
+    { key: 'SEMUA' as const,          label: 'Semua',         count: counts.SEMUA },
+    { key: 'BELUM_DIANTAR' as const,  label: 'Belum Diantar', count: counts.BELUM_DIANTAR },
+    { key: 'SEDANG_DIANTAR' as const, label: 'Sedang Diantar',count: counts.SEDANG_DIANTAR },
+    { key: 'SUDAH_DIANTAR' as const,  label: 'Sudah Diantar', count: counts.SUDAH_DIANTAR },
+    { key: 'GAGAL_DIANTAR' as const,  label: 'Gagal Diantar', count: counts.GAGAL_DIANTAR },
   ]
+
+  const statusColor: Record<string, string> = {
+    SEMUA: 'rgba(255,255,255,0.5)',
+    BELUM_DIANTAR: '#94a3b8',
+    SEDANG_DIANTAR: '#fbbf24',
+    SUDAH_DIANTAR: '#34d399',
+    GAGAL_DIANTAR: '#f87171',
+  }
 
   return (
     <div className="p-4 md:p-8 pb-20 md:pb-8 max-w-5xl mx-auto animate-slide-up">
 
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
+      {/* ── Header ────────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 20 }}>
         <div>
           <h1 style={{ fontSize: 26, fontWeight: 800, color: 'rgba(255,255,255,0.97)', letterSpacing: '-0.5px', margin: 0 }}>
             Pengantaran
           </h1>
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.36)', marginTop: 6 }}>
-            {list.length} jamaah siap dikirim
-            {counts.GAGAL_DIANTAR > 0 && (
-              <span style={{ marginLeft: 8, color: '#f87171', fontWeight: 600 }}>
-                · {counts.GAGAL_DIANTAR} gagal diantar
-              </span>
-            )}
+          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.36)', marginTop: 6, margin: '6px 0 0' }}>
+            Monitoring pengantaran per-jamaah · hanya hewan berstatus Selesai yang muncul
           </p>
         </div>
-        {selected.size > 0 && (
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {(['SEDANG_DIANTAR', 'SUDAH_DIANTAR', 'GAGAL_DIANTAR', 'BELUM_DIANTAR'] as StatusAntar[]).map((s) => {
+
+        {/* Stats chips + tombol Kelola Kurir */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          {[
+            { label: 'Total', val: counts.SEMUA, color: 'rgba(255,255,255,0.55)' },
+            { label: 'Belum', val: counts.BELUM_DIANTAR, color: '#94a3b8' },
+            { label: 'Diantar', val: counts.SEDANG_DIANTAR, color: '#fbbf24' },
+            { label: 'Sudah', val: counts.SUDAH_DIANTAR, color: '#34d399' },
+            ...(counts.GAGAL_DIANTAR > 0 ? [{ label: 'Gagal', val: counts.GAGAL_DIANTAR, color: '#f87171' }] : []),
+          ].map(({ label, val, color }) => (
+            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 20, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)' }}>
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{label}</span>
+              <span style={{ fontSize: 12, fontWeight: 800, color }}>{val}</span>
+            </div>
+          ))}
+          {isSuperAdmin && (
+            <button onClick={() => { setShowKurir(true); setEditKurir(null); setKurirNama(''); setKurirHp('') }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              <Users size={13} /> Kelola Kurir
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Bulk action bar */}
+      {selected.size > 0 && (
+        <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 12, background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12.5, color: '#34d399', fontWeight: 600 }}>{selected.size} dipilih</span>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {STATUS_ORDER.map((s) => {
               const cfg = STATUS_ANTAR_CONFIG[s]
               return (
-                <button key={s} onClick={() => quickAction([...selected], s)}
-                  style={{
-                    padding: '8px 14px', borderRadius: 10, fontSize: 12.5, fontWeight: 700,
-                    cursor: 'pointer', border: `1px solid ${cfg.border}`,
-                    background: cfg.bg, color: cfg.color,
-                  }}>
-                  {cfg.label} ({selected.size})
+                <button key={s} onClick={() => openModal([...selected], s)}
+                  style={{ padding: '5px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${cfg.border}`, background: cfg.bg, color: cfg.color }}>
+                  → {cfg.label}
                 </button>
               )
             })}
           </div>
-        )}
-      </div>
+          <button onClick={() => setSelected(new Set())} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.35)', fontSize: 12 }}>
+            Batal pilih
+          </button>
+        </div>
+      )}
 
       {/* Filter pills */}
-      <div className="hidden sm:flex" style={{ gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-        {filterTabs.map((t) => (
-          <button key={t.key} onClick={() => setFilter(t.key)}
-            style={{
-              padding: '6px 14px', borderRadius: 20, fontSize: 12.5, fontWeight: 600,
-              cursor: 'pointer', border: filter === t.key ? `1px solid ${t.color}` : '1px solid rgba(255,255,255,0.08)',
-              background: filter === t.key ? `${t.color}20` : 'rgba(255,255,255,0.04)',
-              color: filter === t.key ? t.color : 'rgba(255,255,255,0.4)',
-            }}>
-            {t.label} <span style={{ opacity: 0.6 }}>({t.count})</span>
-          </button>
-        ))}
-      </div>
-      <div className="sm:hidden" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 16 }}>
-        {filterTabs.map((t) => (
-          <button key={t.key} onClick={() => setFilter(t.key)}
-            style={{
-              padding: '6px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-              border: filter === t.key ? `1px solid ${t.color}` : '1px solid rgba(255,255,255,0.08)',
-              background: filter === t.key ? `${t.color}20` : 'rgba(255,255,255,0.04)',
-              color: filter === t.key ? t.color : 'rgba(255,255,255,0.4)',
-            }}>
-            {t.label}<br /><span style={{ opacity: 0.6 }}>({t.count})</span>
-          </button>
-        ))}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+        {filterTabs.map((t) => {
+          const active = filter === t.key
+          const col = statusColor[t.key]
+          return (
+            <button key={t.key} onClick={() => setFilter(t.key)}
+              style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+                border: active ? `1px solid ${col}` : '1px solid rgba(255,255,255,0.08)',
+                background: active ? `${col}20` : 'rgba(255,255,255,0.04)',
+                color: active ? col : 'rgba(255,255,255,0.4)' }}>
+              {t.label} <span style={{ opacity: 0.6 }}>({t.count})</span>
+            </button>
+          )
+        })}
       </div>
 
-      {/* Search + per page */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+      {/* Search + per-page */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
         <div style={{ flex: 1, position: 'relative' }}>
           <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.25)', pointerEvents: 'none' }} />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari nama, kode jamaah, kode resi…"
+          <input value={search} onChange={(e) => setSearch(e.target.value)}
+            placeholder="Cari nama, kode jamaah, atau nomor hewan..."
             style={{ ...G.input, paddingLeft: 36 }} />
         </div>
-        <select value={perPage} onChange={(e) => setPerPage(Number(e.target.value))}
-          style={{ ...G.input, width: 'auto', minWidth: 90, cursor: 'pointer' }}>
-          <option value={10}>10/hal</option>
-          <option value={25}>25/hal</option>
-          <option value={50}>50/hal</option>
-          <option value={0}>Semua</option>
-        </select>
       </div>
 
       {/* Groups */}
@@ -310,102 +338,86 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
             {/* Group header */}
             <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', borderBottom: isCollapsed ? 'none' : '1px solid rgba(255,255,255,0.06)' }}
               onClick={() => toggleCollapse(groupKey)}>
+              {/* Checkbox grup */}
               <div onClick={(e) => { e.stopPropagation(); toggleGroupSelect(group.items) }}
-                style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${allSel ? '#10b981' : someSel ? '#10b981' : 'rgba(255,255,255,0.2)'}`,
-                  background: allSel ? '#10b981' : someSel ? 'rgba(16,185,129,0.3)' : 'transparent',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${allSel ? '#10b981' : someSel ? '#10b981' : 'rgba(255,255,255,0.2)'}`, background: allSel ? '#10b981' : someSel ? 'rgba(16,185,129,0.3)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 {(allSel || someSel) && <Check size={10} color="white" />}
               </div>
-              {isSapi ? <Beef size={15} style={{ color: '#fb923c', flexShrink: 0 }} /> : <PawPrint size={15} style={{ color: '#a78bfa', flexShrink: 0 }} />}
+              {/* Icon hewan */}
+              {isSapi
+                ? <Beef size={15} style={{ color: '#fb923c', flexShrink: 0 }} />
+                : <PawPrint size={15} style={{ color: '#a78bfa', flexShrink: 0 }} />}
               <span style={{ fontSize: 13.5, fontWeight: 700, color: 'rgba(255,255,255,0.88)', flex: 1 }}>
                 {h?.kode_resi ?? 'Tidak dikelompokkan'}
               </span>
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{group.items.length} orang</span>
-              {/* Quick action buttons untuk group */}
-              <div style={{ display: 'flex', gap: 6 }} onClick={(e) => e.stopPropagation()}>
-                {(['SEDANG_DIANTAR', 'SUDAH_DIANTAR', 'GAGAL_DIANTAR'] as StatusAntar[]).map((s) => {
-                  const cfg = STATUS_ANTAR_CONFIG[s]
-                  return (
-                    <button key={s} title={cfg.label}
-                      onClick={() => quickAction(group.items.map((i) => i.id), s)}
-                      style={{
-                        padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600,
-                        cursor: 'pointer', border: `1px solid ${cfg.border}`,
-                        background: cfg.bg, color: cfg.color, display: 'flex', alignItems: 'center', gap: 4,
-                      }}>
-                      {s === 'SEDANG_DIANTAR' && <Truck size={10} />}
-                      {s === 'SUDAH_DIANTAR' && <CheckCircle2 size={10} />}
-                      {s === 'GAGAL_DIANTAR' && <AlertTriangle size={10} />}
-                      <span className="hidden sm:inline">{s === 'SEDANG_DIANTAR' ? 'Sedang' : s === 'SUDAH_DIANTAR' ? 'Selesai' : 'Gagal'}</span>
-                    </button>
-                  )
-                })}
-              </div>
-              {isCollapsed ? <ChevronDown size={14} style={{ color: 'rgba(255,255,255,0.3)', flexShrink: 0 }} /> : <ChevronUp size={14} style={{ color: 'rgba(255,255,255,0.3)', flexShrink: 0 }} />}
+              <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.35)' }}>({group.items.length} orang)</span>
+              {/* Dot status indicators — tampil saat collapsed */}
+              {isCollapsed && (
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {group.items.map((j) => {
+                    const col = STATUS_ANTAR_CONFIG[j.status_antar].dot
+                    return <div key={j.id} style={{ width: 8, height: 8, borderRadius: '50%', background: col, flexShrink: 0 }} />
+                  })}
+                </div>
+              )}
+              {isCollapsed
+                ? <ChevronDown size={14} style={{ color: 'rgba(255,255,255,0.3)', flexShrink: 0 }} />
+                : <ChevronUp   size={14} style={{ color: 'rgba(255,255,255,0.3)', flexShrink: 0 }} />}
             </div>
 
-            {/* Rows */}
+            {/* Jamaah rows */}
             {!isCollapsed && group.items.map((j, idx) => {
-              const cfg = STATUS_ANTAR_CONFIG[j.status_antar]
+              const cfg   = STATUS_ANTAR_CONFIG[j.status_antar]
               const isSel = selected.has(j.id)
               return (
                 <div key={j.id}
-                  style={{ padding: '10px 16px', borderBottom: idx < group.items.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
-                    background: isSel ? 'rgba(16,185,129,0.05)' : 'transparent', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  style={{ padding: '12px 16px', borderBottom: idx < group.items.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none', background: isSel ? 'rgba(16,185,129,0.05)' : 'transparent', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  {/* Checkbox */}
                   <div onClick={() => toggleSelect(j.id)}
-                    style={{ width: 16, height: 16, borderRadius: 4, border: `2px solid ${isSel ? '#10b981' : 'rgba(255,255,255,0.15)'}`,
-                      background: isSel ? '#10b981' : 'transparent', cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+                    style={{ width: 16, height: 16, borderRadius: 4, border: `2px solid ${isSel ? '#10b981' : 'rgba(255,255,255,0.15)'}`, background: isSel ? '#10b981' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 3 }}>
                     {isSel && <Check size={9} color="white" />}
                   </div>
+                  {/* Info */}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>{j.nama_lengkap}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.88)' }}>{j.nama_lengkap}</span>
                       {j.atas_nama && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>a.n. {j.atas_nama}</span>}
-                      <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 10.5, fontWeight: 700,
-                        color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}` }}>
-                        {cfg.label}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', gap: 12, marginTop: 4, flexWrap: 'wrap' }}>
-                      {j.kode_jamaah && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', gap: 4 }}><User size={10} />{j.kode_jamaah}</span>}
-                      {j.alamat_lengkap && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', gap: 4 }}><MapPin size={10} />{j.alamat_lengkap}</span>}
-                      {j.diantar_oleh && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', gap: 4 }}><UserCheck size={10} />{j.diantar_oleh}</span>}
-                      {j.waktu_antar && j.status_antar !== 'BELUM_DIANTAR' && (
-                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <Clock size={10} />{new Date(j.waktu_antar).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      {j.kode_jamaah && (
+                        <span style={{ fontSize: 10.5, padding: '1px 7px', borderRadius: 12, background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.45)', fontWeight: 600 }}>
+                          {j.kode_jamaah}
                         </span>
                       )}
                     </div>
-                    {/* Keterangan gagal */}
+                    <div style={{ display: 'flex', gap: 12, marginTop: 5, flexWrap: 'wrap' }}>
+                      {j.alamat_lengkap && (
+                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <MapPin size={10} /> {j.alamat_lengkap}
+                        </span>
+                      )}
+                      {j.diantar_oleh && (
+                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <UserCheck size={10} /> {j.diantar_oleh}
+                        </span>
+                      )}
+                      {j.waktu_antar && j.status_antar !== 'BELUM_DIANTAR' && (
+                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Clock size={10} />
+                          {new Date(j.waktu_antar).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      )}
+                    </div>
                     {j.status_antar === 'GAGAL_DIANTAR' && (
-                      <div style={{ marginTop: 6, padding: '6px 10px', borderRadius: 8,
-                        background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
-                        display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ marginTop: 6, padding: '5px 10px', borderRadius: 8, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', gap: 6 }}>
                         <AlertTriangle size={11} style={{ color: '#f87171', flexShrink: 0 }} />
                         <span style={{ fontSize: 11, color: '#fca5a5' }}>Pengurban tidak ada / tidak bisa menerima — dikembalikan ke masjid</span>
                       </div>
                     )}
                   </div>
-                  {/* Row quick action */}
-                  <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                    {(['SEDANG_DIANTAR', 'SUDAH_DIANTAR', 'GAGAL_DIANTAR', 'BELUM_DIANTAR'] as StatusAntar[])
-                      .filter((s) => s !== j.status_antar)
-                      .map((s) => {
-                        const c = STATUS_ANTAR_CONFIG[s]
-                        return (
-                          <button key={s} title={c.label} onClick={() => quickAction([j.id], s)}
-                            style={{ width: 28, height: 28, borderRadius: 8, cursor: 'pointer',
-                              border: `1px solid ${c.border}`, background: c.bg,
-                              display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            {s === 'SEDANG_DIANTAR' && <Truck size={12} style={{ color: c.color }} />}
-                            {s === 'SUDAH_DIANTAR' && <CheckCircle2 size={12} style={{ color: c.color }} />}
-                            {s === 'GAGAL_DIANTAR' && <AlertTriangle size={12} style={{ color: c.color }} />}
-                            {s === 'BELUM_DIANTAR' && <X size={12} style={{ color: c.color }} />}
-                          </button>
-                        )
-                      })}
-                  </div>
+                  {/* Tombol status — klik buka modal */}
+                  <button onClick={() => openModal([j.id], j.status_antar)}
+                    style={{ flexShrink: 0, padding: '5px 12px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: `1px solid ${cfg.border}`, background: cfg.bg, color: cfg.color, whiteSpace: 'nowrap' }}>
+                    {cfg.label}
+                  </button>
                 </div>
               )
             })}
@@ -414,80 +426,73 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
       })}
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 20 }}>
-          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
-            style={{ padding: '7px 14px', borderRadius: 9, fontSize: 12.5, fontWeight: 600, cursor: page === 1 ? 'not-allowed' : 'pointer', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)', opacity: page === 1 ? 0.4 : 1 }}>
-            ←
-          </button>
-          <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', padding: '0 8px' }}>
-            {page} / {totalPages}
-          </span>
-          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-            style={{ padding: '7px 14px', borderRadius: 9, fontSize: 12.5, fontWeight: 600, cursor: page === totalPages ? 'not-allowed' : 'pointer', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)', opacity: page === totalPages ? 0.4 : 1 }}>
-            →
-          </button>
+      <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+        <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.3)' }}>
+          Menampilkan {Math.min((page - 1) * (perPage || groups.length) + 1, groups.length)}–{Math.min(page * (perPage || groups.length), groups.length)} dari {groups.length} kelompok
+        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Tampilkan:</span>
+          {[5, 10, 20, 0].map((n) => (
+            <button key={n} onClick={() => { setPerPage(n); setPage(1) }}
+              style={{ padding: '4px 10px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: perPage === n ? '1px solid #10b981' : '1px solid rgba(255,255,255,0.1)', background: perPage === n ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)', color: perPage === n ? '#34d399' : 'rgba(255,255,255,0.4)' }}>
+              {n === 0 ? 'Semua' : n}
+            </button>
+          ))}
+          {totalPages > 1 && (
+            <>
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
+                style={{ padding: '4px 10px', borderRadius: 8, fontSize: 12, cursor: page === 1 ? 'not-allowed' : 'pointer', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.4)', opacity: page === 1 ? 0.4 : 1 }}>←</button>
+              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{page}/{totalPages}</span>
+              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                style={{ padding: '4px 10px', borderRadius: 8, fontSize: 12, cursor: page === totalPages ? 'not-allowed' : 'pointer', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.4)', opacity: page === totalPages ? 0.4 : 1 }}>→</button>
+            </>
+          )}
         </div>
-      )}
+      </div>
 
-      {/* ── MODAL: Konfirmasi Status + Pilih Kurir ─────────────────────────── */}
+      {/* ══ MODAL: Update Status Pengantaran ════════════════════════════════ */}
       {modal && (
         <ModalPortal>
           <div onClick={(e) => { if (e.target === e.currentTarget) setModal(null) }} style={overlayStyle}>
-            <div style={{
-              margin: 'auto', width: '100%', maxWidth: 440,
-              background: 'rgba(7,18,11,0.97)', backdropFilter: 'blur(36px)',
-              border: '1px solid rgba(255,255,255,0.11)', borderTop: '1px solid rgba(255,255,255,0.2)',
-              borderRadius: 24, boxShadow: '0 32px 80px rgba(0,0,0,0.52)',
-            }}>
-              {/* Modal header */}
+            <div style={{ margin: 'auto', width: '100%', maxWidth: 420, background: 'rgba(7,18,11,0.97)', backdropFilter: 'blur(36px)', border: '1px solid rgba(255,255,255,0.11)', borderTop: '1px solid rgba(255,255,255,0.2)', borderRadius: 24, boxShadow: '0 32px 80px rgba(0,0,0,0.52)' }}>
+              {/* Header */}
               <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <h2 style={{ fontSize: 15, fontWeight: 800, color: 'rgba(255,255,255,0.95)', margin: 0 }}>
-                    {STATUS_ANTAR_CONFIG[modal.statusAntar].label}
-                  </h2>
-                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', margin: '4px 0 0' }}>
-                    {modal.ids.length} jamaah akan diupdate
-                  </p>
+                  <h2 style={{ fontSize: 15, fontWeight: 800, color: 'rgba(255,255,255,0.95)', margin: 0 }}>Update Status Pengantaran</h2>
+                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', margin: '4px 0 0' }}>{modal.ids.length} jamaah akan diupdate</p>
                 </div>
-                <button onClick={() => setModal(null)}
-                  style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.4)' }}>
+                <button onClick={() => setModal(null)} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.4)' }}>
                   <X size={14} />
                 </button>
               </div>
 
               <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {/* Badge status */}
-                {(() => {
-                  const cfg = STATUS_ANTAR_CONFIG[modal.statusAntar]
-                  return (
-                    <div style={{ padding: '10px 14px', borderRadius: 12, background: cfg.bg, border: `1px solid ${cfg.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {modal.statusAntar === 'GAGAL_DIANTAR' && <AlertTriangle size={14} style={{ color: cfg.color }} />}
-                      {modal.statusAntar === 'SUDAH_DIANTAR' && <CheckCircle2 size={14} style={{ color: cfg.color }} />}
-                      {modal.statusAntar === 'SEDANG_DIANTAR' && <Truck size={14} style={{ color: cfg.color }} />}
-                      <span style={{ fontSize: 13, color: cfg.color, fontWeight: 600 }}>
-                        {modal.statusAntar === 'GAGAL_DIANTAR'
-                          ? 'Pengurban tidak ada / tidak bisa menerima — paket dikembalikan ke masjid'
-                          : modal.statusAntar === 'BELUM_DIANTAR'
-                            ? 'Status akan direset ke Belum Diantar'
-                            : `Status berubah ke ${cfg.label}`}
-                      </span>
-                    </div>
-                  )
-                })()}
+                {/* Status pilihan — radio style */}
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.36)', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: 10 }}>Status Antar</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {STATUS_ORDER.map((s) => {
+                      const cfg    = STATUS_ANTAR_CONFIG[s]
+                      const active = modal.statusAntar === s
+                      return (
+                        <button key={s} onClick={() => setModal({ ...modal, statusAntar: s })}
+                          style={{ padding: '11px 16px', borderRadius: 12, fontSize: 13.5, fontWeight: active ? 700 : 500, cursor: 'pointer', textAlign: 'left', border: active ? `1px solid ${cfg.border}` : '1px solid rgba(255,255,255,0.08)', background: active ? cfg.bg : 'rgba(255,255,255,0.03)', color: active ? cfg.color : 'rgba(255,255,255,0.55)', transition: 'all 0.15s' }}>
+                          {cfg.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
 
-                {/* Pilih kurir — hanya tampil jika bukan BELUM_DIANTAR */}
+                {/* Diantar oleh — dropdown kurir */}
                 {modal.statusAntar !== 'BELUM_DIANTAR' && (
                   <div>
                     <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.36)', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: 8 }}>
-                      Diantar Oleh <span style={{ opacity: 0.5, fontWeight: 400, textTransform: 'none' }}>(opsional)</span>
+                      Diantar Oleh <span style={{ opacity: 0.5, fontWeight: 400, textTransform: 'none' }}>— opsional</span>
                     </label>
-
                     {!modal.showCustom ? (
                       <div style={{ position: 'relative' }}>
-                        <select
-                          value={modal.kurirId}
-                          onChange={(e) => setModal({ ...modal, kurirId: e.target.value })}
+                        <select value={modal.kurirId} onChange={(e) => setModal({ ...modal, kurirId: e.target.value })}
                           style={{ ...G.input, appearance: 'none', paddingRight: 36, cursor: 'pointer' }}>
                           <option value="">— Tidak dipilih —</option>
                           {kurirList.map((k) => (
@@ -497,19 +502,13 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
                         <ChevronDown size={14} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.35)', pointerEvents: 'none' }} />
                       </div>
                     ) : (
-                      <input
-                        type="text"
-                        value={modal.kurirCustom}
+                      <input type="text" value={modal.kurirCustom}
                         onChange={(e) => setModal({ ...modal, kurirCustom: e.target.value })}
                         placeholder="Tulis nama pengantar..."
-                        style={G.input}
-                        autoFocus
-                      />
+                        style={G.input} autoFocus />
                     )}
-
-                    <button
-                      onClick={() => setModal({ ...modal, showCustom: !modal.showCustom, kurirId: '', kurirCustom: '' })}
-                      style={{ marginTop: 8, fontSize: 11.5, color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
+                    <button onClick={() => setModal({ ...modal, showCustom: !modal.showCustom, kurirId: '', kurirCustom: '' })}
+                      style={{ marginTop: 7, fontSize: 11.5, color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
                       {modal.showCustom ? '← Pilih dari daftar kurir' : '+ Tulis nama sendiri'}
                     </button>
                   </div>
@@ -518,23 +517,81 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
 
               {/* Footer */}
               <div style={{ padding: '16px 24px', borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', gap: 10 }}>
-                <button onClick={() => setModal(null)}
-                  style={{ flex: 1, padding: 11, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, color: 'rgba(255,255,255,0.55)', fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}>
+                <button onClick={() => setModal(null)} style={{ flex: 1, padding: 11, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, color: 'rgba(255,255,255,0.55)', fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}>
                   Batal
                 </button>
                 <button onClick={applyStatus} disabled={loading}
-                  style={{
-                    flex: 2, padding: 11, borderRadius: 12, color: 'white',
-                    fontSize: 13.5, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
-                    border: 'none', opacity: loading ? 0.6 : 1,
-                    background: modal.statusAntar === 'GAGAL_DIANTAR'
-                      ? 'linear-gradient(135deg,#dc2626,#ef4444)'
-                      : modal.statusAntar === 'SUDAH_DIANTAR'
-                        ? 'linear-gradient(135deg,#059669,#10b981)'
-                        : 'linear-gradient(135deg,#d97706,#f59e0b)',
-                  }}>
-                  {loading ? 'Menyimpan…' : `Konfirmasi ${STATUS_ANTAR_CONFIG[modal.statusAntar].label}`}
+                  style={{ flex: 2, padding: 11, borderRadius: 12, color: 'white', fontSize: 13.5, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', border: 'none', opacity: loading ? 0.6 : 1, background: 'linear-gradient(135deg,#10b981,#059669)' }}>
+                  {loading ? 'Menyimpan…' : 'Simpan'}
                 </button>
+              </div>
+            </div>
+          </div>
+        </ModalPortal>
+      )}
+
+      {/* ══ MODAL: Kelola Kurir ══════════════════════════════════════════════ */}
+      {showKurir && (
+        <ModalPortal>
+          <div onClick={(e) => { if (e.target === e.currentTarget) { setShowKurir(false); setEditKurir(null); setKurirNama(''); setKurirHp('') } }} style={overlayStyle}>
+            <div style={{ margin: 'auto', width: '100%', maxWidth: 460, background: 'rgba(7,18,11,0.97)', backdropFilter: 'blur(36px)', border: '1px solid rgba(255,255,255,0.11)', borderTop: '1px solid rgba(255,255,255,0.2)', borderRadius: 24, boxShadow: '0 32px 80px rgba(0,0,0,0.52)' }}>
+              {/* Header */}
+              <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <h2 style={{ fontSize: 15, fontWeight: 800, color: 'rgba(255,255,255,0.95)', margin: 0 }}>Kelola Kurir / Pengantar</h2>
+                <button onClick={() => { setShowKurir(false); setEditKurir(null); setKurirNama(''); setKurirHp('') }}
+                  style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.4)' }}>
+                  <X size={14} />
+                </button>
+              </div>
+
+              {/* Form tambah/edit */}
+              <div style={{ padding: '18px 24px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', margin: 0 }}>
+                  {editKurir ? `Edit: ${editKurir.nama}` : 'Tambah kurir baru'}
+                </p>
+                <input value={kurirNama} onChange={(e) => setKurirNama(e.target.value)}
+                  placeholder="Nama lengkap pengantar" style={G.input}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSaveKurir()} />
+                <input value={kurirHp} onChange={(e) => setKurirHp(e.target.value)}
+                  placeholder="Nomor HP (opsional)" style={G.input}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSaveKurir()} />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {editKurir && (
+                    <button onClick={() => { setEditKurir(null); setKurirNama(''); setKurirHp('') }}
+                      style={{ flex: 1, padding: '9px 0', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: 'rgba(255,255,255,0.45)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                      Batal Edit
+                    </button>
+                  )}
+                  <button onClick={handleSaveKurir} disabled={savingKurir}
+                    style={{ flex: 2, padding: '9px 0', background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none', borderRadius: 10, color: 'white', fontSize: 13, fontWeight: 700, cursor: savingKurir ? 'not-allowed' : 'pointer', opacity: savingKurir ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <Plus size={13} /> {savingKurir ? 'Menyimpan...' : editKurir ? 'Simpan Perubahan' : 'Tambahkan'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Daftar kurir */}
+              <div style={{ maxHeight: 280, overflowY: 'auto' }}>
+                {kurirList.length === 0 && (
+                  <div style={{ padding: '32px 0', textAlign: 'center' }}>
+                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.28)', margin: 0 }}>Belum ada kurir — tambahkan di atas</p>
+                  </div>
+                )}
+                {kurirList.map((k, idx) => (
+                  <div key={k.id} style={{ padding: '11px 24px', borderBottom: idx < kurirList.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none', display: 'flex', alignItems: 'center', gap: 10, background: editKurir?.id === k.id ? 'rgba(16,185,129,0.05)' : 'transparent' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.85)', margin: 0 }}>{k.nama}</p>
+                      {k.no_hp && <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.35)', margin: '2px 0 0' }}>{k.no_hp}</p>}
+                    </div>
+                    <button onClick={() => openKurirForm(k)}
+                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, width: 30, height: 30, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.45)' }}>
+                      <Pencil size={12} />
+                    </button>
+                    <button onClick={() => handleDeleteKurir(k.id, k.nama)} disabled={deletingKurir === k.id}
+                      style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: 8, width: 30, height: 30, cursor: deletingKurir === k.id ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fca5a5', opacity: deletingKurir === k.id ? 0.5 : 1 }}>
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
