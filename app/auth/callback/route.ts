@@ -3,10 +3,10 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
-  const code = searchParams.get('code')
-  const token_hash = searchParams.get('token_hash')
-  const type = searchParams.get('type')
-  const errorParam = searchParams.get('error')
+  const code        = searchParams.get('code')
+  const token_hash  = searchParams.get('token_hash')
+  const type        = searchParams.get('type')
+  const errorParam  = searchParams.get('error')
 
   if (errorParam) {
     return NextResponse.redirect(`${origin}/login?error=auth_failed`)
@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   const supabase = await createClient()
 
   if (token_hash && type) {
-    // Email confirmation via token_hash (dari template email kustom)
+    // Email confirmation / magic link / password recovery (token_hash based)
     const { error: verifyError } = await supabase.auth.verifyOtp({
       token_hash,
       type: type as any,
@@ -23,6 +23,11 @@ export async function GET(request: Request) {
     if (verifyError) {
       console.error('verifyOtp error:', verifyError.message)
       return NextResponse.redirect(`${origin}/login?error=verify_failed`)
+    }
+
+    // Recovery flow → halaman reset password
+    if (type === 'recovery') {
+      return NextResponse.redirect(`${origin}/reset-password`)
     }
   } else if (code) {
     // PKCE code exchange (OAuth / fallback)
@@ -51,7 +56,7 @@ export async function GET(request: Request) {
 
   if (existingProfile) {
     if (existingProfile.id_workspace) {
-      const ws = existingProfile.workspaces as any
+      const ws   = existingProfile.workspaces as any
       const slug = ws?.slug ?? 'default'
       return NextResponse.redirect(`${origin}/w/${slug}/analitik`)
     }
@@ -59,15 +64,15 @@ export async function GET(request: Request) {
   }
 
   // Profile belum ada — buat baru berdasarkan metadata
-  const meta = user.user_metadata ?? {}
+  const meta       = user.user_metadata ?? {}
   const namaLengkap = meta.nama_lengkap || user.email || 'Pengguna Baru'
 
   if (meta.is_workspace_creator) {
     const { data: workspace, error: wsError } = await serviceClient
       .from('workspaces')
       .insert({
-        nama: meta.pending_workspace_name ?? 'Workspace Baru',
-        slug: meta.pending_workspace_slug ?? `ws-${Date.now()}`,
+        nama:       meta.pending_workspace_name ?? 'Workspace Baru',
+        slug:       meta.pending_workspace_slug ?? `ws-${Date.now()}`,
         created_by: user.id,
       })
       .select('id, slug')
@@ -79,11 +84,11 @@ export async function GET(request: Request) {
     }
 
     await serviceClient.from('profiles').insert({
-      id: user.id,
+      id:           user.id,
       id_workspace: workspace.id,
       nama_lengkap: namaLengkap,
-      role: 'SUPER_ADMIN',
-      email: user.email,
+      role:         'SUPER_ADMIN',
+      email:        user.email,
     })
 
     return NextResponse.redirect(`${origin}/w/${workspace.slug}/analitik`)
@@ -91,11 +96,11 @@ export async function GET(request: Request) {
 
   // User biasa — buat profile tanpa workspace
   await serviceClient.from('profiles').insert({
-    id: user.id,
+    id:           user.id,
     id_workspace: null,
     nama_lengkap: namaLengkap,
-    role: 'PETUGAS_LAPANGAN',
-    email: user.email,
+    role:         'PETUGAS_LAPANGAN',
+    email:        user.email,
   })
 
   return NextResponse.redirect(`${origin}/waiting`)
