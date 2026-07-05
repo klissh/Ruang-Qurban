@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { STATUS_CONFIG, STATUS_ORDER, STATUS_ANTAR_CONFIG } from '@/types'
 import type { StatusHewan, JenisHewan, StatusAntar } from '@/types'
@@ -127,7 +127,7 @@ const G = {
   } as React.CSSProperties,
 }
 
-export default function TrackingPage() {
+function TrackingPageContent() {
   const searchParams = useSearchParams()
   const [kode, setKode] = useState(searchParams.get('kode') ?? '')
   const [loading, setLoading] = useState(false)
@@ -575,5 +575,12 @@ export default function TrackingPage() {
         )}
       </div>
     </div>
+  )
+}
+export default function TrackingPage() {
+  return (
+    <Suspense fallback={null}>
+      <TrackingPageContent />
+    </Suspense>
   )
 }
