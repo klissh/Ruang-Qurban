@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import { UserPlus, Trash2, ShieldCheck, X, Mail, Pencil, ChevronDown, AlertTriangle, ArrowRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
-interface AnggotaRow {
+export interface AnggotaRow {
   id: string; nama_lengkap: string; role: string
   email: string | null; created_at: string
   workspace_role_id: string | null
