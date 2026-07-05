@@ -108,7 +108,7 @@ export async function notifikasiJamaahHewan(params: {
 }) {
   const { jamaahList, kodeResi, kodePublik, status, namaWorkspace, baseUrl } = params
 
-  const results = []
+  const results: Array<{ jamaah: string; success: boolean; [key: string]: unknown }> = []
 
   for (const jamaah of jamaahList) {
     if (!jamaah.no_hp) continue
