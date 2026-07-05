@@ -80,13 +80,13 @@ function RadioDot({ active, color }: { active: boolean; color: string }) {
   }
 
   async function handleDeleteKurir(id: string, nama: string) {
-    if (!confirm(\`Hapus kurir "${nama}"?\`)) return
+    if (!confirm(`Hapus kurir "${nama}"?`)) return
     setDeletingKurir(id)
     try {
-      const res = await fetch(\`/api/kurir?id=\${id}\`, { method: 'DELETE' })
+      const res = await fetch(`/api/kurir?id=${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error()
       setKurirList((p) => p.filter((k) => k.id !== id))
-      toast.success(\`\${nama} dihapus\`)
+      toast.success(`${nama} dihapus`)
     } catch { toast.error('Gagal menghapus kurir') }
     finally { setDeletingKurir(null) }
   }
