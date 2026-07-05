@@ -1,29 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 
-// Pastikan route ini selalu dieksekusi fresh (tidak di-cache), karena
-// status pengantaran & status hewan berubah real-time dan halaman publik
-// bergantung pada auto-refresh polling tiap 30 detik
+// Route ini selalu dieksekusi fresh — tracking publik bergantung pada polling 30 detik
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-export async function GET(request: NextRequest) {
-  const kode = request.nextUrl.searchParams.get('kode')?.trim().toUpperCase()
+// Karakter valid untuk kode_publik (format: XXXX-XXXX, 9 karakter termasuk dash)
+const KODE_REGEX = /^[A-Z0-9]{4}-[A-Z0-9]{4}$/
 
-  if (!kode || kode.length < 4) {
+export async function GET(request: NextRequest) {
+  const raw = request.nextUrl.searchParams.get('kode')?.trim().toUpperCase() ?? ''
+
+  // Validasi format ketat — tolak input yang tidak sesuai format kode_publik
+  if (!KODE_REGEX.test(raw)) {
     return NextResponse.json(
-      { error: 'Kode tidak valid' },
+      { error: 'Format kode tidak valid. Gunakan format: XXXX-XXXX' },
       { status: 400 }
     )
   }
 
+  // Service role digunakan di sini secara intentional karena endpoint ini publik
+  // (tidak ada sesi user) sementara tabel jamaah, workspaces, dan periode_qurban
+  // belum memiliki public read RLS policy.
+  // TODO: ganti ke anon client setelah migration public_tracking_policies ditambahkan.
   const supabase = createServiceClient()
 
   // Cari hewan berdasarkan kode_publik (bukan kode_resi, untuk keamanan)
   const { data: hewan, error } = await supabase
     .from('hewan')
     .select('id, kode_resi, jenis_hewan, status, url_dokumentasi, id_workspace')
-    .eq('kode_publik', kode)
+    .eq('kode_publik', raw)
     .is('deleted_at', null)
     .single()
 
@@ -34,7 +40,8 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  // Ambil daftar jamaah — tampilkan nama tanpa sensor untuk transparansi
+  // Ambil daftar jamaah — hanya field yang diperlukan untuk display publik
+  // (no_hp dan alamat_lengkap sengaja tidak diambil)
   const { data: jamaah } = await supabase
     .from('jamaah')
     .select('id, nama_lengkap, atas_nama, kode_jamaah, status_antar, diantar_oleh')
