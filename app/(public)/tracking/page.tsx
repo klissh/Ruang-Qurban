@@ -636,12 +636,12 @@ function TrackingPageContent() {
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={{ fontSize: 13.5, fontWeight: 600, color: 'rgba(255,255,255,0.88)', margin: 0 }}>{j.nama_lengkap}</p>
                           {j.atas_nama && <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.38)', margin: '3px 0 0' }}>({j.atas_nama})</p>}
-                          {j.status_antar === 'SEDANG_DIANTAR' && j.diantar_oleh && (
+                          {result.status === 'SELESAI' && j.status_antar === 'SEDANG_DIANTAR' && j.diantar_oleh && (
                             <p style={{ fontSize: 11, color: STATUS_ANTAR_CONFIG.SEDANG_DIANTAR.color, fontWeight: 600, margin: '3px 0 0', display: 'flex', alignItems: 'center', gap: 4 }}>
                               <Truck size={10} /> Diantar oleh: {j.diantar_oleh}
                             </p>
                           )}
-                          {j.status_antar === 'GAGAL_DIANTAR' && (
+                          {result.status === 'SELESAI' && j.status_antar === 'GAGAL_DIANTAR' && (
                             <div style={{ marginTop: 5, display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 6, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.22)' }}>
                               <AlertCircle size={9} style={{ color: '#f87171', flexShrink: 0 }} />
                               <span style={{ fontSize: 10.5, color: '#fca5a5', fontWeight: 600 }}>
@@ -681,3 +681,4 @@ export default function TrackingPage() {
     </Suspense>
   )
 }
+
