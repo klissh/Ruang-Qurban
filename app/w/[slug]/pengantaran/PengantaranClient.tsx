@@ -131,7 +131,26 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
   }
 
   function openModal(ids: string[], currentStatus: StatusAntar) {
-    setModal({ ids, statusAntar: currentStatus, kurirId: '', kurirCustom: '', showCustom: false })
+    // Pre-fill kurir dari diantar_oleh existing — kalau semua yang dipilih punya kurir yang sama
+    const selectedItems = list.filter((j) => ids.includes(j.id))
+    const uniqueDiantar = [...new Set(selectedItems.map((j) => j.diantar_oleh).filter((v): v is string => !!v))]
+
+    let kurirId = ''
+    let kurirCustom = ''
+    let showCustom = false
+
+    if (uniqueDiantar.length === 1) {
+      const nama = uniqueDiantar[0]
+      const match = kurirList.find((k) => k.nama === nama)
+      if (match) {
+        kurirId = match.id          // cocok dengan daftar kurir → pilih dari dropdown
+      } else {
+        kurirCustom = nama           // nama custom / kurir lama → tampilkan di input teks
+        showCustom = true
+      }
+    }
+
+    setModal({ ids, statusAntar: currentStatus, kurirId, kurirCustom, showCustom })
   }
 
   function resolveDiantarOleh(m: NonNullable<typeof modal>): string {
