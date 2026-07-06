@@ -50,7 +50,7 @@ function ModalPortal({ children }: { children: React.ReactNode }) {
 
 const STATUS_ORDER: StatusAntar[] = ['BELUM_DIANTAR', 'SEDANG_DIANTAR', 'GAGAL_DIANTAR', 'SUDAH_DIANTAR']
 
-const KETERANGAN_OPTS: Array<{ value: string; Icon: React.ElementType }> = [
+const KETERANGAN_OPTS = [
   { value: 'Tidak ada orang / ditelpon tidak diangkat', Icon: PhoneOff  },
   { value: 'Alamat belum ketemu',                       Icon: MapPin    },
   { value: 'Kendala Kendaraan Kurir',                   Icon: Truck     },
@@ -82,8 +82,6 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
     ids: string[]
     statusAntar: StatusAntar
     kurirId: string
-    kurirCustom: string
-    showCustom: boolean
     keterangan: string
     keteranganOpen: boolean
   } | null>(null)
@@ -146,31 +144,20 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
     const uniqueDiantar = [...new Set(selectedItems.map((j) => j.diantar_oleh).filter((v): v is string => !!v))]
 
     let kurirId = ''
-    let kurirCustom = ''
-    let showCustom = false
-
     if (uniqueDiantar.length === 1) {
-      const nama = uniqueDiantar[0]
-      const match = kurirList.find((k) => k.nama === nama)
-      if (match) {
-        kurirId = match.id
-      } else {
-        kurirCustom = nama
-        showCustom = true
-      }
+      const match = kurirList.find((k) => k.nama === uniqueDiantar[0])
+      if (match) kurirId = match.id
     }
 
     // Pre-fill keterangan_gagal jika semua yang dipilih punya keterangan yang sama
     const uniqueKet = [...new Set(selectedItems.map((j) => j.keterangan_gagal).filter((v): v is string => !!v))]
     const keterangan = uniqueKet.length === 1 ? uniqueKet[0] : ''
 
-    setModal({ ids, statusAntar: currentStatus, kurirId, kurirCustom, showCustom, keterangan, keteranganOpen: false })
+    setModal({ ids, statusAntar: currentStatus, kurirId, keterangan, keteranganOpen: false })
   }
 
   function resolveDiantarOleh(m: NonNullable<typeof modal>): string {
-    if (m.showCustom) return m.kurirCustom.trim()
-    if (m.kurirId) return kurirList.find((k) => k.id === m.kurirId)?.nama ?? ''
-    return ''
+    return kurirList.find((k) => k.id === m.kurirId)?.nama ?? ''
   }
 
   async function applyStatus() {
@@ -523,40 +510,45 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
                       const cfg    = STATUS_ANTAR_CONFIG[s]
                       const active = modal.statusAntar === s
                       return (
-                        <button key={s} onClick={() => setModal({ ...modal, statusAntar: s, keterangan: s !== 'GAGAL_DIANTAR' ? '' : modal.keterangan, keteranganOpen: false })}
-                          style={{ padding: '11px 16px', borderRadius: 12, fontSize: 13.5, fontWeight: active ? 700 : 500, cursor: 'pointer', textAlign: 'left', border: active ? `1px solid ${cfg.border}` : '1px solid rgba(255,255,255,0.08)', background: active ? cfg.bg : 'rgba(255,255,255,0.03)', color: active ? cfg.color : 'rgba(255,255,255,0.55)', transition: 'all 0.15s' }}>
-                          {cfg.label}
+                        <button key={s}
+                          onClick={() => setModal({ ...modal, statusAntar: s, keterangan: s !== 'GAGAL_DIANTAR' ? '' : modal.keterangan, keteranganOpen: false })}
+                          style={{
+                            padding: '11px 14px', borderRadius: 11, cursor: 'pointer', textAlign: 'left',
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            border: active ? `1px solid ${cfg.border}` : '1px solid rgba(255,255,255,0.07)',
+                            background: active ? cfg.bg : 'rgba(255,255,255,0.02)',
+                            transition: 'all 0.12s',
+                          }}>
+                          <span style={{
+                            width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
+                            background: active ? cfg.dot : 'rgba(255,255,255,0.18)',
+                            boxShadow: active ? `0 0 6px ${cfg.dot}80` : 'none',
+                            transition: 'all 0.12s',
+                          }} />
+                          <span style={{ flex: 1, fontSize: 13.5, fontWeight: active ? 700 : 400, color: active ? cfg.color : 'rgba(255,255,255,0.45)' }}>
+                            {cfg.label}
+                          </span>
+                          {active && <Check size={13} style={{ flexShrink: 0, color: cfg.color }} />}
                         </button>
                       )
                     })}
                   </div>
                 </div>
 
-                {/* Diantar oleh — dropdown kurir */}
+                {/* Diantar oleh — dropdown kurir saja */}
                 {modal.statusAntar !== 'BELUM_DIANTAR' && (
                   <div>
                     <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.36)', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: 8 }}>
                       Diantar Oleh <span style={{ opacity: 0.5, fontWeight: 400, textTransform: 'none' }}>— opsional</span>
                     </label>
-                    {!modal.showCustom ? (
-                      <CustomSelect
-                        value={modal.kurirId}
-                        onChange={(v) => setModal({ ...modal, kurirId: v })}
-                        options={[
-                          { value: '', label: '— Tidak dipilih —' },
-                          ...kurirList.map((k) => ({ value: k.id, label: k.nama + (k.no_hp ? ` (${k.no_hp})` : '') })),
-                        ]}
-                      />
-                    ) : (
-                      <input type="text" value={modal.kurirCustom}
-                        onChange={(e) => setModal({ ...modal, kurirCustom: e.target.value })}
-                        placeholder="Tulis nama pengantar..."
-                        style={G.input} autoFocus />
-                    )}
-                    <button onClick={() => setModal({ ...modal, showCustom: !modal.showCustom, kurirId: '', kurirCustom: '' })}
-                      style={{ marginTop: 7, fontSize: 11.5, color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
-                      {modal.showCustom ? '← Pilih dari daftar kurir' : '+ Tulis nama sendiri'}
-                    </button>
+                    <CustomSelect
+                      value={modal.kurirId}
+                      onChange={(v) => setModal({ ...modal, kurirId: v })}
+                      options={[
+                        { value: '', label: '— Tidak dipilih —' },
+                        ...kurirList.map((k) => ({ value: k.id, label: k.nama + (k.no_hp ? ` (${k.no_hp})` : '') })),
+                      ]}
+                    />
                   </div>
                 )}
               </div>
