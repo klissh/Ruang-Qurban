@@ -70,6 +70,22 @@ export async function PATCH(request: NextRequest) {
     status_baru,
   })
 
+  // Kalau status dimundurkan sehingga tidak lagi SELESAI, reset data pengantaran
+  // jamaah di hewan ini — supaya info kurir/gagal-antar lama tidak "hidup lagi"
+  // saat statusnya nanti dimajukan ke SELESAI lagi.
+  if (status_baru !== 'SELESAI') {
+    await supabase
+      .from('jamaah')
+      .update({
+        status_antar: 'BELUM_DIANTAR',
+        diantar_oleh: null,
+        waktu_antar: null,
+        keterangan_gagal: null,
+      })
+      .eq('id_hewan', id_hewan)
+      .is('deleted_at', null)
+  }
+
   // Kirim notifikasi WhatsApp jika status SEDANG_DISEMBELIH atau SELESAI
   if (['SEDANG_DISEMBELIH', 'SELESAI'].includes(status_baru)) {
     const { data: jamaahList } = await supabase
@@ -212,3 +228,4 @@ export async function DELETE(request: NextRequest) {
 
   return NextResponse.json({ success: true, kode_resi: hewan.kode_resi })
 }
+
