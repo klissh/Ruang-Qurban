@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
   // (no_hp dan alamat_lengkap sengaja tidak diambil)
   const { data: jamaah } = await supabase
     .from('jamaah')
-    .select('id, nama_lengkap, atas_nama, kode_jamaah, status_antar, diantar_oleh')
+    .select('id, nama_lengkap, atas_nama, kode_jamaah, status_antar, diantar_oleh, keterangan_gagal')
     .eq('id_hewan', hewan.id)
     .is('deleted_at', null)
     .order('created_at', { ascending: true })
