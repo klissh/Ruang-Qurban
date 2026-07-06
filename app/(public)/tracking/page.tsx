@@ -655,7 +655,7 @@ function TrackingPageContent() {
                             flexShrink: 0, fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20,
                             background: da.bg, color: da.color, border: `1px solid ${da.border}`,
                           }}>
-                            {j.status_antar === 'SUDAH_DIANTAR' ? 'Diterima' : da.label}
+                            {da.label}
                           </span>
                         )}
                       </div>
