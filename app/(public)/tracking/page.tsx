@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { STATUS_CONFIG, STATUS_ORDER, STATUS_ANTAR_CONFIG } from '@/types'
 import type { StatusHewan, JenisHewan, StatusAntar } from '@/types'
-import { Moon, Search, Beef, PawPrint, Check, Video, AlertCircle, Loader2, Truck, Clock, Download, Users, Maximize2 } from 'lucide-react'
+import { Moon, Search, Beef, PawPrint, Check, Video, AlertCircle, Loader2, Truck, Clock, Download, Users, Maximize2, Minimize2 } from 'lucide-react'
 
 interface TrackingData {
   kode_resi: string
@@ -136,7 +136,19 @@ function TrackingPageContent() {
   const [error, setError] = useState('')
   const [activeCode, setActiveCode] = useState('')
   const [savedCodes, setSavedCodes] = useState<string[]>([])
-  const videoIframeRef = useRef<HTMLIFrameElement>(null)
+  // Wrapper (bukan iframe langsung) yang di-fullscreen-kan, supaya tombol
+  // "kecilkan" custom kita ikut tampil di atas video saat fullscreen —
+  // karena elemen fullscreen di browser hanya menampilkan dirinya + turunannya.
+  const videoContainerRef = useRef<HTMLDivElement>(null)
+  const [isVideoFullscreen, setIsVideoFullscreen] = useState(false)
+
+  useEffect(() => {
+    function onFullscreenChange() {
+      setIsVideoFullscreen(document.fullscreenElement === videoContainerRef.current)
+    }
+    document.addEventListener('fullscreenchange', onFullscreenChange)
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange)
+  }, [])
 
   const handleSearch = useCallback(async (searchKode?: string) => {
     const q = (searchKode ?? kode).trim().toUpperCase()
@@ -535,33 +547,52 @@ function TrackingPageContent() {
                   </div>
                   {/* Video: mobile = 3/2 (cukup untuk controls), desktop = 16/9 */}
                   <div
+                    ref={videoContainerRef}
                     className="aspect-[3/2] sm:aspect-video"
-                    style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', background: '#000' }}
+                    style={{ position: 'relative', borderRadius: isVideoFullscreen ? 0 : 10, overflow: 'hidden', background: '#000' }}
                   >
                     <iframe
-                      ref={videoIframeRef}
                       src={embedUrl}
                       style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
                       allow="autoplay; fullscreen"
                       allowFullScreen
                       title="Dokumentasi Penyembelihan"
                     />
-                    {/* Tombol perbesar sendiri — jaga-jaga kalau kontrol bawaan Google Drive
-                        tersembunyi/terpotong di layar sempit (mobile). requestFullscreen ini
-                        tidak bergantung pada UI internal iframe, jadi selalu bisa ditekan. */}
-                    <button
-                      onClick={() => videoIframeRef.current?.requestFullscreen?.()}
-                      aria-label="Perbesar video"
-                      style={{
-                        position: 'absolute', bottom: 8, right: 8,
-                        width: 30, height: 30, borderRadius: 8,
-                        background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.18)',
-                        color: 'rgba(255,255,255,0.85)', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}
-                    >
-                      <Maximize2 size={14} />
-                    </button>
+                    {/* Tombol perbesar — hanya mobile, kontrol bawaan Google Drive bisa
+                        tersembunyi/terpotong di layar sempit. Yang di-fullscreen-kan adalah
+                        div pembungkus (bukan iframe langsung) supaya tombol kecilkan kita
+                        ikut tampil di atas video saat fullscreen aktif. */}
+                    {!isVideoFullscreen && (
+                      <button
+                        onClick={() => videoContainerRef.current?.requestFullscreen?.()}
+                        aria-label="Perbesar video"
+                        className="sm:hidden"
+                        style={{
+                          position: 'absolute', bottom: 8, right: 8,
+                          width: 30, height: 30, borderRadius: 8,
+                          background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.18)',
+                          color: 'rgba(255,255,255,0.85)', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}
+                      >
+                        <Maximize2 size={14} />
+                      </button>
+                    )}
+                    {isVideoFullscreen && (
+                      <button
+                        onClick={() => document.exitFullscreen?.()}
+                        aria-label="Kecilkan video"
+                        style={{
+                          position: 'absolute', top: 12, right: 12, zIndex: 10,
+                          width: 38, height: 38, borderRadius: 10,
+                          background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.22)',
+                          color: 'rgba(255,255,255,0.9)', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}
+                      >
+                        <Minimize2 size={16} />
+                      </button>
+                    )}
                   </div>
                   <p className="sm:hidden" style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.28)', margin: '6px 2px 0' }}>
                     Ketuk video untuk kontrol pemutar, atau tekan ikon perbesar untuk layar penuh
@@ -702,5 +733,6 @@ export default function TrackingPage() {
     </Suspense>
   )
 }
+
 
 
