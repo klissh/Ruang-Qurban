@@ -9,7 +9,7 @@ import type { StatusAntar, JenisHewan, Kurir } from '@/types'
 import {
   Beef, PawPrint, Search, X, Truck, Clock, CheckCircle2,
   ChevronDown, ChevronUp, User, MapPin, Check, AlertTriangle,
-  UserCheck, Info,
+  UserCheck, Info, PhoneOff, CloudRain,
 } from 'lucide-react'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 
@@ -50,6 +50,13 @@ function ModalPortal({ children }: { children: React.ReactNode }) {
 
 const STATUS_ORDER: StatusAntar[] = ['BELUM_DIANTAR', 'SEDANG_DIANTAR', 'GAGAL_DIANTAR', 'SUDAH_DIANTAR']
 
+const KETERANGAN_OPTS: Array<{ value: string; Icon: React.ElementType }> = [
+  { value: 'Tidak ada orang / ditelpon tidak diangkat', Icon: PhoneOff  },
+  { value: 'Alamat belum ketemu',                       Icon: MapPin    },
+  { value: 'Kendala Kendaraan Kurir',                   Icon: Truck     },
+  { value: 'Kondisi Cuaca Buruk',                       Icon: CloudRain },
+]
+
 interface Props {
   jamaahList: JamaahItem[]
   kurirList: Kurir[]
@@ -78,6 +85,7 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
     kurirCustom: string
     showCustom: boolean
     keterangan: string
+    keteranganOpen: boolean
   } | null>(null)
 
   const counts = {
@@ -156,7 +164,7 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
     const uniqueKet = [...new Set(selectedItems.map((j) => j.keterangan_gagal).filter((v): v is string => !!v))]
     const keterangan = uniqueKet.length === 1 ? uniqueKet[0] : ''
 
-    setModal({ ids, statusAntar: currentStatus, kurirId, kurirCustom, showCustom, keterangan })
+    setModal({ ids, statusAntar: currentStatus, kurirId, kurirCustom, showCustom, keterangan, keteranganOpen: false })
   }
 
   function resolveDiantarOleh(m: NonNullable<typeof modal>): string {
@@ -515,7 +523,7 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
                       const cfg    = STATUS_ANTAR_CONFIG[s]
                       const active = modal.statusAntar === s
                       return (
-                        <button key={s} onClick={() => setModal({ ...modal, statusAntar: s, keterangan: s !== 'GAGAL_DIANTAR' ? '' : modal.keterangan })}
+                        <button key={s} onClick={() => setModal({ ...modal, statusAntar: s, keterangan: s !== 'GAGAL_DIANTAR' ? '' : modal.keterangan, keteranganOpen: false })}
                           style={{ padding: '11px 16px', borderRadius: 12, fontSize: 13.5, fontWeight: active ? 700 : 500, cursor: 'pointer', textAlign: 'left', border: active ? `1px solid ${cfg.border}` : '1px solid rgba(255,255,255,0.08)', background: active ? cfg.bg : 'rgba(255,255,255,0.03)', color: active ? cfg.color : 'rgba(255,255,255,0.55)', transition: 'all 0.15s' }}>
                           {cfg.label}
                         </button>
@@ -553,41 +561,67 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
                 )}
               </div>
 
-              {/* Keterangan gagal — hanya muncul saat GAGAL_DIANTAR */}
+              {/* Keterangan gagal — dropdown, hanya muncul saat GAGAL_DIANTAR */}
               {modal.statusAntar === 'GAGAL_DIANTAR' && (
                 <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.36)', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: 10 }}>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.36)', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: 8 }}>
                     Alasan Gagal <span style={{ opacity: 0.5, fontWeight: 400, textTransform: 'none' }}>— opsional</span>
                   </label>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {[
-                      { value: 'Tidak ada orang / ditelpon tidak diangkat', icon: '📵' },
-                      { value: 'Alamat belum ketemu',                        icon: '📍' },
-                      { value: 'Kendala Kendaraan Kurir',                    icon: '🔧' },
-                      { value: 'Kondisi Cuaca Buruk',                        icon: '⛈️' },
-                    ].map(({ value, icon }) => {
-                      const active = modal.keterangan === value
-                      return (
-                        <button key={value}
-                          onClick={() => setModal({ ...modal, keterangan: active ? '' : value })}
-                          style={{
-                            padding: '10px 14px', borderRadius: 11, fontSize: 13, fontWeight: active ? 700 : 500,
-                            cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10,
-                            border: active ? '1px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.08)',
-                            background: active ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.03)',
-                            color: active ? '#fca5a5' : 'rgba(255,255,255,0.55)',
-                            transition: 'all 0.15s',
-                          }}>
-                          <span style={{ fontSize: 16, lineHeight: 1, flexShrink: 0 }}>{icon}</span>
-                          <span>{value}</span>
-                          {active && (
-                            <span style={{ marginLeft: 'auto', width: 18, height: 18, borderRadius: '50%', background: 'rgba(239,68,68,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                              <Check size={10} color="#fca5a5" />
-                            </span>
-                          )}
-                        </button>
-                      )
-                    })}
+                  <div style={{ position: 'relative' }}>
+                    {/* Trigger */}
+                    <button
+                      onClick={() => setModal({ ...modal, keteranganOpen: !modal.keteranganOpen })}
+                      style={{
+                        width: '100%', padding: '11px 14px', borderRadius: 11, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
+                        border: modal.keterangan ? '1px solid rgba(239,68,68,0.4)' : '1px solid rgba(255,255,255,0.09)',
+                        background: modal.keterangan ? 'rgba(239,68,68,0.07)' : 'rgba(255,255,255,0.04)',
+                        transition: 'border-color 0.15s',
+                      }}>
+                      {(() => {
+                        const sel = KETERANGAN_OPTS.find((o) => o.value === modal.keterangan)
+                        return sel ? (
+                          <>
+                            <sel.Icon size={14} style={{ flexShrink: 0, color: '#f87171' }} />
+                            <span style={{ fontSize: 13, fontWeight: 600, color: '#fca5a5', flex: 1 }}>{sel.value}</span>
+                          </>
+                        ) : (
+                          <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', flex: 1 }}>— Pilih alasan —</span>
+                        )
+                      })()}
+                      {modal.keteranganOpen
+                        ? <ChevronUp  size={14} style={{ flexShrink: 0, color: 'rgba(255,255,255,0.3)' }} />
+                        : <ChevronDown size={14} style={{ flexShrink: 0, color: 'rgba(255,255,255,0.3)' }} />}
+                    </button>
+
+                    {/* Options list */}
+                    {modal.keteranganOpen && (
+                      <div style={{
+                        position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 30,
+                        background: 'rgba(5,14,9,0.99)', backdropFilter: 'blur(24px)',
+                        border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12,
+                        overflow: 'hidden', boxShadow: '0 10px 36px rgba(0,0,0,0.65)',
+                      }}>
+                        {KETERANGAN_OPTS.map(({ value, Icon }, idx) => {
+                          const active = modal.keterangan === value
+                          return (
+                            <button key={value}
+                              onClick={() => setModal({ ...modal, keterangan: active ? '' : value, keteranganOpen: false })}
+                              style={{
+                                width: '100%', padding: '12px 14px', cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
+                                background: active ? 'rgba(239,68,68,0.1)' : 'transparent',
+                                borderBottom: idx < KETERANGAN_OPTS.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                                border: 'none',
+                              }}>
+                              <Icon size={14} style={{ flexShrink: 0, color: active ? '#f87171' : 'rgba(255,255,255,0.38)' }} />
+                              <span style={{ fontSize: 13, fontWeight: active ? 700 : 400, color: active ? '#fca5a5' : 'rgba(255,255,255,0.7)', flex: 1 }}>{value}</span>
+                              {active && <Check size={12} style={{ flexShrink: 0, color: '#f87171' }} />}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
