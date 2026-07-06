@@ -42,7 +42,7 @@ function LabelCard({ hewan, jamaah, nomorUrut, lw, lh }: {
         <span className="font-extrabold text-[18px] tracking-[0.5px] font-sans leading-none text-black">
           {jamaah.kode_jamaah ?? hewan.kode_resi}
         </span>
-        <span className="text-[9px] font-bold font-sans uppercase tracking-wider leading-none text-gray-500">
+        <span className="font-extrabold text-[18px] font-sans uppercase tracking-[0.5px] leading-none text-black">
           NO. {nomorUrut}
         </span>
       </div>
@@ -124,7 +124,7 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
       <div style="width:${lw}mm;height:${lh}mm;border:1px solid #1f2937;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;break-inside:avoid;font-family:Arial,Helvetica,sans-serif;background:white">
         <div style="display:flex;align-items:baseline;justify-content:space-between;padding:3px 6px 2px;border-bottom:2px solid #1f2937;flex-shrink:0">
           <span style="font-weight:800;font-size:17px;letter-spacing:0.5px;color:#000;line-height:1">${jamaah.kode_jamaah ?? hewan.kode_resi}</span>
-          <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#6b7280;line-height:1">NO. ${nomorUrut}</span>
+          <span style="font-weight:800;font-size:17px;letter-spacing:0.5px;color:#000;line-height:1;text-transform:uppercase">NO. ${nomorUrut}</span>
         </div>
         <div style="padding:3px 6px 2px;border-bottom:1px solid #d1d5db;flex-shrink:0">
           <p style="font-weight:700;font-size:14.5px;line-height:1.25;margin:0;color:#111;word-break:break-word">${jamaah.nama_lengkap}</p>
@@ -176,7 +176,7 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
         const headerH = 8.5
         pdf.setFont('helvetica', 'bold'); pdf.setFontSize(15); pdf.setTextColor(0)
         pdf.text(jamaah.kode_jamaah ?? hewan.kode_resi, x + 2.5, y + 5, { charSpace: 0.25 })
-        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8); pdf.setTextColor(100)
+        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(15); pdf.setTextColor(0)
         pdf.text(`NO. ${nomorUrut}`, x + lw - 2.5, y + 5, { align: 'right' })
 
         // Garis tebal di bawah header
@@ -430,4 +430,5 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
     </div>
   )
 }
+
 
