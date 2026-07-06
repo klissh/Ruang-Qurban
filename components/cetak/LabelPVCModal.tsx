@@ -38,7 +38,7 @@ function LabelCard({ hewan, jamaah, nomorUrut, lw, lh }: {
       className="border border-gray-800 bg-white flex flex-col overflow-hidden"
     >
       {/* Kode hewan + nomor urut pengurban — putih, no ink fill */}
-      <div className="flex items-baseline justify-between px-[6px] pt-[4px] pb-[2px] border-b-2 border-gray-800 flex-shrink-0">
+      <div className="flex items-center justify-between px-[6px] py-[3px] border-b-2 border-gray-800 flex-shrink-0">
         <span className="font-extrabold text-[18px] tracking-[0.5px] font-sans leading-none text-black">
           {jamaah.kode_jamaah ?? hewan.kode_resi}
         </span>
@@ -48,7 +48,7 @@ function LabelCard({ hewan, jamaah, nomorUrut, lw, lh }: {
       </div>
 
       {/* Nama */}
-      <div className="px-[6px] pt-[3px] pb-[2px] border-b border-gray-300 flex-shrink-0">
+      <div className="px-[6px] py-[3px] border-b border-gray-300 flex-shrink-0">
         <p className="font-bold text-[15px] leading-[1.25] text-gray-900 break-words">
           {jamaah.nama_lengkap}
         </p>
@@ -68,7 +68,7 @@ function LabelCard({ hewan, jamaah, nomorUrut, lw, lh }: {
 
       {/* Telepon — selalu di bawah */}
       {jamaah.no_hp && (
-        <div className="px-[6px] pb-[3px] pt-[2px] border-t border-gray-300 flex-shrink-0">
+        <div className="px-[6px] py-[3px] border-t border-gray-300 flex-shrink-0">
           <p className="text-[14px] font-bold text-gray-900 leading-none">
             Telp. {jamaah.no_hp}
           </p>
@@ -122,18 +122,18 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
   function buildPrintHTML() {
     const labelHTMLs = labels.map(({ hewan, jamaah, nomorUrut }) => `
       <div style="width:${lw}mm;height:${lh}mm;border:1px solid #1f2937;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;break-inside:avoid;font-family:Arial,Helvetica,sans-serif;background:white">
-        <div style="display:flex;align-items:baseline;justify-content:space-between;padding:3px 6px 2px;border-bottom:2px solid #1f2937;flex-shrink:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:3px 6px;border-bottom:2px solid #1f2937;flex-shrink:0">
           <span style="font-weight:800;font-size:17px;letter-spacing:0.5px;color:#000;line-height:1">${jamaah.kode_jamaah ?? hewan.kode_resi}</span>
           <span style="font-weight:800;font-size:17px;letter-spacing:0.5px;color:#000;line-height:1;text-transform:uppercase">NO. ${nomorUrut}</span>
         </div>
-        <div style="padding:3px 6px 2px;border-bottom:1px solid #d1d5db;flex-shrink:0">
+        <div style="padding:3px 6px;border-bottom:1px solid #d1d5db;flex-shrink:0">
           <p style="font-weight:700;font-size:14.5px;line-height:1.25;margin:0;color:#111;word-break:break-word">${jamaah.nama_lengkap}</p>
           ${jamaah.atas_nama ? `<p style="font-size:10.5px;color:#6b7280;margin:2px 0 0;line-height:1.25">a/n ${jamaah.atas_nama}</p>` : ''}
         </div>
         <div style="padding:2px 6px;flex:1;overflow:hidden;display:flex;align-items:center">
           <p style="font-size:13px;line-height:1.4;margin:0;color:#374151;word-break:break-word;white-space:normal">${jamaah.alamat_lengkap ?? '—'}</p>
         </div>
-        ${jamaah.no_hp ? `<div style="padding:2px 6px 3px;border-top:1px solid #d1d5db;flex-shrink:0"><p style="font-size:13.5px;font-weight:700;color:#111;margin:0;line-height:1.25">Telp. ${jamaah.no_hp}</p></div>` : ''}
+        ${jamaah.no_hp ? `<div style="padding:3px 6px;border-top:1px solid #d1d5db;flex-shrink:0"><p style="font-size:13.5px;font-weight:700;color:#111;margin:0;line-height:1.25">Telp. ${jamaah.no_hp}</p></div>` : ''}
       </div>`).join('')
 
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
@@ -430,5 +430,6 @@ export default function LabelPVCModal({ data, onClose, onBack }: Props) {
     </div>
   )
 }
+
 
 
