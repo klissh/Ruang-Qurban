@@ -217,36 +217,60 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
         </div>
       </div>
 
-      {/* Floating bulk action bar — fixed di bawah layar, muncul saat ada item dipilih */}
+      {/* ── Floating bulk bar — muncul saat ada jamaah yang diselect ── */}
       {selected.size > 0 && (
         <ModalPortal>
           <div style={{
-            position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
-            zIndex: 8888, width: 'calc(100% - 32px)', maxWidth: 640,
-            background: 'rgba(7,18,11,0.97)', backdropFilter: 'blur(24px)',
-            border: '1px solid rgba(16,185,129,0.35)', borderRadius: 16,
-            boxShadow: '0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(16,185,129,0.1)',
-            padding: '12px 16px',
+            position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)',
+            zIndex: 8888,
+            width: 'min(calc(100vw - 32px), 480px)',
+            background: 'rgba(7,18,11,0.97)', backdropFilter: 'blur(28px)',
+            border: '1px solid rgba(16,185,129,0.3)',
+            borderRadius: 20,
+            boxShadow: '0 12px 48px rgba(0,0,0,0.65)',
+            padding: '14px 18px',
+            display: 'flex', alignItems: 'center', gap: 12,
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <span style={{ fontSize: 13, color: '#34d399', fontWeight: 700 }}>
-                {selected.size} jamaah dipilih
+            {/* Kiri: jumlah dipilih */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ fontSize: 14, fontWeight: 800, color: '#34d399' }}>{selected.size}</span>
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginLeft: 5 }}>
+                {selected.size === 1 ? 'pengurban dipilih' : 'pengurban dipilih'}
               </span>
-              <button onClick={() => setSelected(new Set())}
-                style={{ marginLeft: 'auto', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '4px 10px', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', fontSize: 12 }}>
-                Batal
-              </button>
             </div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {STATUS_ORDER.map((s) => {
-                const cfg = STATUS_ANTAR_CONFIG[s]
-                return (
-                  <button key={s} onClick={() => openModal([...selected], s)}
-                    style={{ flex: 1, minWidth: 0, padding: '8px 10px', borderRadius: 10, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', border: `1px solid ${cfg.border}`, background: cfg.bg, color: cfg.color, whiteSpace: 'nowrap', textAlign: 'center' }}>
-                    {cfg.label}
-                  </button>
-                )
-              })}
+            {/* Kanan: 2 tombol simetris */}
+            <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+              {/* Tombol X — batal pilih */}
+              <button
+                onClick={() => setSelected(new Set())}
+                style={{
+                  width: 42, height: 42, borderRadius: 12, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'rgba(255,255,255,0.07)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  color: 'rgba(255,255,255,0.55)',
+                  flexShrink: 0,
+                }}>
+                <X size={17} />
+              </button>
+              {/* Tombol ✓ — lanjut ke modal update status */}
+              <button
+                onClick={() => {
+                  const firstId = [...selected][0]
+                  const firstItem = list.find((j) => j.id === firstId)
+                  openModal([...selected], firstItem?.status_antar ?? 'BELUM_DIANTAR')
+                }}
+                style={{
+                  width: 42, height: 42, borderRadius: 12, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'linear-gradient(135deg,#10b981,#059669)',
+                  border: 'none',
+                  color: 'white',
+                  flexShrink: 0,
+                  boxShadow: '0 4px 16px rgba(16,185,129,0.35)',
+                }}>
+                <Check size={17} />
+              </button>
             </div>
           </div>
         </ModalPortal>
