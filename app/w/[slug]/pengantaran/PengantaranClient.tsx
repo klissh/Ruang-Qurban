@@ -194,7 +194,7 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
     { key: 'SEMUA' as const,          label: 'Semua',         count: counts.SEMUA },
     { key: 'BELUM_DIANTAR' as const,  label: 'Belum Diantar', count: counts.BELUM_DIANTAR },
     { key: 'SEDANG_DIANTAR' as const, label: 'Sedang Diantar',count: counts.SEDANG_DIANTAR },
-    { key: 'SUDAH_DIANTAR' as const,  label: 'Sudah Diantar', count: counts.SUDAH_DIANTAR },
+    { key: 'SUDAH_DIANTAR' as const,  label: 'Sudah Diterima', count: counts.SUDAH_DIANTAR },
     { key: 'GAGAL_DIANTAR' as const,  label: 'Gagal Diantar', count: counts.GAGAL_DIANTAR },
   ]
 
