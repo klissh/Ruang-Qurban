@@ -229,7 +229,7 @@ export const STATUS_ANTAR_CONFIG: Record<StatusAntar, {
     dot: '#f59e0b',
   },
   SUDAH_DIANTAR: {
-    label: 'Sudah Diantar',
+    label: 'Sudah Diterima',
     color: '#34d399',
     bg: 'rgba(16,185,129,0.14)',
     border: 'rgba(52,211,153,0.22)',
