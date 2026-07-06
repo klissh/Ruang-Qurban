@@ -41,6 +41,16 @@ const STATUS_GLASS: Record<StatusHewan, { color: string; bg: string; border: str
 }
 
 // Agregat status pengantaran satu kelompok (sapi bisa beda-beda per orang)
+// Format input kode_publik jadi XXXX-XXXX secara otomatis:
+// - Buang semua karakter selain huruf/angka (termasuk strip yang sudah diketik/paste)
+// - Batasi 8 karakter alfanumerik
+// - Sisipkan strip otomatis setelah 4 karakter pertama
+function formatKodePublikInput(raw: string): string {
+  const cleaned = raw.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8)
+  if (cleaned.length <= 4) return cleaned
+  return `${cleaned.slice(0, 4)}-${cleaned.slice(4)}`
+}
+
 function computeStatusPengantaran(jamaah: TrackingData['jamaah']): { status: StatusAntar; sudah: number; total: number } {
   const total = jamaah.length
   if (total === 0) return { status: 'BELUM_DIANTAR', sudah: 0, total: 0 }
@@ -301,9 +311,10 @@ function TrackingPageContent() {
               <input
                 type="text"
                 value={kode}
-                onChange={(e) => setKode(e.target.value.toUpperCase())}
+                onChange={(e) => setKode(formatKodePublikInput(e.target.value))}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 placeholder="Contoh: X7KQ-2M9R"
+                maxLength={9}
                 style={{
                   width: '100%', background: 'rgba(255,255,255,0.05)',
                   border: '1px solid rgba(255,255,255,0.09)', color: 'rgba(255,255,255,0.9)',
