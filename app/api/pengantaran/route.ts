@@ -18,10 +18,11 @@ export async function PATCH(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { ids, status_antar, diantar_oleh } = body as {
+  const { ids, status_antar, diantar_oleh, keterangan_gagal } = body as {
     ids: string[]
     status_antar: StatusAntar
     diantar_oleh?: string | null
+    keterangan_gagal?: string | null
   }
 
   if (!ids?.length) {
@@ -31,10 +32,16 @@ export async function PATCH(request: NextRequest) {
   const updateData: Record<string, string | null> = { status_antar }
 
   // waktu_antar: kosong jika BELUM_DIANTAR, isi timestamp untuk semua status lain
-  // (termasuk GAGAL_DIANTAR — perlu tahu kapan percobaan pengantaran gagal)
   updateData.waktu_antar = status_antar === 'BELUM_DIANTAR' ? null : new Date().toISOString()
 
   if (diantar_oleh !== undefined) updateData.diantar_oleh = diantar_oleh?.trim() || null
+
+  // keterangan_gagal: isi jika GAGAL_DIANTAR, kosongkan untuk status lain
+  if (status_antar === 'GAGAL_DIANTAR') {
+    updateData.keterangan_gagal = keterangan_gagal?.trim() || null
+  } else {
+    updateData.keterangan_gagal = null
+  }
 
   const { data, error } = await supabase
     .from('jamaah')
@@ -42,7 +49,7 @@ export async function PATCH(request: NextRequest) {
     .in('id', ids)
     .eq('id_workspace', profile.id_workspace)
     .is('deleted_at', null)
-    .select('id, kode_jamaah, status_antar, waktu_antar, diantar_oleh')
+    .select('id, kode_jamaah, status_antar, waktu_antar, diantar_oleh, keterangan_gagal')
 
   if (error) {
     return NextResponse.json({ error: 'Gagal memperbarui status pengantaran' }, { status: 500 })
