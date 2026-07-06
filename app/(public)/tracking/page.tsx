@@ -19,6 +19,7 @@ interface TrackingData {
     kode_jamaah: string | null
     status_antar: StatusAntar
     diantar_oleh: string | null
+    keterangan_gagal: string | null
   }>
   workspace_stats: {
     totalSapi: number
@@ -638,6 +639,12 @@ function TrackingPageContent() {
                           {j.status_antar === 'SEDANG_DIANTAR' && j.diantar_oleh && (
                             <p style={{ fontSize: 11, color: STATUS_ANTAR_CONFIG.SEDANG_DIANTAR.color, fontWeight: 600, margin: '3px 0 0', display: 'flex', alignItems: 'center', gap: 4 }}>
                               <Truck size={10} /> Diantar oleh: {j.diantar_oleh}
+                            </p>
+                          )}
+                          {j.status_antar === 'GAGAL_DIANTAR' && (
+                            <p style={{ fontSize: 11, color: STATUS_ANTAR_CONFIG.GAGAL_DIANTAR.color, fontWeight: 600, margin: '3px 0 0', display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <AlertCircle size={10} style={{ flexShrink: 0 }} />
+                              {j.keterangan_gagal ?? 'Gagal diantar'}
                             </p>
                           )}
                         </div>
