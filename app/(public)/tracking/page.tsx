@@ -642,10 +642,12 @@ function TrackingPageContent() {
                             </p>
                           )}
                           {j.status_antar === 'GAGAL_DIANTAR' && (
-                            <p style={{ fontSize: 11, color: STATUS_ANTAR_CONFIG.GAGAL_DIANTAR.color, fontWeight: 600, margin: '3px 0 0', display: 'flex', alignItems: 'center', gap: 4 }}>
-                              <AlertCircle size={10} style={{ flexShrink: 0 }} />
-                              {j.keterangan_gagal ?? 'Gagal diantar'}
-                            </p>
+                            <div style={{ marginTop: 5, display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 6, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.22)' }}>
+                              <AlertCircle size={9} style={{ color: '#f87171', flexShrink: 0 }} />
+                              <span style={{ fontSize: 10.5, color: '#fca5a5', fontWeight: 600 }}>
+                                {j.keterangan_gagal ?? 'Gagal diantar'}
+                              </span>
+                            </div>
                           )}
                         </div>
                         {result.status === 'SELESAI' && (
