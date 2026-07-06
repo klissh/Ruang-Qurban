@@ -19,6 +19,7 @@ interface JamaahItem {
   no_hp: string | null; alamat_lengkap: string | null
   kode_jamaah: string | null; status_antar: StatusAntar
   waktu_antar: string | null; diantar_oleh: string | null
+  keterangan_gagal: string | null
   id_hewan: string | null; hewan: HewanRef | HewanRef[] | null
 }
 function getHewan(j: JamaahItem): HewanRef | null {
@@ -76,6 +77,7 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
     kurirId: string
     kurirCustom: string
     showCustom: boolean
+    keterangan: string
   } | null>(null)
 
   const counts = {
@@ -143,14 +145,18 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
       const nama = uniqueDiantar[0]
       const match = kurirList.find((k) => k.nama === nama)
       if (match) {
-        kurirId = match.id          // cocok dengan daftar kurir → pilih dari dropdown
+        kurirId = match.id
       } else {
-        kurirCustom = nama           // nama custom / kurir lama → tampilkan di input teks
+        kurirCustom = nama
         showCustom = true
       }
     }
 
-    setModal({ ids, statusAntar: currentStatus, kurirId, kurirCustom, showCustom })
+    // Pre-fill keterangan_gagal jika semua yang dipilih punya keterangan yang sama
+    const uniqueKet = [...new Set(selectedItems.map((j) => j.keterangan_gagal).filter((v): v is string => !!v))]
+    const keterangan = uniqueKet.length === 1 ? uniqueKet[0] : ''
+
+    setModal({ ids, statusAntar: currentStatus, kurirId, kurirCustom, showCustom, keterangan })
   }
 
   function resolveDiantarOleh(m: NonNullable<typeof modal>): string {
@@ -167,13 +173,13 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
       const res = await fetch('/api/pengantaran', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: modal.ids, status_antar: modal.statusAntar, diantar_oleh: diantarOleh || null }),
+        body: JSON.stringify({ ids: modal.ids, status_antar: modal.statusAntar, diantar_oleh: diantarOleh || null, keterangan_gagal: modal.statusAntar === 'GAGAL_DIANTAR' ? (modal.keterangan || null) : null }),
       })
       if (!res.ok) throw new Error()
       const now = new Date().toISOString()
       setList((prev) => prev.map((j) =>
         modal.ids.includes(j.id)
-          ? { ...j, status_antar: modal.statusAntar, waktu_antar: modal.statusAntar === 'BELUM_DIANTAR' ? null : now, diantar_oleh: diantarOleh || null }
+          ? { ...j, status_antar: modal.statusAntar, waktu_antar: modal.statusAntar === 'BELUM_DIANTAR' ? null : now, diantar_oleh: diantarOleh || null, keterangan_gagal: modal.statusAntar === 'GAGAL_DIANTAR' ? (modal.keterangan || null) : null }
           : j
       ))
       setSelected(new Set())
@@ -443,7 +449,7 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
                     {j.status_antar === 'GAGAL_DIANTAR' && (
                       <div style={{ marginTop: 6, padding: '5px 10px', borderRadius: 8, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', gap: 6 }}>
                         <AlertTriangle size={11} style={{ color: '#f87171', flexShrink: 0 }} />
-                        <span style={{ fontSize: 11, color: '#fca5a5' }}>Pengurban tidak ada / tidak bisa menerima — dikembalikan ke masjid</span>
+                        <span style={{ fontSize: 11, color: '#fca5a5' }}>{j.keterangan_gagal ?? 'Gagal diantar — dikembalikan ke masjid'}</span>
                       </div>
                     )}
                   </div>
@@ -509,7 +515,7 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
                       const cfg    = STATUS_ANTAR_CONFIG[s]
                       const active = modal.statusAntar === s
                       return (
-                        <button key={s} onClick={() => setModal({ ...modal, statusAntar: s })}
+                        <button key={s} onClick={() => setModal({ ...modal, statusAntar: s, keterangan: s !== 'GAGAL_DIANTAR' ? '' : modal.keterangan })}
                           style={{ padding: '11px 16px', borderRadius: 12, fontSize: 13.5, fontWeight: active ? 700 : 500, cursor: 'pointer', textAlign: 'left', border: active ? `1px solid ${cfg.border}` : '1px solid rgba(255,255,255,0.08)', background: active ? cfg.bg : 'rgba(255,255,255,0.03)', color: active ? cfg.color : 'rgba(255,255,255,0.55)', transition: 'all 0.15s' }}>
                           {cfg.label}
                         </button>
@@ -546,6 +552,45 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
                   </div>
                 )}
               </div>
+
+              {/* Keterangan gagal — hanya muncul saat GAGAL_DIANTAR */}
+              {modal.statusAntar === 'GAGAL_DIANTAR' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.36)', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: 10 }}>
+                    Alasan Gagal <span style={{ opacity: 0.5, fontWeight: 400, textTransform: 'none' }}>— opsional</span>
+                  </label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {[
+                      { value: 'Tidak ada orang / ditelpon tidak diangkat', icon: '📵' },
+                      { value: 'Alamat belum ketemu',                        icon: '📍' },
+                      { value: 'Kendala Kendaraan Kurir',                    icon: '🔧' },
+                      { value: 'Kondisi Cuaca Buruk',                        icon: '⛈️' },
+                    ].map(({ value, icon }) => {
+                      const active = modal.keterangan === value
+                      return (
+                        <button key={value}
+                          onClick={() => setModal({ ...modal, keterangan: active ? '' : value })}
+                          style={{
+                            padding: '10px 14px', borderRadius: 11, fontSize: 13, fontWeight: active ? 700 : 500,
+                            cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10,
+                            border: active ? '1px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.08)',
+                            background: active ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.03)',
+                            color: active ? '#fca5a5' : 'rgba(255,255,255,0.55)',
+                            transition: 'all 0.15s',
+                          }}>
+                          <span style={{ fontSize: 16, lineHeight: 1, flexShrink: 0 }}>{icon}</span>
+                          <span>{value}</span>
+                          {active && (
+                            <span style={{ marginLeft: 'auto', width: 18, height: 18, borderRadius: '50%', background: 'rgba(239,68,68,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <Check size={10} color="#fca5a5" />
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Footer */}
               <div style={{ padding: '16px 24px', borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', gap: 10 }}>
