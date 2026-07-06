@@ -95,6 +95,7 @@ export interface Jamaah {
   status_antar: StatusAntar
   waktu_antar: string | null
   diantar_oleh: string | null
+  keterangan_gagal: string | null
   created_at: string
   updated_at: string
   deleted_at: string | null
