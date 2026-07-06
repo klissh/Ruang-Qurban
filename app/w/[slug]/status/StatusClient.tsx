@@ -10,7 +10,7 @@ import { isValidGDriveUrl, convertGDriveToPreview } from '@/lib/utils'
 import {
   Beef, PawPrint, Video, X, Activity,
   Clock, Flame, CheckCircle2, ChevronRight, Search,
-  ClipboardList, Truck, CheckCheck, Scissors, PackageCheck,
+  ClipboardList, Truck, CheckCheck, Scissors, PackageCheck, Check,
 } from 'lucide-react'
 
 interface HewanItem {
@@ -25,6 +25,11 @@ interface ModalState {
   hewan: HewanItem
   statusBaru: StatusHewan
   urlDok: string
+}
+
+interface BulkModalState {
+  ids: string[]
+  statusBaru: StatusHewan
 }
 
 const SG: Record<StatusHewan, { color: string; bg: string; border: string; dot: string; label: string }> = {
@@ -58,6 +63,11 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(20)
 
+  // ── Select (satuan / semua) ──
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [bulkModal, setBulkModal] = useState<BulkModalState | null>(null)
+  const [bulkLoading, setBulkLoading] = useState(false)
+
   // ── Counts untuk filter badges ──
   const counts: Record<string, number> = {
     SEMUA:    list.length,
@@ -88,6 +98,96 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
   useEffect(() => { setPage(1) }, [search, filter])
   const totalPages = perPage === 0 ? 1 : Math.ceil(filtered.length / perPage)
   const paginated  = perPage === 0 ? filtered : filtered.slice((page - 1) * perPage, page * perPage)
+
+  // Bersihkan selection kalau item yang terpilih hilang dari filter (mis. status berubah)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    setSelected((prev) => {
+      const validIds = new Set(list.map((h) => h.id))
+      let changed = false
+      const next = new Set<string>()
+      prev.forEach((id) => {
+        if (validIds.has(id)) next.add(id)
+        else changed = true
+      })
+      return changed ? next : prev
+    })
+  }, [list])
+
+  function toggleSelect(id: string) {
+    setSelected((p) => {
+      const n = new Set(p)
+      n.has(id) ? n.delete(id) : n.add(id)
+      return n
+    })
+  }
+
+  const allFilteredSelected = filtered.length > 0 && filtered.every((h) => selected.has(h.id))
+  const someFilteredSelected = filtered.some((h) => selected.has(h.id))
+
+  function toggleSelectAllFiltered() {
+    setSelected((p) => {
+      const n = new Set(p)
+      if (allFilteredSelected) {
+        filtered.forEach((h) => n.delete(h.id))
+      } else {
+        filtered.forEach((h) => n.add(h.id))
+      }
+      return n
+    })
+  }
+
+  function openBulkModal() {
+    const ids = [...selected]
+    if (ids.length === 0) return
+    // Default status baru: status hewan pertama yang dipilih
+    const first = list.find((h) => h.id === ids[0])
+    setBulkModal({ ids, statusBaru: first?.status ?? 'TERDAFTAR' })
+  }
+
+  async function handleBulkSimpan() {
+    if (!bulkModal) return
+    setBulkLoading(true)
+    try {
+      const results = await Promise.allSettled(
+        bulkModal.ids.map((id_hewan) =>
+          fetch('/api/hewan', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id_hewan, status_baru: bulkModal.statusBaru }),
+          }).then((res) => { if (!res.ok) throw new Error(); return id_hewan })
+        )
+      )
+
+      const succeededIds = results
+        .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled')
+        .map((r) => r.value)
+      const failedCount = results.length - succeededIds.length
+
+      if (succeededIds.length > 0) {
+        setList((prev) =>
+          prev.map((h) =>
+            succeededIds.includes(h.id) ? { ...h, status: bulkModal.statusBaru } : h
+          )
+        )
+      }
+
+      if (failedCount === 0) {
+        toast.success(`${succeededIds.length} hewan → ${STATUS_CONFIG[bulkModal.statusBaru].label}`)
+      } else if (succeededIds.length > 0) {
+        toast.error(`${succeededIds.length} berhasil, ${failedCount} gagal diperbarui`)
+      } else {
+        toast.error('Gagal memperbarui status')
+      }
+
+      setSelected(new Set())
+      setBulkModal(null)
+    } catch {
+      toast.error('Gagal memperbarui status')
+    } finally {
+      setBulkLoading(false)
+    }
+  }
 
   async function handleSimpan() {
     if (!modal) return
@@ -195,7 +295,7 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
               Status Hewan
             </h1>
             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.32)', margin: '4px 0 0' }}>
-              Klik kartu untuk memperbarui status
+              Klik kartu untuk memperbarui status, atau centang untuk pilih beberapa sekaligus
             </p>
           </div>
 
@@ -282,20 +382,49 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
         </div>
       </div>
 
+      {/* ── Bar pilih semua ── */}
+      {filtered.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '14px 20px 0', flexWrap: 'wrap' }}>
+          <button
+            onClick={toggleSelectAllFiltered}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+              background: 'transparent', border: 'none', padding: '4px 2px',
+            }}
+          >
+            <div style={{
+              width: 17, height: 17, borderRadius: 5, flexShrink: 0,
+              border: `2px solid ${allFilteredSelected || someFilteredSelected ? '#10b981' : 'rgba(255,255,255,0.22)'}`,
+              background: allFilteredSelected ? '#10b981' : someFilteredSelected ? 'rgba(16,185,129,0.3)' : 'transparent',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              {(allFilteredSelected || someFilteredSelected) && <Check size={10} color="white" />}
+            </div>
+            <span style={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>
+              {allFilteredSelected ? 'Batalkan semua' : `Pilih semua (${filtered.length})`}
+            </span>
+          </button>
+          {selected.size > 0 && (
+            <span style={{ fontSize: 12, color: '#34d399', fontWeight: 700 }}>{selected.size} dipilih</span>
+          )}
+        </div>
+      )}
+
       {/* ── Grid ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5" style={{ padding: '20px 20px', gap: 10 }}>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5" style={{ padding: '12px 20px 20px', gap: 10 }}>
         {paginated.map((hewan) => {
           const sg = SG[hewan.status]
           const isSapi = hewan.jenis_hewan === 'SAPI'
-          const isSelesai = hewan.status === 'SELESAI'
+          const isSel = selected.has(hewan.id)
 
           return (
             <button
               key={hewan.id}
               onClick={() => setModal({ hewan, statusBaru: hewan.status, urlDok: hewan.url_dokumentasi ?? '' })}
               style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                position: 'relative',
+                background: isSel ? 'rgba(16,185,129,0.06)' : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${isSel ? 'rgba(16,185,129,0.35)' : 'rgba(255,255,255,0.08)'}`,
                 borderLeft: `3px solid ${sg.dot}`,
                 borderRadius: 13,
                 padding: '14px 16px',
@@ -307,22 +436,36 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
                 gap: 0,
               }}
             >
+              {/* Checkbox — pilih satuan, tidak membuka modal */}
+              <div
+                onClick={(e) => { e.stopPropagation(); toggleSelect(hewan.id) }}
+                style={{
+                  position: 'absolute', top: 10, right: 10, zIndex: 1,
+                  width: 18, height: 18, borderRadius: 5, cursor: 'pointer',
+                  border: `2px solid ${isSel ? '#10b981' : 'rgba(255,255,255,0.22)'}`,
+                  background: isSel ? '#10b981' : 'rgba(0,0,0,0.15)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                {isSel && <Check size={10} color="white" />}
+              </div>
+
               {/* Top row: kode + jenis icon */}
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10, paddingRight: 22 }}>
                 <span style={{
                   fontFamily: 'ui-monospace,monospace', fontWeight: 800, fontSize: 14.5,
                   color: 'rgba(255,255,255,0.92)', letterSpacing: 0.3, lineHeight: 1.2,
                 }}>
                   {hewan.kode_resi}
                 </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
-                  {isSapi
-                    ? <Beef size={13} color="rgba(255,255,255,0.3)" />
-                    : <PawPrint size={13} color="rgba(255,255,255,0.3)" />}
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)', fontWeight: 500 }}>
-                    {isSapi ? 'Sapi' : 'Kambing'}
-                  </span>
-                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: -8, marginBottom: 10 }}>
+                {isSapi
+                  ? <Beef size={13} color="rgba(255,255,255,0.3)" />
+                  : <PawPrint size={13} color="rgba(255,255,255,0.3)" />}
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)', fontWeight: 500 }}>
+                  {isSapi ? 'Sapi' : 'Kambing'}
+                </span>
               </div>
 
               {/* Status badge */}
@@ -396,7 +539,57 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
         </div>
       )}
 
-      {/* ── Modal Update Status ── */}
+      {/* ── Floating bulk bar — muncul saat ada hewan yang diselect ── */}
+      {selected.size > 0 && createPortal(
+        <div style={{
+          position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 8888,
+          width: 'min(calc(100vw - 32px), 480px)',
+          background: 'rgba(7,18,11,0.97)', backdropFilter: 'blur(28px)',
+          border: '1px solid rgba(16,185,129,0.3)',
+          borderRadius: 20,
+          boxShadow: '0 12px 48px rgba(0,0,0,0.65)',
+          padding: '14px 18px',
+          display: 'flex', alignItems: 'center', gap: 12,
+        }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ fontSize: 14, fontWeight: 800, color: '#34d399' }}>{selected.size}</span>
+            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginLeft: 5 }}>
+              hewan dipilih
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+            <button
+              onClick={() => setSelected(new Set())}
+              style={{
+                width: 42, height: 42, borderRadius: 12, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'rgba(255,255,255,0.07)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                color: 'rgba(255,255,255,0.55)',
+                flexShrink: 0,
+              }}>
+              <X size={17} />
+            </button>
+            <button
+              onClick={openBulkModal}
+              style={{
+                width: 42, height: 42, borderRadius: 12, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'linear-gradient(135deg,#10b981,#059669)',
+                border: 'none',
+                color: 'white',
+                flexShrink: 0,
+                boxShadow: '0 4px 16px rgba(16,185,129,0.35)',
+              }}>
+              <Check size={17} />
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── Modal Update Status (satuan) ── */}
       {modal && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(10px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{
@@ -523,6 +716,86 @@ export default function StatusClient({ hewanList }: { hewanList: HewanItem[] }) 
               </button>
               <button onClick={handleSimpan} disabled={loading} style={{ flex: 2, padding: '12px', background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none', borderRadius: 11, color: 'white', fontSize: 13.5, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px rgba(16,185,129,0.35)', opacity: loading ? 0.6 : 1 }}>
                 {loading ? 'Menyimpan...' : 'Simpan Status'}
+              </button>
+            </div>
+          </div>
+        </div>
+      , document.body)}
+
+      {/* ── Modal Update Status (bulk) ── */}
+      {bulkModal && createPortal(
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(10px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{
+            background: 'rgba(7,18,11,0.97)',
+            backdropFilter: 'blur(36px)',
+            WebkitBackdropFilter: 'blur(36px)',
+            border: '1px solid rgba(255,255,255,0.11)',
+            borderTop: '1px solid rgba(255,255,255,0.2)',
+            borderRadius: 24,
+            width: '100%', maxWidth: 480,
+            boxShadow: '0 32px 80px rgba(0,0,0,0.52)',
+          }}>
+
+            {/* Header */}
+            <div style={{ padding: '22px 24px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+              <div>
+                <p style={{ fontWeight: 800, fontSize: 16, color: 'rgba(255,255,255,0.95)', margin: 0 }}>
+                  Update Status Massal
+                </p>
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', margin: '4px 0 0' }}>
+                  {bulkModal.ids.length} hewan akan diupdate
+                </p>
+              </div>
+              <button onClick={() => setBulkModal(null)} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.38)', flexShrink: 0 }}>
+                <X size={14} />
+              </button>
+            </div>
+
+            {/* Status grid */}
+            <div style={{ padding: '18px 24px 14px' }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.6px', marginBottom: 10 }}>
+                UBAH STATUS
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {STATUS_ORDER.map((status) => {
+                  const sg = SG[status]
+                  const isSelected = bulkModal.statusBaru === status
+                  return (
+                    <button
+                      key={status}
+                      onClick={() => setBulkModal((m) => m ? { ...m, statusBaru: status } : m)}
+                      style={{
+                        padding: '12px 14px', borderRadius: 11, textAlign: 'left',
+                        cursor: 'pointer', transition: 'all 0.15s',
+                        background: isSelected ? sg.bg : 'rgba(255,255,255,0.04)',
+                        border: `1px solid ${isSelected ? sg.border : 'rgba(255,255,255,0.07)'}`,
+                        borderLeft: `3px solid ${isSelected ? sg.dot : 'rgba(255,255,255,0.07)'}`,
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ color: isSelected ? sg.color : 'rgba(255,255,255,0.3)' }}>
+                          {STATUS_ICON[status]}
+                        </span>
+                        <span style={{ fontSize: 12.5, fontWeight: 700, color: isSelected ? sg.color : 'rgba(255,255,255,0.5)' }}>
+                          {sg.label}
+                        </span>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', marginTop: 12, lineHeight: 1.5 }}>
+                Catatan: dokumentasi tidak diubah lewat update massal — ubah satuan lewat kartu hewan jika perlu.
+              </p>
+            </div>
+
+            {/* Buttons */}
+            <div style={{ padding: '4px 24px 22px', display: 'flex', gap: 10 }}>
+              <button onClick={() => setBulkModal(null)} style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 11, color: 'rgba(255,255,255,0.5)', fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}>
+                Batal
+              </button>
+              <button onClick={handleBulkSimpan} disabled={bulkLoading} style={{ flex: 2, padding: '12px', background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none', borderRadius: 11, color: 'white', fontSize: 13.5, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px rgba(16,185,129,0.35)', opacity: bulkLoading ? 0.6 : 1 }}>
+                {bulkLoading ? 'Menyimpan...' : `Simpan untuk ${bulkModal.ids.length} hewan`}
               </button>
             </div>
           </div>
