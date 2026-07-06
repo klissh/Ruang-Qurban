@@ -65,8 +65,8 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
   const [page, setPage]           = useState(1)
   const [perPage, setPerPage]     = useState(10)
   const [selected, setSelected]   = useState<Set<string>>(new Set())
-  // Mulai semua EXPANDED (set kosong = tidak ada yang collapsed)
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  // Mulai semua COLLAPSED (set kosong = tidak ada yang expanded)
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [loading, setLoading]     = useState(false)
 
   // Modal update status
@@ -117,8 +117,8 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
   function toggleSelect(id: string) {
     setSelected((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
   }
-  function toggleCollapse(key: string) {
-    setCollapsed((p) => { const n = new Set(p); n.has(key) ? n.delete(key) : n.add(key); return n })
+  function toggleExpand(key: string) {
+    setExpanded((p) => { const n = new Set(p); n.has(key) ? n.delete(key) : n.add(key); return n })
   }
   function toggleGroupSelect(items: JamaahItem[]) {
     const ids = items.map((i) => i.id)
@@ -217,25 +217,39 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
         </div>
       </div>
 
-      {/* Bulk action bar */}
+      {/* Floating bulk action bar — fixed di bawah layar, muncul saat ada item dipilih */}
       {selected.size > 0 && (
-        <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 12, background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12.5, color: '#34d399', fontWeight: 600 }}>{selected.size} dipilih</span>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {STATUS_ORDER.map((s) => {
-              const cfg = STATUS_ANTAR_CONFIG[s]
-              return (
-                <button key={s} onClick={() => openModal([...selected], s)}
-                  style={{ padding: '5px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${cfg.border}`, background: cfg.bg, color: cfg.color }}>
-                  → {cfg.label}
-                </button>
-              )
-            })}
+        <ModalPortal>
+          <div style={{
+            position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+            zIndex: 8888, width: 'calc(100% - 32px)', maxWidth: 640,
+            background: 'rgba(7,18,11,0.97)', backdropFilter: 'blur(24px)',
+            border: '1px solid rgba(16,185,129,0.35)', borderRadius: 16,
+            boxShadow: '0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(16,185,129,0.1)',
+            padding: '12px 16px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <span style={{ fontSize: 13, color: '#34d399', fontWeight: 700 }}>
+                {selected.size} jamaah dipilih
+              </span>
+              <button onClick={() => setSelected(new Set())}
+                style={{ marginLeft: 'auto', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '4px 10px', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', fontSize: 12 }}>
+                Batal
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {STATUS_ORDER.map((s) => {
+                const cfg = STATUS_ANTAR_CONFIG[s]
+                return (
+                  <button key={s} onClick={() => openModal([...selected], s)}
+                    style={{ flex: 1, minWidth: 0, padding: '8px 10px', borderRadius: 10, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', border: `1px solid ${cfg.border}`, background: cfg.bg, color: cfg.color, whiteSpace: 'nowrap', textAlign: 'center' }}>
+                    {cfg.label}
+                  </button>
+                )
+              })}
+            </div>
           </div>
-          <button onClick={() => setSelected(new Set())} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.35)', fontSize: 12 }}>
-            Batal pilih
-          </button>
-        </div>
+        </ModalPortal>
       )}
 
       {/* Filter pills — 2-col grid mobile, flex wrap desktop */}
@@ -304,7 +318,7 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
       {paginatedGroups.map((group) => {
         const h = group.hewan
         const groupKey = h?.id ?? 'lainnya'
-        const isCollapsed = collapsed.has(groupKey)
+        const isCollapsed = !expanded.has(groupKey)
         const allSel = group.items.every((i) => selected.has(i.id))
         const someSel = group.items.some((i) => selected.has(i.id))
         const isSapi = h?.jenis_hewan === 'SAPI'
@@ -313,7 +327,7 @@ export default function PengantaranClient({ jamaahList, kurirList: initialKurirL
           <div key={groupKey} style={{ ...G.card, marginBottom: 10 }}>
             {/* Group header */}
             <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', borderBottom: isCollapsed ? 'none' : '1px solid rgba(255,255,255,0.06)' }}
-              onClick={() => toggleCollapse(groupKey)}>
+              onClick={() => toggleExpand(groupKey)}>
               {/* Checkbox grup */}
               <div onClick={(e) => { e.stopPropagation(); toggleGroupSelect(group.items) }}
                 style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${allSel ? '#10b981' : someSel ? '#10b981' : 'rgba(255,255,255,0.2)'}`, background: allSel ? '#10b981' : someSel ? 'rgba(16,185,129,0.3)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
