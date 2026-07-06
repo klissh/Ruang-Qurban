@@ -13,6 +13,7 @@ interface JamaahRow {
   status_antar: StatusAntar
   waktu_antar: string | null
   diantar_oleh: string | null
+  keterangan_gagal: string | null
   id_hewan: string | null
   hewan: { id: string; kode_resi: string; jenis_hewan: JenisHewan; status: string } | { id: string; kode_resi: string; jenis_hewan: JenisHewan; status: string }[] | null
 }
@@ -56,7 +57,7 @@ export default async function PengantaranPage({ params }: { params: Promise<{ sl
       .from('jamaah')
       .select(`
         id, nama_lengkap, atas_nama, no_hp, alamat_lengkap,
-        kode_jamaah, status_antar, waktu_antar, diantar_oleh,
+        kode_jamaah, status_antar, waktu_antar, diantar_oleh, keterangan_gagal,
         id_hewan, hewan!inner ( id, kode_resi, jenis_hewan, status )
       `)
       .eq('id_workspace', profile.id_workspace)
